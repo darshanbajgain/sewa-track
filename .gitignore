@@ -1,0 +1,30 @@
+node_modules/
+dist/
+.next/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# AI agent files: local only, never commit (may hold private context or URLs)
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+AGENTS.local.md
+GEMINI.md
+.claude/
+.cursor/
+.codex/
+.agents/
+
+# Personal editor settings
+.vscode/
+.idea/
+
+# Cloud credentials: never commit
+.aws/
+
+# Private docs (full PRD with personal notes)
+docs/private/

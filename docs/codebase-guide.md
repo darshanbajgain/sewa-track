@@ -63,7 +63,7 @@ sewa-track/
 │  ├─ api/                      ✅ Express + TypeScript REST API
 │  │  ├─ db/
 │  │  │  ├─ init/               ✅ SQL run once by Docker on first start (creates test DB)
-│  │  │  └─ migrations/         🔜 versioned schema changes: 001_init.sql, 002_...
+│  │  │  └─ migrations/         ✅ versioned schema changes: 001_init.sql, ... (see database.md)
 │  │  ├─ src/                   ✅ application code (see §9)
 │  │  ├─ test/                  ✅ integration tests (real app + real test DB)
 │  │  ├─ package.json           ✅ API dependencies and scripts
@@ -77,6 +77,7 @@ sewa-track/
 ├─ docs/
 │  ├─ PRD.md                    ✅ requirements (source of truth for scope)
 │  ├─ codebase-guide.md         ✅ this file
+│  ├─ database.md               ✅ tables, constraints, migrations, SQL explained
 │  └─ decisions/                🔜 ADRs (why we chose X over Y)
 ├─ docker-compose.yml           ✅ local Postgres 16
 ├─ package.json                 ✅ root scripts that run across all packages
@@ -306,6 +307,8 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/app.ts` | `createApp()` builds the Express app and registers middleware and routers. | Does **not** listen on a port, so tests can use it in memory. Middleware order matters. |
 | `src/config/env.ts` | Validates `process.env` with Zod; exports typed `env`. | Fail fast on bad config. `z.coerce.number()` turns `"4000"` into `4000`. |
 | `src/logger.ts` | One pino JSON logger. | `redact` hides `password`, `token`, `applicant`, cookies and auth headers. |
+| `src/db/migrate.ts` | `runMigrations(url)`: applies pending `db/migrations/*.sql`. | One transaction per file, checksum check, advisory lock. See [`database.md`](./database.md#3-migrations). |
+| `src/db/migrate.cli.ts` | `pnpm db:migrate` entry point. | Separate file so tests can import the runner without running it. |
 | `src/db/pool.ts` | Shared `pg.Pool` (max 10 connections) + `closePool()`. | Reusing connections is much faster than one new connection per request. Idle-connection errors are logged, not fatal. |
 | `src/errors.ts` | `ERROR_STATUS` map and `AppError` class. | Codes come from `@sewa/shared`; `satisfies Record<ErrorCode, number>` fails the build if a code has no HTTP status. Throw `new AppError('NOT_FOUND', '…')` anywhere. |
 | `src/types/express.d.ts` | Adds `req.id: string` to Express' `Request` type. | TypeScript "declaration merging". |
@@ -315,8 +318,11 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
 | `test/health.test.ts` | Integration tests for health and the error format. | Real app + real test DB. |
-| `vitest.config.ts` | Test config. | Forces `DATABASE_URL` to the **test** database and silences logs. |
+| `test/schema.test.ts` | Tests that the database rejects bad data. | Each test in a rolled-back transaction. |
+| `test/globalSetup.ts` | Runs migrations on the test DB once before all tests. | Tests always see the real schema. |
+| `vitest.config.ts` | Test config. | Forces `DATABASE_URL` to the **test** database, runs `globalSetup`, runs test files one at a time (shared DB), silences logs. |
 | `db/init/01-create-test-db.sql` | Creates `sewa_track_test`. | Run by Docker once, on an empty volume. |
+| `db/migrations/001_init.sql` | The whole initial schema. | Constraints + append-only trigger. Never edited after merge. |
 
 ---
 
@@ -324,6 +330,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 
 | Kind | Tool | What it proves | Where |
 |---|---|---|---|
+| Schema | Vitest + `pg` | The database itself rejects bad data | `apps/api/test/schema.test.ts` |
 | Unit | Vitest | Pure rules (transitions, overdue, tracking code) | `src/domain/*.test.ts` (🔜) |
 | Integration | Vitest + Supertest + real Postgres | Endpoints work end to end with SQL | `apps/api/test/*.test.ts` |
 | Contract | Vitest | NID client still matches the mock's API | 🔜 |
@@ -348,7 +355,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 |---|---|---|
 | P0 | Repo hygiene: `.gitignore`, public PRD | ✅ |
 | P1 | Monorepo skeleton, Docker Postgres, API `/health`, shared package, CI | ✅ |
-| P2 | SQL migrations + runner, small demo seed (locations, service types, demo users) | 🔜 |
+| P2 | SQL migrations + runner ✅, small demo seed (locations, service types, demo users) 🔜 | 🟡 |
 | P3 | Domain rules: transitions, overdue, tracking code + unit tests | 🔜 |
 | P4 | Read APIs (catalog, locations) + auth | 🔜 |
 | P5 | Requests: submit, track, queue, detail, transitions, fee paid | 🔜 |
@@ -450,10 +457,22 @@ export const roleSchema = z.enum(ROLES);                                        
 Add a value in one place → the type, the validation and the UI all follow.
 `as const` keeps the exact strings as types (`'CITIZEN' | …`) instead of widening to `string`.
 
-**How other packages use it:**
+**How other packages find it (4 pieces):**
 
-- `apps/api/package.json` has `"@sewa/shared": "workspace:*"`: pnpm links the local folder
-  (a symlink in `node_modules`) instead of downloading from npm.
+1. `pnpm-workspace.yaml` lists `apps/*` and `packages/*` as packages.
+2. Each package has a name in its own `package.json` (`@sewa/api`, `@sewa/shared`, later `@sewa/web`).
+3. `apps/api/package.json` has `"@sewa/shared": "workspace:*"`: "use the local package with this name,
+   never download it from npm".
+4. `pnpm install` creates a **symlink**: `apps/api/node_modules/@sewa/shared → ../../../../packages/shared`.
+
+On `import { ROLES } from '@sewa/shared'`, Node follows the symlink, reads `"exports"` in
+`packages/shared/package.json`, and loads `dist/index.js` (TypeScript reads `dist/index.d.ts`).
+The web app (P7) will use the same mechanism: one source, two symlinks.
+
+Each app keeps its **own** `package.json` and dependencies; the root `package.json` only has
+scripts. There is **one** `pnpm-lock.yaml` for the whole repo. pnpm is strict: a package can
+only import dependencies listed in its own `package.json`.
+
 - Import with `import { ROLES } from '@sewa/shared'`.
 - The package is **compiled to `dist/`** first, because in production the API runs as plain
   JavaScript (`node dist/server.js`) and Node cannot run `.ts` files from a dependency.

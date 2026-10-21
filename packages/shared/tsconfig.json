@@ -1,0 +1,9 @@
+{
+  // Compiled to dist/ (JS + .d.ts type files) so both the API and the web can import it.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}

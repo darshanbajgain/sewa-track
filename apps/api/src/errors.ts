@@ -1,7 +1,13 @@
+import type { ErrorCode } from '@sewa/shared';
+
+export type { ErrorCode };
+
 /**
- * Every error the API can return, mapped to its HTTP status (PRD §9).
- * Keeping the list in one place means codes stay consistent across all endpoints,
- * and the frontend can switch on `error.code` instead of parsing messages.
+ * Every error code (defined once in @sewa/shared) mapped to its HTTP status (PRD §9).
+ * The frontend switches on `error.code` instead of parsing messages.
+ *
+ * `satisfies Record<ErrorCode, number>`: if someone adds a code to the shared list and
+ * forgets to map it here, TypeScript fails the build. The list and the map can't drift apart.
  */
 export const ERROR_STATUS = {
   VALIDATION_ERROR: 400,
@@ -13,9 +19,7 @@ export const ERROR_STATUS = {
   RATE_LIMITED: 429,
   INTERNAL: 500,
   UPSTREAM_UNAVAILABLE: 503,
-} as const;
-
-export type ErrorCode = keyof typeof ERROR_STATUS;
+} as const satisfies Record<ErrorCode, number>;
 
 /**
  * An error we throw on purpose, e.g. `throw new AppError('NOT_FOUND', 'Request not found')`.

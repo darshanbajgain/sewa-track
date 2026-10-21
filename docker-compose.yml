@@ -1,0 +1,22 @@
+# Local development only. Demo credentials, never used in production.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sewa
+      POSTGRES_PASSWORD: sewa_dev_password
+      POSTGRES_DB: sewa_track
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # Runs once on first start: creates the separate test database.
+      - ./apps/api/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sewa -d sewa_track"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db_data:

@@ -1,0 +1,17 @@
+{
+  "name": "sewa-track",
+  "private": true,
+  "description": "Demo / portfolio citizen-service request tracker for Nepal. Not affiliated with any government body.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.11.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:migrate": "pnpm --filter @sewa/api db:migrate"
+  }
+}

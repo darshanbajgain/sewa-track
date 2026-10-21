@@ -8,7 +8,8 @@ Read it top to bottom once; after that, use it as a map.
 - Scope and requirements: [`PRD.md`](./PRD.md)
 - This guide is updated in the same change as the code it describes.
 
-**Current status:** Phase P1 (skeleton). The API runs, connects to Postgres and serves `GET /api/v1/health`.
+**Current status:** Phase P1 (skeleton) done. The API runs, connects to Postgres and serves `GET /api/v1/health`;
+shared enums live in `packages/shared`; CI runs type-check, tests and build on every PR.
 Everything else in the PRD is planned (see [§11](#11-build-phases-and-status)).
 
 ---
@@ -30,6 +31,8 @@ Everything else in the PRD is planned (see [§11](#11-build-phases-and-status)).
 13. [How to add a new endpoint (recipe)](#13-how-to-add-a-new-endpoint-recipe)
 14. [Troubleshooting](#14-troubleshooting)
 15. [Glossary](#15-glossary)
+16. [Shared package: `packages/shared`](#16-shared-package-packagesshared)
+17. [Continuous Integration (CI)](#17-continuous-integration-ci)
 
 ---
 
@@ -69,7 +72,8 @@ sewa-track/
 │  ├─ web/                      🔜 Next.js frontend
 │  └─ nid-mock/                 🔜 tiny mock "existing government ID service"
 ├─ packages/
-│  └─ shared/                   🔜 Zod schemas, enums, types used by both api and web
+│  └─ shared/                   ✅ enums, Zod schemas, error types used by both api and web
+├─ .github/workflows/ci.yml     ✅ CI: type-check → test (real Postgres) → build
 ├─ docs/
 │  ├─ PRD.md                    ✅ requirements (source of truth for scope)
 │  ├─ codebase-guide.md         ✅ this file
@@ -134,10 +138,10 @@ Root scripts (run from the repo root):
 
 | Command | What it does |
 |---|---|
-| `pnpm dev` | Start every app in `apps/*` in parallel (`dev` script of each) |
-| `pnpm test` | Run tests in every package |
-| `pnpm typecheck` | Type-check every package without emitting JS |
-| `pnpm build` | Compile every package |
+| `pnpm dev` | Build shared once, then run every package's `dev` script in parallel (shared rebuilds on change) |
+| `pnpm test` | Build shared, then run tests in every package |
+| `pnpm typecheck` | Build shared, then type-check every package without emitting JS |
+| `pnpm build` | Compile every package (pnpm builds `shared` first because the API depends on it) |
 | `pnpm --filter @sewa/api <script>` | Run a script in just one package |
 
 ---
@@ -303,7 +307,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/config/env.ts` | Validates `process.env` with Zod; exports typed `env`. | Fail fast on bad config. `z.coerce.number()` turns `"4000"` into `4000`. |
 | `src/logger.ts` | One pino JSON logger. | `redact` hides `password`, `token`, `applicant`, cookies and auth headers. |
 | `src/db/pool.ts` | Shared `pg.Pool` (max 10 connections) + `closePool()`. | Reusing connections is much faster than one new connection per request. Idle-connection errors are logged, not fatal. |
-| `src/errors.ts` | `ERROR_STATUS` map and `AppError` class. | One list of codes for the whole API. Throw `new AppError('NOT_FOUND', '…')` anywhere. |
+| `src/errors.ts` | `ERROR_STATUS` map and `AppError` class. | Codes come from `@sewa/shared`; `satisfies Record<ErrorCode, number>` fails the build if a code has no HTTP status. Throw `new AppError('NOT_FOUND', '…')` anywhere. |
 | `src/types/express.d.ts` | Adds `req.id: string` to Express' `Request` type. | TypeScript "declaration merging". |
 | `src/middleware/requestId.ts` | Sets `req.id` and the `X-Request-Id` header. | Always generated server-side; client ids are not trusted. |
 | `src/middleware/errorHandler.ts` | `notFound` (404) and `errorHandler`. | Four-argument function = Express error handler. Handles `AppError`, `ZodError`, broken JSON, then everything else as 500. |
@@ -343,7 +347,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | Phase | Content | Status |
 |---|---|---|
 | P0 | Repo hygiene: `.gitignore`, public PRD | ✅ |
-| P1 | Monorepo skeleton, Docker Postgres, API `/health`, first tests | 🟡 shared package + CI next |
+| P1 | Monorepo skeleton, Docker Postgres, API `/health`, shared package, CI | ✅ |
 | P2 | SQL migrations + runner, small demo seed (locations, service types, demo users) | 🔜 |
 | P3 | Domain rules: transitions, overdue, tracking code + unit tests | 🔜 |
 | P4 | Read APIs (catalog, locations) + auth | 🔜 |
@@ -396,6 +400,7 @@ Example: `GET /api/v1/service-types`.
 | `Invalid or missing environment variables: DATABASE_URL` | No `.env` | `cp .env.example .env` |
 | `port is already allocated` (5432) | Another Postgres on your machine | Stop it, or change the left side of `"5432:5432"` and `DATABASE_URL` |
 | `EADDRINUSE :4000` | API already running in another terminal | Stop it or set `PORT=4001` |
+| `Cannot find module '@sewa/shared'` | Shared package not built yet | `pnpm build:shared` (root `dev`/`test`/`typecheck` do this for you) |
 | Tests fail with `database "sewa_track_test" does not exist` | Volume was created before the init script existed | `docker compose down -v && docker compose up -d db` (deletes local data) |
 | `/health` returns 503 | API runs, DB is down | Start the DB; check `docker compose logs db` |
 
@@ -416,3 +421,62 @@ Example: `GET /api/v1/service-types`.
 | Optimistic locking | Detect concurrent edits with a `version` column; the loser gets 409 |
 | Request id | A unique id per request, used to connect an error report to log lines |
 | Ward sifaris (वडा सिफारिस) | A recommendation/verification letter issued by a ward office |
+
+---
+
+## 16. Shared package: `packages/shared`
+
+Code that **both** the API and the web app need, so it is written once and can't drift apart.
+
+```
+packages/shared/
+├─ src/
+│  ├─ enums.ts     REQUEST_STATUSES, TERMINAL_STATUSES, SERVICE_TYPE_CODES, ROLES, LOCAL_LEVEL_TYPES, EVENT_ACTIONS
+│  ├─ errors.ts    ERROR_CODES + ApiErrorBody (the error response shape)
+│  └─ index.ts     public entry: what other packages may import
+├─ dist/           compiled JS + .d.ts types (generated, git-ignored)
+├─ package.json    "exports" points to dist/
+└─ tsconfig.json
+```
+
+**One pattern for every list of values:**
+
+```ts
+export const ROLES = ['CITIZEN', 'WARD_OFFICER', 'PALIKA_ADMIN', 'SYSTEM_ADMIN'] as const; // 1. the values
+export type Role = (typeof ROLES)[number];                                              // 2. the TS type
+export const roleSchema = z.enum(ROLES);                                               // 3. runtime validation
+```
+
+Add a value in one place → the type, the validation and the UI all follow.
+`as const` keeps the exact strings as types (`'CITIZEN' | …`) instead of widening to `string`.
+
+**How other packages use it:**
+
+- `apps/api/package.json` has `"@sewa/shared": "workspace:*"`: pnpm links the local folder
+  (a symlink in `node_modules`) instead of downloading from npm.
+- Import with `import { ROLES } from '@sewa/shared'`.
+- The package is **compiled to `dist/`** first, because in production the API runs as plain
+  JavaScript (`node dist/server.js`) and Node cannot run `.ts` files from a dependency.
+  Root scripts run `pnpm build:shared` before `dev`, `test` and `typecheck`.
+
+---
+
+## 17. Continuous Integration (CI)
+
+File: `.github/workflows/ci.yml`. Runs on every pull request and every push to `main`.
+
+```
+checkout → install pnpm (version from package.json) → install Node (from .nvmrc)
+→ pnpm install --frozen-lockfile → type-check → test (with a real Postgres 16) → build
+```
+
+| Setting | Why |
+|---|---|
+| `services: db` (postgres:16-alpine) | Integration tests need a real database; same version as local |
+| health options on the service | Steps wait until Postgres is ready, not just started |
+| `--frozen-lockfile` | Fails if `pnpm-lock.yaml` is out of date, so CI installs exactly what was tested |
+| `concurrency … cancel-in-progress` | A new push cancels the older running check |
+| `permissions: contents: read` | Least privilege: the workflow can only read the code |
+| `cache: pnpm` | Reuses downloaded packages between runs (faster CI) |
+
+**Workflow:** work on a branch → push → open a PR → CI must be green ✅ → merge into `main`.

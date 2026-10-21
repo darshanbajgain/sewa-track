@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@sewa/shared": "workspace:*",
     "express": "^5.3.0",
     "helmet": "^8.3.0",
     "pg": "^8.23.1",

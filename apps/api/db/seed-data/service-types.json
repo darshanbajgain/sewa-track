@@ -1,0 +1,72 @@
+{
+  "note": "DEMO VALUES based on public citizen charters; fees, days and documents may be outdated. Not official information.",
+  "serviceTypes": [
+    {
+      "code": "RELATIONSHIP",
+      "nameEn": "Relationship verification",
+      "nameNe": "नाता प्रमाणित",
+      "feeNpr": 200,
+      "serviceDays": 1,
+      "requiresFieldVerification": false,
+      "requiredDocuments": [
+        { "nameEn": "Copy of applicant's citizenship certificate", "nameNe": "निवेदकको नागरिकता प्रमाणपत्रको प्रतिलिपि" },
+        { "nameEn": "Citizenship or birth certificate of the related person", "nameNe": "सम्बन्धित व्यक्तिको नागरिकता वा जन्मदर्ता प्रमाणपत्र" },
+        { "nameEn": "Passport-size photos", "nameNe": "पासपोर्ट साइजको फोटो" },
+        { "nameEn": "Current year's property tax receipt", "nameNe": "चालु आर्थिक वर्षको घरजग्गा कर तिरेको रसिद" }
+      ]
+    },
+    {
+      "code": "RESIDENCE",
+      "nameEn": "Residence verification",
+      "nameNe": "बसोबास प्रमाणित",
+      "feeNpr": 100,
+      "serviceDays": 1,
+      "requiresFieldVerification": false,
+      "requiredDocuments": [
+        { "nameEn": "Copy of citizenship certificate", "nameNe": "नागरिकता प्रमाणपत्रको प्रतिलिपि" },
+        { "nameEn": "Land ownership certificate or rental agreement", "nameNe": "जग्गाधनी प्रमाणपुर्जा वा घरभाडा सम्झौता" },
+        { "nameEn": "Migration certificate (if moved from elsewhere)", "nameNe": "बसाइँसराइ प्रमाणपत्र (भएमा)" }
+      ]
+    },
+    {
+      "code": "LOW_INCOME",
+      "nameEn": "Low-income recommendation",
+      "nameNe": "आर्थिक अवस्था कमजोर सिफारिस",
+      "feeNpr": 0,
+      "serviceDays": 2,
+      "requiresFieldVerification": true,
+      "requiredDocuments": [
+        { "nameEn": "Copy of citizenship certificate", "nameNe": "नागरिकता प्रमाणपत्रको प्रतिलिपि" },
+        { "nameEn": "Family details", "nameNe": "परिवारको विवरण" },
+        { "nameEn": "Details of household income", "nameNe": "घरपरिवारको आम्दानीको विवरण" }
+      ]
+    },
+    {
+      "code": "LAND_BOUNDARY",
+      "nameEn": "Land boundary (four-sides) verification",
+      "nameNe": "चार किल्ला प्रमाणित",
+      "feeNpr": 500,
+      "serviceDays": 3,
+      "requiresFieldVerification": true,
+      "requiredDocuments": [
+        { "nameEn": "Copy of citizenship certificate", "nameNe": "नागरिकता प्रमाणपत्रको प्रतिलिपि" },
+        { "nameEn": "Land ownership certificate", "nameNe": "जग्गाधनी प्रमाणपुर्जा" },
+        { "nameEn": "Cadastral (plot) map", "nameNe": "कित्ता नापी नक्सा" },
+        { "nameEn": "Current year's land revenue receipt", "nameNe": "चालु आर्थिक वर्षको मालपोत तिरेको रसिद" }
+      ]
+    },
+    {
+      "code": "DATE_OF_BIRTH",
+      "nameEn": "Date of birth verification",
+      "nameNe": "जन्म मिति प्रमाणित",
+      "feeNpr": 100,
+      "serviceDays": 1,
+      "requiresFieldVerification": false,
+      "requiredDocuments": [
+        { "nameEn": "Birth registration certificate", "nameNe": "जन्मदर्ता प्रमाणपत्र" },
+        { "nameEn": "Copy of citizenship certificate (if any)", "nameNe": "नागरिकता प्रमाणपत्रको प्रतिलिपि (भएमा)" },
+        { "nameEn": "Educational certificate (if any)", "nameNe": "शैक्षिक प्रमाणपत्र (भएमा)" }
+      ]
+    }
+  ]
+}

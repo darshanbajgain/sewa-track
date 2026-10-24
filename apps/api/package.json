@@ -9,7 +9,9 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate.cli.ts"
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate.cli.ts",
+    "db:seed": "tsx --env-file-if-exists=../../.env src/db/seed.cli.ts",
+    "import:locations": "tsx src/db/import-locations.ts"
   },
   "dependencies": {
     "@sewa/shared": "workspace:*",

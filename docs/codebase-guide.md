@@ -77,7 +77,8 @@ sewa-track/
 ├─ docs/
 │  ├─ PRD.md                    ✅ requirements (source of truth for scope)
 │  ├─ codebase-guide.md         ✅ this file
-│  ├─ database.md               ✅ tables, constraints, migrations, SQL explained
+│  ├─ architecture.md           ✅ system design: containers, layers, flows, security, deploy
+│  ├─ database.md               ✅ ERD, tables, data types, constraints, migrations
 │  └─ decisions/                🔜 ADRs (why we chose X over Y)
 ├─ docker-compose.yml           ✅ local Postgres 16
 ├─ package.json                 ✅ root scripts that run across all packages

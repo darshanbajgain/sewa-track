@@ -24,7 +24,8 @@ Schema changes are plain `.sql` migration files applied by a small runner we wro
 8. [Normalization and the one deliberate exception](#8-normalization-and-the-one-deliberate-exception)
 9. [Indexes](#9-indexes)
 10. [Migrations](#10-migrations)
-11. [Tests for the schema](#11-tests-for-the-schema)
+11. [Seed data (reference data)](#11-seed-data-reference-data)
+12. [Tests for the schema and seed](#12-tests-for-the-schema-and-seed)
 
 ---
 
@@ -91,15 +92,13 @@ erDiagram
     text name_en "UK with district_id"
     text name_ne
     text type "METRO | SUB_METRO | MUNICIPALITY | RURAL_MUNICIPALITY"
-    float8 lat "centroid, -90..90"
-    float8 lng "centroid, -180..180"
+    float8 lat "nullable centroid, -90..90"
+    float8 lng "nullable centroid, -180..180"
   }
   wards {
     integer id PK "identity"
     integer local_level_id FK "-> local_levels.id; UK with number"
     smallint number "> 0; UK with local_level_id"
-    float8 lat "demo point"
-    float8 lng "demo point"
   }
   users {
     uuid id PK "gen_random_uuid()"
@@ -219,7 +218,7 @@ The classic textbook form: **bold** = primary key, *italic* = foreign key (→ t
 - provinces(**id**, name_en, name_ne)
 - districts(**id**, *province_id* → provinces, name_en, name_ne)
 - local_levels(**id**, *district_id* → districts, name_en, name_ne, type, lat, lng)
-- wards(**id**, *local_level_id* → local_levels, number, lat, lng)
+- wards(**id**, *local_level_id* → local_levels, number)
 - users(**id**, role, name, phone, password_hash, *ward_id* → wards, *local_level_id* → local_levels, created_at)
 - service_types(**code**, name_en, name_ne, fee_npr, service_days, requires_field_verification, required_documents)
 - service_requests(**id**, tracking_code, *citizen_id* → users, *service_type_code* → service_types,
@@ -259,16 +258,15 @@ Columns marked **NN** are `NOT NULL`.
 | `name_en` | `text` | NN | Not unique on its own: the same name can appear in two districts |
 | `name_ne` | `text` | NN | |
 | `type` | `text` | NN, CHECK in 4 values | Metro / sub-metro / municipality / rural municipality |
-| `lat`, `lng` | `double precision` | NN, CHECK range | Centroid for map markers and drill-down |
+| `lat`, `lng` | `double precision` | nullable, CHECK range, CHECK `local_levels_coordinates_pair` | Centroid for the map. `NULL` until a verified official-2020-map boundary file is added (migration 002); never half a pair |
 | — | — | UNIQUE (`district_id`, `name_en`) | A name appears at most once per district |
 
-### 5.4 `wards`
+### 5.4 `wards`: 6,743 rows (no coordinates)
 | Column | Type | Constraints | Why |
 |---|---|---|---|
 | `id` | `integer` | PK, `GENERATED ALWAYS AS IDENTITY` | No national ward id exists, so we generate one |
 | `local_level_id` | `integer` | NN, FK → local_levels | |
 | `number` | `smallint` | NN, CHECK > 0 | Ward 1, 2, 3… inside the palika |
-| `lat`, `lng` | `double precision` | NN, CHECK range | **Generated demo point** for the heatmap (approximate) |
 | — | — | UNIQUE (`local_level_id`, `number`) | "Ward 5" exists once per palika |
 
 ### 5.5 `users`
@@ -475,8 +473,9 @@ never updated**. That makes this a safe, documented *denormalization* for read p
 ### Files
 ```
 apps/api/db/migrations/
-  001_init.sql        initial schema
-  002_...sql          next change (never edit 001 after merge)
+  001_init.sql                   initial schema
+  002_location_coordinates.sql   wards: drop lat/lng; local_levels: lat/lng nullable, both-or-neither
+  003_...sql                     next change (never edit an applied file)
 ```
 
 ### Commands
@@ -518,7 +517,39 @@ Tests: `test/globalSetup.ts` runs the same runner on the **test** database befor
 
 ---
 
-## 11. Tests for the schema
+## 11. Seed data (reference data)
+
+`pnpm db:seed` loads the data every environment needs (run `pnpm db:migrate` first):
+
+| Table | Rows | Source |
+|---|---|---|
+| `provinces` | 7 | `db/seed-data/locations.json` |
+| `districts` | 77 | same |
+| `local_levels` | 753 | same (no coordinates yet) |
+| `wards` | 6,743 | generated from each palika's ward count |
+| `service_types` | 5 | `db/seed-data/service-types.json` (**demo values**) |
+
+Location data comes from [local-states-nepal](https://github.com/sagautam5/local-states-nepal)
+(MIT), pinned to one commit, checked against official figures, with one Nepali spelling fix. Details
+and the license notice: [`apps/api/db/seed-data/README.md`](../apps/api/db/seed-data/README.md).
+`locations.json` is produced by `pnpm --filter @sewa/api import:locations` and committed, so seeding
+never needs the internet.
+
+**How `src/db/seed.ts` works:**
+- **One transaction**: all tables load, or none do.
+- **One INSERT per table**: the whole JSON array is sent as one parameter and turned into rows with
+  `jsonb_to_recordset($1::jsonb) AS x(id smallint, "nameEn" text, ...)`. 753 rows = 1 query, not 753.
+- **Wards from a count**: `CROSS JOIN LATERAL generate_series(1, x.wards)` turns "Kathmandu has 32
+  wards" into 32 rows, so one INSERT creates all 6,743 wards.
+- **Idempotent upserts**: `ON CONFLICT (id) DO UPDATE SET ... = EXCLUDED....` updates rows that already
+  exist; wards use `ON CONFLICT DO NOTHING`. Running the seed again changes nothing.
+- **Non-destructive**: never deletes, so it's safe on a database that already has requests.
+
+Demo users and demo requests are added in later phases, together with the code that uses them.
+
+---
+
+## 12. Tests for the schema and seed
 
 `apps/api/test/schema.test.ts` checks the database itself, without API code:
 
@@ -526,8 +557,13 @@ Tests: `test/globalSetup.ts` runs the same runner on the **test** database befor
 - all tables exist
 - a valid request is accepted, with defaults `status = SUBMITTED`, `version = 0`
 - bad tracking code, unknown status, `closed_at`/status mismatch, officer without ward,
-  negative fee are all rejected
+  negative fee, half a coordinate pair are all rejected
 - `request_events` allows `INSERT` but blocks `UPDATE` and `DELETE`
+
+`apps/api/test/seed.test.ts` checks the seed: 7 / 77 / 753 / 6,743; the official mix of palika types
+(6 / 11 / 276 / 460); Kathmandu has wards 1–32; the corrected Nepali spelling; the 5 service types;
+and that running the seed again changes nothing. The test database is migrated **and seeded** once
+by `test/globalSetup.ts`.
 
 Each test runs in a transaction that is **rolled back**, so no test data is left behind.
 Expected failures run inside a `SAVEPOINT` (in Postgres, one failed statement aborts the

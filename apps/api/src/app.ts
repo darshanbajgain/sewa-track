@@ -19,8 +19,12 @@ export function createApp(): Express {
   app.use(helmet());
   // Give the request an id first, so everything after it (including errors) can use it.
   app.use(requestId);
-  // Parse JSON bodies. The size limit stops someone sending a huge body to exhaust memory.
-  app.use(express.json({ limit: '100kb' }));
+  // Parse JSON bodies.
+  // - limit: stops someone sending a huge body to exhaust memory.
+  // - inflate: false: refuse compressed request bodies (gzip, deflate, Brotli). Our clients never
+  //   send them, and decompressing attacker-controlled data is a known attack surface
+  //   (e.g. CVE-2026-111497 in Node's Brotli decoder). Smaller attack surface, no downside.
+  app.use(express.json({ limit: '100kb', inflate: false }));
 
   // All endpoints live under one versioned base path, so a future /api/v2 can live alongside it.
   const api = express.Router();

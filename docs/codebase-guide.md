@@ -261,7 +261,7 @@ Example: `GET /api/v1/health`
 ```
 1. helmet()            adds security headers, removes "X-Powered-By: Express"
 2. requestId           req.id = random UUID; response header X-Request-Id
-3. express.json()      parses a JSON body (max 100 KB); broken JSON → 400
+3. express.json()      parses a JSON body (max 100 KB, compressed bodies refused); bad body → 400
 4. /api/v1 router      → healthRouter matches GET /health
 5. getHealth           controller calls pingDatabase()
 6. pingDatabase        repository runs SELECT 1 on the pool

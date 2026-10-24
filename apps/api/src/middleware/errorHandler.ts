@@ -3,6 +3,28 @@ import { ZodError } from 'zod';
 import { AppError } from '../errors.js';
 import { logger } from '../logger.js';
 
+/**
+ * Errors thrown by express.json() (the body-parser library) carry a `type` and a 4xx `status`.
+ * They are always the client's fault, so they must become 400, never 500.
+ */
+interface BodyParserError {
+  type: string;
+  status: number;
+}
+
+function isBodyParserError(err: unknown): err is BodyParserError {
+  if (typeof err !== 'object' || err === null) return false;
+  const { type, status } = err as Partial<BodyParserError>;
+  return typeof type === 'string' && typeof status === 'number' && status >= 400 && status < 500;
+}
+
+// Our own wording for the common cases; anything else gets a generic message.
+const BODY_ERROR_MESSAGES: Record<string, string> = {
+  'entity.parse.failed': 'Request body is not valid JSON',
+  'entity.too.large': 'Request body is too large',
+  'encoding.unsupported': 'Compressed request bodies are not accepted',
+};
+
 /** Any URL that no router matched ends up here → standard 404 error. */
 export const notFound: RequestHandler = (req, _res, next) => {
   next(new AppError('NOT_FOUND', `Route ${req.method} ${req.path} not found`));
@@ -40,10 +62,14 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  // 3. Broken JSON body (express.json() fails to parse) → 400, not 500.
-  if (typeof err === 'object' && err !== null && (err as { type?: string }).type === 'entity.parse.failed') {
+  // 3. Bad request body (broken JSON, too large, compressed, ...) → 400, not 500.
+  if (isBodyParserError(err)) {
     res.status(400).json({
-      error: { code: 'VALIDATION_ERROR', message: 'Request body is not valid JSON', details: {} },
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: BODY_ERROR_MESSAGES[err.type] ?? 'Invalid request body',
+        details: {},
+      },
       requestId: req.id,
     });
     return;

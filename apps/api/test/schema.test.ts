@@ -42,7 +42,7 @@ async function insertValidRequest() {
      VALUES (99999, 999, 'Test Palika', 'परीक्षण पालिका', 'MUNICIPALITY', 27.7, 85.3)`,
   );
   const ward = await client.query<{ id: number }>(
-    `INSERT INTO wards (local_level_id, number, lat, lng) VALUES (99999, 1, 27.7, 85.3) RETURNING id`,
+    `INSERT INTO wards (local_level_id, number) VALUES (99999, 1) RETURNING id`,
   );
   const citizen = await client.query<{ id: string }>(
     `INSERT INTO users (role, name, phone, password_hash) VALUES ('CITIZEN', 'Demo Citizen', '9000099999', 'x') RETURNING id`,
@@ -116,6 +116,13 @@ describe('constraints', () => {
       `INSERT INTO users (role, name, phone, password_hash) VALUES ('WARD_OFFICER', 'Ward Officer (Demo)', '9000088888', 'x')`,
     );
     expect(msg).toMatch(/users_role_scope/);
+  });
+
+  it('allow a palika without coordinates, but reject half a coordinate pair', async () => {
+    await insertValidRequest(); // creates palika 99999 with lat/lng
+    await client.query(`UPDATE local_levels SET lat = NULL, lng = NULL WHERE id = 99999`);
+    const msg = await expectDbError(`UPDATE local_levels SET lat = 27.7 WHERE id = 99999`);
+    expect(msg).toMatch(/local_levels_coordinates_pair/);
   });
 
   it('reject a negative fee', async () => {

@@ -47,4 +47,30 @@ describe('error format', () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
+
+  it('body over 100 KB returns 400, not 500', async () => {
+    const res = await request(app)
+      .post('/api/v1/health')
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ text: 'x'.repeat(110_000) }));
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatchObject({ code: 'VALIDATION_ERROR', message: 'Request body is too large' });
+  });
+
+  // Security: compressed bodies are refused BEFORE any decompression happens, so attacker
+  // data never reaches the Brotli/gzip decoders (see CVE-2026-111497).
+  it.each(['br', 'gzip', 'deflate'])('refuses a %s-compressed body with 400', async (encoding) => {
+    const res = await request(app)
+      .post('/api/v1/health')
+      .set('Content-Type', 'application/json')
+      .set('Content-Encoding', encoding)
+      .send('not really compressed');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      message: 'Compressed request bodies are not accepted',
+    });
+  });
 });

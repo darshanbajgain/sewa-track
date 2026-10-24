@@ -55,6 +55,10 @@ jobs:
       # --frozen-lockfile: fail if pnpm-lock.yaml is out of date, so CI installs exactly what we tested.
       - run: pnpm install --frozen-lockfile
 
+      # Fail if any dependency has a known high or critical vulnerability (GitHub advisory database).
+      - name: Security audit
+        run: pnpm audit --audit-level high
+
       - name: Type-check
         run: pnpm typecheck
 

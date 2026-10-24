@@ -127,7 +127,7 @@ flowchart TB
   routes --> guards["requireRole + scope 🔜"]
   guards --> controllers["controllers/ — Zod parse, shape response ✅"]
   controllers --> services["services/ — use cases, own transactions 🔜"]
-  services --> domain["domain/ — pure rules: transitions, overdue, trackingCode 🔜"]
+  services --> domain["domain/ — pure rules: transitions, overdue, trackingCode ✅"]
   services --> repos["repositories/ — hand-written SQL ✅"]
   services --> integrations["integrations/ — nidClient, notifier 🔜"]
   repos --> pg[("PostgreSQL")]
@@ -172,7 +172,7 @@ stateDiagram-v2
   CANCELLED --> [*]
 ```
 
-- Defined **only** in `apps/api/src/domain/transitions.ts` 🔜; anything else → `422 INVALID_TRANSITION`.
+- Defined **only** in `apps/api/src/domain/transitions.ts` ✅; anything else → `422 INVALID_TRANSITION`.
 - Final states (`ISSUED`, `REJECTED`, `CANCELLED`) set `closed_at` (also enforced by a DB constraint).
 - **Overdue** = not final AND `now() > submitted_at + service_days`.
 - **On-time rate** = requests closed within `service_days` ÷ all closed requests.
@@ -489,7 +489,7 @@ Formal write-ups: `docs/decisions/ADR-001-denormalized-location.md`, `ADR-002-op
 | Database schema, constraints, append-only trigger, migration runner | ✅ |
 | Reference seed: 7/77/753 locations, 6,743 wards, 5 service types | ✅ |
 | Demo users and demo requests | 🔜 P4–P5 |
-| Domain rules (transitions, overdue, tracking code) | 🔜 P3 |
+| Domain rules (transitions, overdue, tracking code, fee payment) | ✅ |
 | Auth, catalog, locations | 🔜 P4 |
 | Requests: submit, track, queue, transitions, fee | 🔜 P5 |
 | Stats and map endpoint | 🔜 P6 |

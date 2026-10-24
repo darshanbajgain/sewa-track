@@ -81,7 +81,7 @@ and may be outdated.
 | API foundation: health check, standard errors, request ids, structured logs, graceful shutdown, security headers | ✅ |
 | Database: full schema, constraints, append-only audit log, own migration runner | ✅ |
 | Reference data: 7 provinces, 77 districts, 753 local levels, 6,743 wards, 5 services | ✅ |
-| Workflow rules (transitions, overdue, tracking codes) | 🔜 |
+| Workflow rules (transitions, overdue, tracking codes, fee payment), 160+ unit tests | ✅ |
 | Auth, request submission, tracking, officer queue, status changes | 🔜 |
 | Map statistics API and performance work on 100k requests | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |

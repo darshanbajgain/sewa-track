@@ -63,7 +63,8 @@ sewa-track/
 │  ├─ api/                      ✅ Express + TypeScript REST API
 │  │  ├─ db/
 │  │  │  ├─ init/               ✅ SQL run once by Docker on first start (creates test DB)
-│  │  │  └─ migrations/         ✅ versioned schema changes: 001_init.sql, ... (see database.md)
+│  │  │  ├─ migrations/         ✅ versioned schema changes: 001_init.sql, 002_... (see database.md)
+│  │  │  └─ seed-data/          ✅ locations.json (7/77/753), service-types.json (demo), source + license
 │  │  ├─ src/                   ✅ application code (see §9)
 │  │  ├─ test/                  ✅ integration tests (real app + real test DB)
 │  │  ├─ package.json           ✅ API dependencies and scripts
@@ -132,6 +133,7 @@ Prerequisites: Node 22, pnpm 10, Docker.
 pnpm install                      # install all workspace dependencies
 cp .env.example .env              # local config (never commit .env)
 docker compose up -d db           # start Postgres
+pnpm db:migrate && pnpm db:seed    # create tables, load locations + service catalog
 pnpm --filter @sewa/api dev       # start the API with auto-reload
 curl http://localhost:4000/api/v1/health
 ```
@@ -144,6 +146,8 @@ Root scripts (run from the repo root):
 | `pnpm test` | Build shared, then run tests in every package |
 | `pnpm typecheck` | Build shared, then type-check every package without emitting JS |
 | `pnpm build` | Compile every package (pnpm builds `shared` first because the API depends on it) |
+| `pnpm db:migrate` | Apply pending SQL migrations to `DATABASE_URL` |
+| `pnpm db:seed` | Load reference data (idempotent, safe to re-run) |
 | `pnpm --filter @sewa/api <script>` | Run a script in just one package |
 
 ---
@@ -308,8 +312,11 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/app.ts` | `createApp()` builds the Express app and registers middleware and routers. | Does **not** listen on a port, so tests can use it in memory. Middleware order matters. |
 | `src/config/env.ts` | Validates `process.env` with Zod; exports typed `env`. | Fail fast on bad config. `z.coerce.number()` turns `"4000"` into `4000`. |
 | `src/logger.ts` | One pino JSON logger. | `redact` hides `password`, `token`, `applicant`, cookies and auth headers. |
-| `src/db/migrate.ts` | `runMigrations(url)`: applies pending `db/migrations/*.sql`. | One transaction per file, checksum check, advisory lock. See [`database.md`](./database.md#3-migrations). |
+| `src/db/migrate.ts` | `runMigrations(url)`: applies pending `db/migrations/*.sql`. | One transaction per file, checksum check, advisory lock. See [`database.md`](./database.md#10-migrations). |
 | `src/db/migrate.cli.ts` | `pnpm db:migrate` entry point. | Separate file so tests can import the runner without running it. |
+| `src/db/seed.ts` | `runSeed(client)`: loads locations, wards and service types. | One transaction; one `INSERT … SELECT FROM jsonb_to_recordset($1)` per table; upserts, so it is idempotent. See [`database.md`](./database.md#11-seed-data-reference-data). |
+| `src/db/seed.cli.ts` | `pnpm db:seed` entry point. | |
+| `src/db/import-locations.ts` | One-time import that builds `db/seed-data/locations.json` from the public dataset. | Pinned commit, checks official counts, fixes one Nepali spelling. Output is committed, so seeding works offline. |
 | `src/db/pool.ts` | Shared `pg.Pool` (max 10 connections) + `closePool()`. | Reusing connections is much faster than one new connection per request. Idle-connection errors are logged, not fatal. |
 | `src/errors.ts` | `ERROR_STATUS` map and `AppError` class. | Codes come from `@sewa/shared`; `satisfies Record<ErrorCode, number>` fails the build if a code has no HTTP status. Throw `new AppError('NOT_FOUND', '…')` anywhere. |
 | `src/types/express.d.ts` | Adds `req.id: string` to Express' `Request` type. | TypeScript "declaration merging". |
@@ -320,10 +327,13 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
 | `test/health.test.ts` | Integration tests for health and the error format. | Real app + real test DB. |
 | `test/schema.test.ts` | Tests that the database rejects bad data. | Each test in a rolled-back transaction. |
-| `test/globalSetup.ts` | Runs migrations on the test DB once before all tests. | Tests always see the real schema. |
+| `test/seed.test.ts` | Checks seeded counts against official figures; seed is idempotent. | |
+| `test/globalSetup.ts` | Migrates **and seeds** the test DB once before all tests. | Tests always see the real schema and reference data. |
 | `vitest.config.ts` | Test config. | Forces `DATABASE_URL` to the **test** database, runs `globalSetup`, runs test files one at a time (shared DB), silences logs. |
 | `db/init/01-create-test-db.sql` | Creates `sewa_track_test`. | Run by Docker once, on an empty volume. |
 | `db/migrations/001_init.sql` | The whole initial schema. | Constraints + append-only trigger. Never edited after merge. |
+| `db/migrations/002_location_coordinates.sql` | Wards lose coordinates; palika lat/lng become optional. | A new file instead of editing 001. |
+| `db/seed-data/` | Seed JSON files + `README.md` with source and MIT license notice. | |
 
 ---
 
@@ -356,7 +366,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 |---|---|---|
 | P0 | Repo hygiene: `.gitignore`, public PRD | ✅ |
 | P1 | Monorepo skeleton, Docker Postgres, API `/health`, shared package, CI | ✅ |
-| P2 | SQL migrations + runner ✅, small demo seed (locations, service types, demo users) 🔜 | 🟡 |
+| P2 | SQL migrations + runner, reference seed (7/77/753 locations, 6,743 wards, 5 service types) | ✅ (demo users come with auth in P4) |
 | P3 | Domain rules: transitions, overdue, tracking code + unit tests | 🔜 |
 | P4 | Read APIs (catalog, locations) + auth | 🔜 |
 | P5 | Requests: submit, track, queue, detail, transitions, fee paid | 🔜 |

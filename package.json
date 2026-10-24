@@ -13,6 +13,7 @@
     "build:shared": "pnpm --filter @sewa/shared build",
     "typecheck": "pnpm build:shared && pnpm -r typecheck",
     "test": "pnpm build:shared && pnpm -r test",
-    "db:migrate": "pnpm --filter @sewa/api db:migrate"
+    "db:migrate": "pnpm --filter @sewa/api db:migrate",
+    "db:seed": "pnpm --filter @sewa/api db:seed"
   }
 }

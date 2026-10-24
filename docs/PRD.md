@@ -139,8 +139,9 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 
 ### F2. Location hierarchy
 - Province (7) → District (77) → Local level (753) → Ward. Seeded once.
-- Each local level has `type` (`METRO`, `SUB_METRO`, `MUNICIPALITY`, `RURAL_MUNICIPALITY`) and a centroid `lat/lng`.
-- Ward points for the heatmap are **generated demo points inside the palika polygon** and labeled approximate.
+- Each local level has `type` (`METRO`, `SUB_METRO`, `MUNICIPALITY`, `RURAL_MUNICIPALITY`) and a centroid `lat/lng`, computed from a verified boundary file (official 2020 map). Until that file is chosen, coordinates are empty (`NULL`), never made up.
+- Wards have **no coordinates**: the map works at district and palika level only.
+- Source of names, types and ward counts: [local-states-nepal](https://github.com/sagautam5/local-states-nepal) (MIT), see `apps/api/db/seed-data/README.md`.
 - **AC:** cascading dropdowns (province → district → palika → ward) work; counts are 7 / 77 / 753.
 
 ### F3. Authentication
@@ -178,7 +179,7 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 - **Admin map** (`/admin/map`, system admin = Nepal, palika admin = own palika):
   - Choropleth by **district** (default) with drill-down to **palika** on click.
   - Metric toggle: `overdue` count (default), `onTimeRate`, `pending` count, `avgDaysToClose`.
-  - **Heatmap layer** (Leaflet.heat) of request points (demo ward points, weighted by count).
+  - **Heatmap layer** (Leaflet.heat): one point per palika centroid, weighted by request count.
   - Filters: service type, status, date range. Map refetches on change.
   - Side panel on click: counts by type and status for that area.
   - Legend, loading state, empty state.
@@ -219,8 +220,8 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 ```
 provinces(id, name_en, name_ne)
 districts(id, province_id → provinces, name_en, name_ne)
-local_levels(id, district_id → districts, name_en, name_ne, type, lat, lng)
-wards(id, local_level_id → local_levels, number, lat, lng)        -- lat/lng = demo point
+local_levels(id, district_id → districts, name_en, name_ne, type, lat, lng)  -- lat/lng nullable until verified
+wards(id, local_level_id → local_levels, number)                -- no coordinates
 
 users(id uuid, role, name, phone unique, password_hash,
       ward_id nullable → wards, local_level_id nullable → local_levels, created_at)

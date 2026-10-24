@@ -487,7 +487,8 @@ Formal write-ups: `docs/decisions/ADR-001-denormalized-location.md`, `ADR-002-op
 | Monorepo, shared package, CI | ✅ |
 | API skeleton: health, error format, request id, logging, graceful shutdown | ✅ |
 | Database schema, constraints, append-only trigger, migration runner | ✅ |
-| Demo seed (locations, service types, users) | 🔜 P2 |
+| Reference seed: 7/77/753 locations, 6,743 wards, 5 service types | ✅ |
+| Demo users and demo requests | 🔜 P4–P5 |
 | Domain rules (transitions, overdue, tracking code) | 🔜 P3 |
 | Auth, catalog, locations | 🔜 P4 |
 | Requests: submit, track, queue, transitions, fee | 🔜 P5 |

@@ -1,0 +1,205 @@
+# Sewa Track
+
+> **Demo / portfolio project. Not affiliated with any government body. Do not enter real information.**
+> **डेमो / पोर्टफोलियो परियोजना। कुनै पनि सरकारी निकायसँग सम्बन्धित छैन। वास्तविक जानकारी नराख्नुहोस्।**
+
+[![CI](https://github.com/darshanbajgain/sewa-track/actions/workflows/ci.yml/badge.svg)](https://github.com/darshanbajgain/sewa-track/actions/workflows/ci.yml)
+![Node 22 LTS](https://img.shields.io/badge/node-22%20LTS-339933)
+![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+
+**An open, national citizen-service tracker for Nepal's ward recommendation letters (वडा सिफारिस),
+with a service-delay map that shows where requests are overdue against the citizen charter.**
+
+Online sifaris already exists in parts of Nepal, but each palika uses a different system and the
+data isn't connected. Sewa Track explores an open, national version: **one data model for all 753
+local levels**, **delay tracking against charter times on a national map**, and clean integration with
+existing services, built with tests, an audit log and documentation.
+
+> 🚧 **Work in progress.** The backend foundation is built (see [Status](#status)). Live demo and
+> screenshots will be added with the web app.
+
+---
+
+## Contents
+
+- [What it does](#what-it-does)
+- [Status](#status)
+- [Architecture](#architecture)
+- [Tech stack](#tech-stack)
+- [Quick start](#quick-start)
+- [Project structure](#project-structure)
+- [Engineering highlights](#engineering-highlights)
+- [Documentation](#documentation)
+- [Existing systems](#existing-systems)
+- [Data sources and credits](#data-sources-and-credits)
+- [License](#license)
+
+---
+
+## What it does
+
+| Who | Can |
+|---|---|
+| **Citizen** | See required documents and fees before visiting, submit a request, track it with a code (no login), resubmit when documents are requested |
+| **Ward officer** | Work through the ward's queue and move requests through a strict, audited workflow |
+| **Palika admin** | See all wards of the palika, reassign officers, view reports |
+| **System admin / public** | See the **national service-delay map**: overdue requests and on-time rate by district and palika |
+
+The request workflow:
+
+```mermaid
+stateDiagram-v2
+  [*] --> SUBMITTED
+  SUBMITTED --> UNDER_REVIEW
+  SUBMITTED --> CANCELLED
+  UNDER_REVIEW --> NEEDS_DOCUMENTS
+  NEEDS_DOCUMENTS --> UNDER_REVIEW
+  NEEDS_DOCUMENTS --> CANCELLED
+  UNDER_REVIEW --> FIELD_VERIFICATION
+  FIELD_VERIFICATION --> UNDER_REVIEW
+  UNDER_REVIEW --> APPROVED
+  UNDER_REVIEW --> REJECTED
+  FIELD_VERIFICATION --> REJECTED
+  APPROVED --> ISSUED
+  ISSUED --> [*]
+  REJECTED --> [*]
+  CANCELLED --> [*]
+```
+
+Five demo services: relationship, residence, low-income, land boundary (चार किल्ला) and date of
+birth verification. **Fees and service days are demo values** based on public citizen charters
+and may be outdated.
+
+---
+
+## Status
+
+| Area | Status |
+|---|---|
+| Monorepo, shared types, CI (type-check, tests on Postgres, build, dependency audit) | ✅ |
+| API foundation: health check, standard errors, request ids, structured logs, graceful shutdown, security headers | ✅ |
+| Database: full schema, constraints, append-only audit log, own migration runner | ✅ |
+| Reference data: 7 provinces, 77 districts, 753 local levels, 6,743 wards, 5 services | ✅ |
+| Workflow rules (transitions, overdue, tracking codes) | 🔜 |
+| Auth, request submission, tracking, officer queue, status changes | 🔜 |
+| Map statistics API and performance work on 100k requests | 🔜 |
+| Web app (Nepali / English), national delay map | 🔜 |
+| Live demo | 🔜 |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+  browser["Browser"] --> web["apps/web<br/>Next.js"]
+  web -- "/api/* (same origin)" --> api["apps/api<br/>Express + TypeScript"]
+  api -- "parameterized SQL" --> db[("PostgreSQL 16")]
+  api -- "timeout + retry" --> nid["apps/nid-mock<br/>mock ID service"]
+  shared["packages/shared<br/>enums · Zod schemas · types"] -.-> web
+  shared -.-> api
+```
+
+The API is layered `routes → controllers → services → repositories`, with the core business rules
+as pure functions in `domain/`. Full design: [docs/architecture.md](docs/architecture.md).
+
+---
+
+## Tech stack
+
+| Part | Technology |
+|---|---|
+| Language / runtime | TypeScript (strict), Node.js 22 LTS |
+| Monorepo | pnpm workspaces |
+| API | Express 5, Zod, pino, helmet |
+| Database | PostgreSQL 16 with `pg` and hand-written, parameterized SQL (no ORM); plain SQL migrations |
+| Web (planned) | Next.js App Router, Tailwind, TanStack Query, react-leaflet |
+| Tests | Vitest + Supertest against a real Postgres |
+| Infra | Docker Compose (local), GitHub Actions (CI) |
+
+---
+
+## Quick start
+
+Prerequisites: **Node.js ≥ 22.23.4**, **pnpm 10**, **Docker**.
+
+```bash
+pnpm install
+cp .env.example .env
+docker compose up -d db
+pnpm db:migrate && pnpm db:seed
+pnpm dev
+```
+
+Then open <http://localhost:4000/api/v1/health>. Run the tests with `pnpm test`.
+
+---
+
+## Project structure
+
+```
+apps/
+  api/            Express REST API (src/, SQL migrations, seed data, tests)
+  web/            Next.js frontend (planned)
+  nid-mock/       mock "existing ID service" (planned)
+packages/
+  shared/         enums, Zod schemas and types used by api and web
+docs/             requirements, architecture, database, codebase guide
+.github/          CI workflow
+```
+
+---
+
+## Engineering highlights
+
+- **The database protects itself:** `CHECK`, foreign key and unique constraints; a role-scope rule
+  (a ward officer must have exactly one ward); `closed_at` set exactly when a request is final.
+- **Append-only audit log:** a trigger rejects any `UPDATE` or `DELETE` on the history table.
+- **Optimistic locking:** two officers editing the same request get one success and one `409 Conflict`,
+  never a silent overwrite.
+- **Hand-written SQL, measured:** bulk seed in one query per table (`jsonb_to_recordset`,
+  `generate_series`); query performance to be documented with `EXPLAIN ANALYZE` before and after indexes.
+- **Own migration runner:** one transaction per file, checksum check, advisory lock (same model as Flyway).
+- **Security basics from day one:** input validation, generic error responses, log redaction, request
+  size limit, compressed request bodies refused, dependency audit in CI, patched Node.js required.
+- **Tests against a real database**, not mocks; each test runs in a rolled-back transaction.
+
+---
+
+## Documentation
+
+| Document | What's inside |
+|---|---|
+| [docs/PRD.md](docs/PRD.md) | Requirements and scope |
+| [docs/architecture.md](docs/architecture.md) | System design: containers, layers, flows, security, deployment |
+| [docs/database.md](docs/database.md) | ER diagrams, every table and data type, design decisions, migrations, seed |
+| [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
+
+---
+
+## Existing systems
+
+Online ward recommendation services already exist in parts of Nepal, for example vendor platforms
+that wards subscribe to individually and city systems such as Kathmandu Metropolitan City's.
+Sewa Track does not replace or claim to be the first of these; it explores what an **open,
+shared** model could add: comparable data across all 753 local levels and a national view of
+service delays. Details: [PRD §2.1](docs/PRD.md#21-existing-systems-and-how-sewa-track-differs).
+
+---
+
+## Data sources and credits
+
+- **Provinces, districts, local levels and ward counts:**
+  [sagautam5/local-states-nepal](https://github.com/sagautam5/local-states-nepal), MIT License,
+  © 2020 Sagar Gautam. Pinned version, changes and full license notice:
+  [apps/api/db/seed-data/README.md](apps/api/db/seed-data/README.md).
+- **Map boundaries:** to be added from a source that follows Nepal's official 2020 map
+  (including Lipulekh, Kalapani and Limpiyadhura), with its license credited here.
+- **All people, phone numbers and IDs in the demo are fake.** IDs are prefixed `DEMO-`.
+
+---
+
+## License
+
+[MIT](LICENSE) © 2026 Darshan Bajgain. Third-party data keeps its own license (see above).

@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { requestId } from './middleware/requestId.js';
+import { createAuthRouter } from './routes/auth.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 
 /**
@@ -29,6 +30,7 @@ export function createApp(): Express {
   // All endpoints live under one versioned base path, so a future /api/v2 can live alongside it.
   const api = express.Router();
   api.use(healthRouter);
+  api.use(createAuthRouter());
   app.use('/api/v1', api);
 
   // These two must be LAST: nothing above matched → 404; anything threw → errorHandler.

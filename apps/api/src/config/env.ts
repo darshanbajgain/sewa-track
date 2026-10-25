@@ -13,6 +13,11 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.url(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  // Secret used to sign login tokens. Anyone who knows it can forge a login, so: long, random,
+  // never committed. Generate one with: node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+  // How long a login lasts (PRD F3: 8 hours).
+  SESSION_HOURS: z.coerce.number().int().positive().max(24).default(8),
   // Shown by /health so we can tell which build is running after a deploy.
   APP_VERSION: z.string().default('0.0.1'),
   GIT_COMMIT: z.string().default('local'),
@@ -24,6 +29,12 @@ if (!parsed.success) {
   // Print only the names of bad variables, never their values (they may be secrets).
   const badKeys = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ');
   console.error(`Invalid or missing environment variables: ${badKeys}`);
+  process.exit(1);
+}
+
+// The placeholder from .env.example passes the length check, so refuse it explicitly in production.
+if (parsed.data.NODE_ENV === 'production' && parsed.data.JWT_SECRET.startsWith('change-me')) {
+  console.error('JWT_SECRET is still the example placeholder. Set a real random secret.');
   process.exit(1);
 }
 

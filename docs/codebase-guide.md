@@ -318,6 +318,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/db/seed.ts` | `runSeed(client)`: loads locations, wards and service types. | One transaction; one `INSERT … SELECT FROM jsonb_to_recordset($1)` per table; upserts, so it is idempotent. See [`database.md`](./database.md#11-seed-data-reference-data). |
 | `src/db/seed.cli.ts` | `pnpm db:seed` entry point. | |
 | `src/db/import-locations.ts` | One-time import that builds `db/seed-data/locations.json` from the public dataset. | Pinned commit, checks official counts, fixes one Nepali spelling. Output is committed, so seeding works offline. |
+| `src/db/transaction.ts` | `withTransaction(work)`: BEGIN → work(client) → COMMIT, or ROLLBACK on any error; always releases the connection. | A transaction lives on ONE connection, so repositories in a transaction take the `client`, not the pool. |
 | `src/db/pool.ts` | Shared `pg.Pool` (max 10 connections) + `closePool()`. | Reusing connections is much faster than one new connection per request. Idle-connection errors are logged, not fatal. |
 | `src/errors.ts` | `ERROR_STATUS` map and `AppError` class. | Codes come from `@sewa/shared`; `satisfies Record<ErrorCode, number>` fails the build if a code has no HTTP status. Throw `new AppError('NOT_FOUND', '…')` anywhere. |
 | `src/types/express.d.ts` | Adds `req.id: string` to Express' `Request` type. | TypeScript "declaration merging". |
@@ -339,6 +340,10 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/repositories/catalog.repository.ts`, `location.repository.ts` | SQL for the service catalog and the location hierarchy. | `$1::smallint IS NULL OR province_id = $1`: one query for "all" or "filtered". `exists()` takes a table name from a fixed allow-list (table names can't be `$1` parameters). |
 | `src/services/reference.service.ts` | Unknown parent id → 404. | An empty list would hide a wrong id. |
 | `src/controllers/reference.controller.ts`, `routes/reference.routes.ts` | `GET /service-types`, `/locations/*`. | Query validated with shared Zod schemas; `Cache-Control: public, max-age=3600`. |
+| `src/repositories/request.repository.ts` | `findWardLocation` (JOIN ward → palika → district), `insertRequest`, `insertPendingIdentityCheck`, `listRequestsByCitizen`. | Location ids copied at insert (ADR-001); citizen scope = `WHERE citizen_id = $1`. |
+| `src/repositories/event.repository.ts` | `insertEvent` only. | Append-only by design: no update/delete function exists. Takes the transaction client. |
+| `src/services/request.service.ts` | `submitRequest` (one transaction: request + CREATED event + PENDING ID check; retries on a tracking-code clash), `listMyRequests` (overdue via the domain rule). | |
+| `src/controllers/request.controller.ts`, `routes/request.routes.ts` | `POST /requests` (201), `GET /requests/mine`. | `requireAuth` + `requireRole('CITIZEN')` on both. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
@@ -386,7 +391,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P2 | SQL migrations + runner, reference seed (7/77/753 locations, 6,743 wards, 5 service types) | ✅ (demo users come with auth in P4) |
 | P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
-| P5 | Requests: submit, track, queue, detail, transitions, fee paid | 🔜 |
+| P5 | Requests: submit + my requests ✅ · track, queue, detail, transitions, fee paid 🔜 | 🟡 |
 | P6 | Stats: map endpoint, palika report | 🔜 |
 | P7 | Web frontend | 🔜 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |

@@ -322,6 +322,10 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/types/express.d.ts` | Adds `req.id: string` to Express' `Request` type. | TypeScript "declaration merging". |
 | `src/middleware/requestId.ts` | Sets `req.id` and the `X-Request-Id` header. | Always generated server-side; client ids are not trusted. |
 | `src/middleware/errorHandler.ts` | `notFound` (404) and `errorHandler`. | Four-argument function = Express error handler. Handles `AppError`, `ZodError`, broken JSON, then everything else as 500. |
+| `src/domain/transitions.ts` | **The workflow.** `TRANSITIONS` table (PRD §6.2, 11 moves), `checkTransition()`, `allowedTransitions()`. | Pure function. Returns `{ok:true, effects}` or `{ok:false, code}` (FORBIDDEN 403 / INVALID_TRANSITION 422 / VALIDATION_ERROR 400). Scope (own ward) is checked by the service, not here. |
+| `src/domain/overdue.ts` | `isTerminal`, `dueAt`, `isOverdue`, `closedOnTime`. | `now` is a parameter, so it's pure and testable. Same rule must be used in the map SQL. |
+| `src/domain/trackingCode.ts` | `generateTrackingCode`, `isValidTrackingCode`, `normalizeTrackingCode`. | Crypto-random bytes, `byte % 32` has no bias; random source injectable for tests. |
+| `src/domain/feePayment.ts` | `checkMarkFeePaid()`. | Officer only, fee > 0, not yet paid, before approval. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
@@ -342,7 +346,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | Kind | Tool | What it proves | Where |
 |---|---|---|---|
 | Schema | Vitest + `pg` | The database itself rejects bad data | `apps/api/test/schema.test.ts` |
-| Unit | Vitest | Pure rules (transitions, overdue, tracking code) | `src/domain/*.test.ts` (🔜) |
+| Unit | Vitest | Pure rules (transitions, overdue, tracking code, fee payment) | `src/domain/*.test.ts` |
 | Integration | Vitest + Supertest + real Postgres | Endpoints work end to end with SQL | `apps/api/test/*.test.ts` |
 | Contract | Vitest | NID client still matches the mock's API | 🔜 |
 
@@ -367,7 +371,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P0 | Repo hygiene: `.gitignore`, public PRD | ✅ |
 | P1 | Monorepo skeleton, Docker Postgres, API `/health`, shared package, CI | ✅ |
 | P2 | SQL migrations + runner, reference seed (7/77/753 locations, 6,743 wards, 5 service types) | ✅ (demo users come with auth in P4) |
-| P3 | Domain rules: transitions, overdue, tracking code + unit tests | 🔜 |
+| P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
 | P4 | Read APIs (catalog, locations) + auth | 🔜 |
 | P5 | Requests: submit, track, queue, detail, transitions, fee paid | 🔜 |
 | P6 | Stats: map endpoint, palika report | 🔜 |

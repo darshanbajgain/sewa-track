@@ -4,6 +4,7 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { requestId } from './middleware/requestId.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { healthRouter } from './routes/health.routes.js';
+import { referenceRouter } from './routes/reference.routes.js';
 
 /**
  * Builds the Express app WITHOUT starting a server.
@@ -31,6 +32,7 @@ export function createApp(): Express {
   const api = express.Router();
   api.use(healthRouter);
   api.use(createAuthRouter());
+  api.use(referenceRouter);
   app.use('/api/v1', api);
 
   // These two must be LAST: nothing above matched → 404; anything threw → errorHandler.

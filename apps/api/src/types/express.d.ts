@@ -1,9 +1,12 @@
-// Tell TypeScript that every Express request has an `id` (set by the requestId middleware).
-// This is "declaration merging": we add a field to Express' own Request type.
+import type { SessionUser } from '../security/token.js';
+
+// Tell TypeScript about the fields our middleware adds to every Express request.
+// This is "declaration merging": we add fields to Express' own Request type.
 declare global {
   namespace Express {
     interface Request {
-      id: string;
+      id: string; // set by the requestId middleware
+      user?: SessionUser; // set by requireAuth when the login cookie is valid
     }
   }
 }

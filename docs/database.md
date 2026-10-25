@@ -528,6 +528,7 @@ Tests: `test/globalSetup.ts` runs the same runner on the **test** database befor
 | `local_levels` | 753 | same (no coordinates yet) |
 | `wards` | 6,743 | generated from each palika's ward count |
 | `service_types` | 5 | `db/seed-data/service-types.json` (**demo values**) |
+| `users` | 6 | `db/seed-data/demo-users.json`: **fake** demo accounts, password hashed with scrypt at seed time |
 
 Location data comes from [local-states-nepal](https://github.com/sagautam5/local-states-nepal)
 (MIT), pinned to one commit, checked against official figures, with one Nepali spelling fix. Details
@@ -545,7 +546,8 @@ never needs the internet.
   exist; wards use `ON CONFLICT DO NOTHING`. Running the seed again changes nothing.
 - **Non-destructive**: never deletes, so it's safe on a database that already has requests.
 
-Demo users and demo requests are added in later phases, together with the code that uses them.
+Demo accounts: phones start with `90` (not a real Nepali mobile prefix), names end in "(Demo)". A ward
+officer's ward is resolved by `(palika id, ward number)` with a `LEFT JOIN`. Demo requests come in a later phase.
 
 ---
 

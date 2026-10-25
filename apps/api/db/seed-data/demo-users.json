@@ -1,0 +1,12 @@
+{
+  "note": "FAKE demo accounts. Phones start with 90 (not a real Nepali mobile prefix). Not real people or officials.",
+  "password": "demo1234",
+  "users": [
+    { "role": "CITIZEN", "name": "Citizen (Demo)", "phone": "9000000001" },
+    { "role": "WARD_OFFICER", "name": "Ward Officer (Demo), Kathmandu Ward 1", "phone": "9000000002", "wardLocalLevelId": 307, "wardNumber": 1 },
+    { "role": "WARD_OFFICER", "name": "Ward Officer 2 (Demo), Kathmandu Ward 1", "phone": "9000000003", "wardLocalLevelId": 307, "wardNumber": 1 },
+    { "role": "WARD_OFFICER", "name": "Ward Officer (Demo), Kathmandu Ward 2", "phone": "9000000004", "wardLocalLevelId": 307, "wardNumber": 2 },
+    { "role": "PALIKA_ADMIN", "name": "Palika Admin (Demo), Kathmandu", "phone": "9000000005", "localLevelId": 307 },
+    { "role": "SYSTEM_ADMIN", "name": "System Admin (Demo)", "phone": "9000000006" }
+  ]
+}

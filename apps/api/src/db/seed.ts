@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type pg from 'pg';
+import { hashPassword } from '../security/password.js';
 
 /**
- * Seeds REFERENCE data: the location hierarchy and the service catalog.
- * (Demo users and demo requests are added in later phases, together with the code that uses them.)
+ * Seeds REFERENCE data (location hierarchy, service catalog) and the fake DEMO accounts.
+ * (Demo requests are added in a later phase, together with the code that uses them.)
  *
  * Properties:
  *   - Idempotent: running it twice gives the same result ("upsert": insert, or update if the row exists).
@@ -21,6 +22,7 @@ export interface SeedSummary {
   localLevels: number;
   wards: number;
   serviceTypes: number;
+  users: number;
 }
 
 async function readSeedFile(name: string): Promise<Record<string, unknown>> {
@@ -40,6 +42,16 @@ async function readSeedFile(name: string): Promise<Record<string, unknown>> {
 export async function runSeed(client: pg.ClientBase): Promise<SeedSummary> {
   const locations = await readSeedFile('locations.json');
   const catalog = await readSeedFile('service-types.json');
+  const demo = await readSeedFile('demo-users.json');
+
+  // Hash the demo password once per user (each gets its own random salt). Done BEFORE the
+  // transaction starts, so slow hashing doesn't keep the transaction open.
+  const demoUsers = await Promise.all(
+    (demo.users as Record<string, unknown>[]).map(async (u) => ({
+      ...u,
+      passwordHash: await hashPassword(demo.password as string),
+    })),
+  );
 
   await client.query('BEGIN');
   try {
@@ -98,13 +110,30 @@ export async function runSeed(client: pg.ClientBase): Promise<SeedSummary> {
       [JSON.stringify(catalog.serviceTypes)],
     );
 
+    // Demo accounts. A ward officer's ward is found by (palika id, ward number) with a LEFT JOIN;
+    // other roles have no ward, so the join finds nothing and ward_id stays NULL.
+    // On re-run: update name/role/scope, but keep the existing password hash (no needless change).
+    await client.query(
+      `INSERT INTO users (role, name, phone, password_hash, ward_id, local_level_id)
+       SELECT x.role, x.name, x.phone, x."passwordHash", w.id, x."localLevelId"
+       FROM jsonb_to_recordset($1::jsonb) AS x(
+         role text, name text, phone text, "passwordHash" text,
+         "wardLocalLevelId" integer, "wardNumber" integer, "localLevelId" integer)
+       LEFT JOIN wards w ON w.local_level_id = x."wardLocalLevelId" AND w.number = x."wardNumber"
+       ON CONFLICT (phone) DO UPDATE
+         SET role = EXCLUDED.role, name = EXCLUDED.name,
+             ward_id = EXCLUDED.ward_id, local_level_id = EXCLUDED.local_level_id`,
+      [JSON.stringify(demoUsers)],
+    );
+
     // Count everything in one query (each sub-SELECT is a scalar subquery).
     const { rows } = await client.query<{ [K in keyof SeedSummary]: number }>(
       `SELECT (SELECT count(*) FROM provinces)::int     AS "provinces",
               (SELECT count(*) FROM districts)::int     AS "districts",
               (SELECT count(*) FROM local_levels)::int  AS "localLevels",
               (SELECT count(*) FROM wards)::int         AS "wards",
-              (SELECT count(*) FROM service_types)::int AS "serviceTypes"`,
+              (SELECT count(*) FROM service_types)::int AS "serviceTypes",
+              (SELECT count(*) FROM users)::int         AS "users"`,
     );
 
     await client.query('COMMIT');

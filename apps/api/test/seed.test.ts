@@ -65,8 +65,32 @@ describe('reference seed', () => {
     ]);
   });
 
+  it('creates fake demo accounts only: "(Demo)" names, 90-prefixed phones, hashed passwords', async () => {
+    const { rows } = await client.query<{ name: string; phone: string; password_hash: string }>(
+      `SELECT name, phone, password_hash FROM users WHERE phone LIKE '900000000_'`,
+    );
+    expect(rows).toHaveLength(6);
+    for (const u of rows) {
+      expect(u.name).toContain('(Demo)');
+      expect(u.phone).toMatch(/^90\d{8}$/);
+      expect(u.password_hash).toMatch(/^scrypt\$/); // stored as a hash, never the plain password
+    }
+  });
+
+  it('puts both demo ward officers in Kathmandu Ward 1 (needed for the "two officers" demo)', async () => {
+    const { rows } = await client.query(
+      `SELECT u.phone, l.name_en AS palika, w.number AS ward
+       FROM users u JOIN wards w ON w.id = u.ward_id JOIN local_levels l ON l.id = w.local_level_id
+       WHERE u.phone IN ('9000000002', '9000000003') ORDER BY u.phone`,
+    );
+    expect(rows).toEqual([
+      { phone: '9000000002', palika: 'Kathmandu', ward: 1 },
+      { phone: '9000000003', palika: 'Kathmandu', ward: 1 },
+    ]);
+  });
+
   it('is idempotent: running it again changes no counts', async () => {
     const summary = await runSeed(client);
-    expect(summary).toEqual({ provinces: 7, districts: 77, localLevels: 753, wards: 6743, serviceTypes: 5 });
+    expect(summary).toEqual({ provinces: 7, districts: 77, localLevels: 753, wards: 6743, serviceTypes: 5, users: 6 });
   });
 });

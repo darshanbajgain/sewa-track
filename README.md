@@ -82,7 +82,8 @@ and may be outdated.
 | Database: full schema, constraints, append-only audit log, own migration runner | ✅ |
 | Reference data: 7 provinces, 77 districts, 753 local levels, 6,743 wards, 5 services | ✅ |
 | Workflow rules (transitions, overdue, tracking codes, fee payment), 160+ unit tests | ✅ |
-| Auth, request submission, tracking, officer queue, status changes | 🔜 |
+| Auth: login with httpOnly JWT cookie, role checks, login rate limit, demo accounts | ✅ |
+| Request submission, tracking, officer queue, status changes | 🔜 |
 | Map statistics API and performance work on 100k requests | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |
@@ -133,6 +134,25 @@ pnpm dev
 ```
 
 Then open <http://localhost:4000/api/v1/health>. Run the tests with `pnpm test`.
+
+### Demo accounts
+
+All accounts are **fake** and use the password **`demo1234`**.
+
+| Phone | Role |
+|---|---|
+| `9000000001` | Citizen (Demo) |
+| `9000000002` | Ward Officer (Demo), Kathmandu Ward 1 |
+| `9000000003` | Ward Officer 2 (Demo), Kathmandu Ward 1 |
+| `9000000004` | Ward Officer (Demo), Kathmandu Ward 2 |
+| `9000000005` | Palika Admin (Demo), Kathmandu |
+| `9000000006` | System Admin (Demo) |
+
+```bash
+curl -c cookies.txt -X POST localhost:4000/api/v1/auth/login \
+  -H 'Content-Type: application/json' -d '{"phone":"9000000002","password":"demo1234"}'
+curl -b cookies.txt localhost:4000/api/v1/auth/me
+```
 
 ---
 

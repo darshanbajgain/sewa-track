@@ -22,6 +22,8 @@ export default defineConfig({
       NODE_ENV: 'test',
       DATABASE_URL: process.env.TEST_DATABASE_URL,
       LOG_LEVEL: 'silent',
+      // Test-only signing secret (not used anywhere else).
+      JWT_SECRET: 'test-only-secret-0123456789-abcdefghijklmnop',
     },
   },
 });

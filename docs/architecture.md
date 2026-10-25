@@ -490,7 +490,8 @@ Formal write-ups: `docs/decisions/ADR-001-denormalized-location.md`, `ADR-002-op
 | Reference seed: 7/77/753 locations, 6,743 wards, 5 service types | ✅ |
 | Demo users and demo requests | 🔜 P4–P5 |
 | Domain rules (transitions, overdue, tracking code, fee payment) | ✅ |
-| Auth, catalog, locations | 🔜 P4 |
+| Auth: login/logout/me, JWT cookie, roles, rate limit, demo users | ✅ |
+| Catalog and location endpoints | 🔜 P4 |
 | Requests: submit, track, queue, transitions, fee | 🔜 P5 |
 | Stats and map endpoint | 🔜 P6 |
 | Web app | 🔜 P7 |

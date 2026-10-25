@@ -491,7 +491,7 @@ Formal write-ups: `docs/decisions/ADR-001-denormalized-location.md`, `ADR-002-op
 | Demo users and demo requests | 🔜 P4–P5 |
 | Domain rules (transitions, overdue, tracking code, fee payment) | ✅ |
 | Auth: login/logout/me, JWT cookie, roles, rate limit, demo users | ✅ |
-| Catalog and location endpoints | 🔜 P4 |
+| Catalog and location endpoints | ✅ |
 | Requests: submit, track, queue, transitions, fee | 🔜 P5 |
 | Stats and map endpoint | 🔜 P6 |
 | Web app | 🔜 P7 |

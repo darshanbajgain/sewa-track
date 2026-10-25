@@ -83,6 +83,7 @@ and may be outdated.
 | Reference data: 7 provinces, 77 districts, 753 local levels, 6,743 wards, 5 services | ✅ |
 | Workflow rules (transitions, overdue, tracking codes, fee payment), 160+ unit tests | ✅ |
 | Auth: login with httpOnly JWT cookie, role checks, login rate limit, demo accounts | ✅ |
+| Public API: service catalog and location hierarchy (province → district → palika → ward) | ✅ |
 | Request submission, tracking, officer queue, status changes | 🔜 |
 | Map statistics API and performance work on 100k requests | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |
@@ -194,6 +195,7 @@ docs/             requirements, architecture, database, codebase guide
 | [docs/PRD.md](docs/PRD.md) | Requirements and scope |
 | [docs/architecture.md](docs/architecture.md) | System design: containers, layers, flows, security, deployment |
 | [docs/database.md](docs/database.md) | ER diagrams, every table and data type, design decisions, migrations, seed |
+| [docs/api.md](docs/api.md) | Every endpoint: request, response, errors, curl examples |
 | [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
 
 ---

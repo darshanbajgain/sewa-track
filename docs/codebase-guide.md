@@ -80,6 +80,7 @@ sewa-track/
 │  ├─ codebase-guide.md         ✅ this file
 │  ├─ architecture.md           ✅ system design: containers, layers, flows, security, deploy
 │  ├─ database.md               ✅ ERD, tables, data types, constraints, migrations
+│  ├─ api.md                    ✅ every endpoint: request, response, errors, examples
 │  └─ decisions/                🔜 ADRs (why we chose X over Y)
 ├─ docker-compose.yml           ✅ local Postgres 16
 ├─ package.json                 ✅ root scripts that run across all packages
@@ -335,6 +336,9 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/services/auth.service.ts` | `login()`, `getCurrentUser()`. | Same message for unknown phone and wrong password; dummy hash check so both take the same time. |
 | `src/controllers/auth.controller.ts` | `postLogin`, `postLogout`, `getMe`. | Token goes only into the httpOnly cookie, never into the JSON body. |
 | `src/routes/auth.routes.ts` | `POST /auth/login` (rate limited), `POST /auth/logout`, `GET /auth/me` (requireAuth). | |
+| `src/repositories/catalog.repository.ts`, `location.repository.ts` | SQL for the service catalog and the location hierarchy. | `$1::smallint IS NULL OR province_id = $1`: one query for "all" or "filtered". `exists()` takes a table name from a fixed allow-list (table names can't be `$1` parameters). |
+| `src/services/reference.service.ts` | Unknown parent id → 404. | An empty list would hide a wrong id. |
+| `src/controllers/reference.controller.ts`, `routes/reference.routes.ts` | `GET /service-types`, `/locations/*`. | Query validated with shared Zod schemas; `Cache-Control: public, max-age=3600`. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
@@ -381,7 +385,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P1 | Monorepo skeleton, Docker Postgres, API `/health`, shared package, CI | ✅ |
 | P2 | SQL migrations + runner, reference seed (7/77/753 locations, 6,743 wards, 5 service types) | ✅ (demo users come with auth in P4) |
 | P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
-| P4 | Auth: login/logout/me, JWT cookie, requireRole, rate limit, demo users ✅ · read APIs (catalog, locations) 🔜 | 🟡 |
+| P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
 | P5 | Requests: submit, track, queue, detail, transitions, fee paid | 🔜 |
 | P6 | Stats: map endpoint, palika report | 🔜 |
 | P7 | Web frontend | 🔜 |

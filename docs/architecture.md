@@ -496,7 +496,8 @@ Formal write-ups: [ADR-001](./decisions/ADR-001-denormalized-location.md) ✅, [
 | Public tracking | ✅ |
 | Staff queue and request detail | ✅ |
 | Status change + fee paid (locking, audit, notifier) | ✅ |
-| Stats and map endpoint | 🔜 P6 |
+| Stats: map endpoint + reports | ✅ |
+| Large seed, indexes, performance doc | 🔜 P6 |
 | Web app | 🔜 P7 |
 | Performance work, deploy, README | 🔜 P8 |
 | NID mock + contract test, Swagger, ADRs | 🔜 P9 |

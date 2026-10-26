@@ -24,7 +24,8 @@ Status: ✅ available · 🔜 planned
 | POST | `/requests/:id/transitions` | officer / citizen | Change status | ✅ |
 | POST | `/requests/:id/fee-paid` | officer | Mark fee paid | ✅ |
 | GET | `/track/:trackingCode` | — (rate limited) | Public tracking | ✅ |
-| GET | `/stats/map` | — / admin | Map data | 🔜 |
+| GET | `/stats/map` | — (public aggregates) | Delay map data + national totals | ✅ |
+| GET | `/stats/summary` | palika / system admin | Report | ✅ |
 
 ---
 
@@ -212,3 +213,37 @@ Allowed moves: see the state machine in [architecture.md §5](./architecture.md#
 ### `POST /requests/:id/fee-paid` (ward officer, own ward)
 `{ "version": 1 }` → `200` `{ "request": { "id", "status", "version": 2 } }` · audit event `FEE_PAID`.
 `422` if the service is free, already paid, or the request is approved/closed. Same `403`/`404`/`409` rules.
+
+---
+
+## Statistics (aggregates only)
+
+### `GET /stats/map?level=&metric=&serviceType=&status=&from=&to=&parentId=` (public)
+| Param | Values |
+|---|---|
+| `level` | `district` (default) · `local_level` |
+| `metric` | `overdue` (default) · `onTimeRate` · `pending` · `avgDaysToClose` |
+| `serviceType`, `status` | optional filters |
+| `from`, `to` | `YYYY-MM-DD`, by submission date (UTC), both inclusive |
+| `parentId` | `level=district` → a province id · `level=local_level` → a district id (drill-down) |
+
+```json
+{ "level": "district", "metric": "overdue",
+  "areas": [{ "areaId": 27, "value": 1, "total": 5 }],
+  "totals": { "total": 6, "pending": 4, "overdue": 2, "closed": 2, "onTimeRate": 0.5, "avgDaysToClose": 1.8 } }
+```
+- **overdue** = open and past `submittedAt + serviceDays` · **pending** = open · **onTimeRate** = closed
+  within service days ÷ all closed (0..1, `null` if nothing closed) · **avgDaysToClose** (1 decimal, `null` if none).
+- Areas with no matching requests are absent. `totals` = the same filters over all areas (home page numbers).
+- One SQL `GROUP BY`; every metric is computed with `count(*) FILTER (…)` and the requested one is picked.
+- `Cache-Control: public, max-age=60` · `400` for unknown level/metric, bad dates, `from` after `to`.
+
+### `GET /stats/summary` (palika admin: own palika · system admin: Nepal)
+```json
+{ "scope": { "kind": "palika", "localLevelId": 307 },
+  "totals": { "total": 5, "pending": 3, "overdue": 1, "closed": 2, "onTimeRate": 0.5, "avgDaysToClose": 1.8 },
+  "byStatus": [{ "status": "SUBMITTED", "count": 2 }], "byServiceType": [{ "code": "RESIDENCE", "count": 4 }],
+  "byArea": [{ "areaId": 2743, "label": "Ward 1", "pending": 3, "overdue": 1 }] }
+```
+`byArea` = every ward of the palika (empty wards as 0) or, for the system admin, the 7 provinces.
+`401` / `403` for other roles.

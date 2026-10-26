@@ -7,6 +7,7 @@ import { createAuthRouter } from './routes/auth.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { referenceRouter } from './routes/reference.routes.js';
 import { requestRouter } from './routes/request.routes.js';
+import { statsRouter } from './routes/stats.routes.js';
 import { createTrackingRouter } from './routes/tracking.routes.js';
 
 /**
@@ -47,6 +48,7 @@ export function createApp(deps: AppDeps = { notifier: new ConsoleNotifier() }): 
   api.use(referenceRouter);
   api.use(requestRouter);
   api.use(createTrackingRouter());
+  api.use(statsRouter);
   app.use('/api/v1', api);
 
   // These two must be LAST: nothing above matched → 404; anything threw → errorHandler.

@@ -350,6 +350,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/repositories/change.repository.ts` | `findChangeFacts`, `updateStatusWithVersion`, `markFeePaidWithVersion`. | **Optimistic locking:** `WHERE id = $1 AND version = $2` + `version = version + 1`; 0 rows → `null` → 409. Effects via `COALESCE` / `CASE WHEN`. |
 | `src/services/change.service.ts` | `changeStatus`, `markFeePaid`. | Order: 404 → scope 403 → stale version 409 → domain rule 422/403/400 → transaction (update + audit) → notify after commit. |
 | `src/integrations/notifier.ts` | `Notifier` interface + `ConsoleNotifier`. | Injected via `createApp({ notifier })`; tests pass a fake that records calls. Logs only code + statuses. |
+| `src/repositories/stats.repository.ts`, `services/stats.service.ts`, `controllers/stats.controller.ts`, `routes/stats.routes.ts` | `GET /stats/map` (public), `GET /stats/summary` (admins). | One `GROUP BY` with `count(*) FILTER (WHERE …)` computes every metric; the requested metric is picked in code. Group column from an allow-list. Same overdue rule as the domain (tested). Report starts `FROM wards LEFT JOIN requests` so empty wards show 0. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
@@ -398,7 +399,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
 | P5 | Requests: submit, my requests, public tracking, staff queue + detail, status change + fee paid with optimistic locking | ✅ (reassign: P5.5) |
-| P6 | Stats: map endpoint, palika report | 🔜 |
+| P6 | Stats: map endpoint + palika/national report ✅ · large seed, indexes, performance doc 🔜 | 🟡 |
 | P7 | Web frontend | 🔜 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |
 | P9 | NID mock + contract test, Swagger, ADRs, full Nepali UI | 🔜 |

@@ -88,7 +88,8 @@ and may be outdated.
 | Public tracking by code (no login, no personal data, rate limited) | ✅ |
 | Staff queue (scoped by ward/palika, filters, pagination) and request detail | ✅ |
 | Status changes + fee paid: transition rules, optimistic locking (409), audit in the same transaction, notifier stub | ✅ |
-| Map statistics API and performance work on 100k requests | 🔜 |
+| Map statistics API: overdue, on-time rate, pending, avg days per district/palika + staff reports | ✅ |
+| Performance work on 100k requests (indexes, EXPLAIN ANALYZE) | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |
 

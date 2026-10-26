@@ -327,6 +327,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/domain/transitions.ts` | **The workflow.** `TRANSITIONS` table (PRD §6.2, 11 moves), `checkTransition()`, `allowedTransitions()`. | Pure function. Returns `{ok:true, effects}` or `{ok:false, code}` (FORBIDDEN 403 / INVALID_TRANSITION 422 / VALIDATION_ERROR 400). Scope (own ward) is checked by the service, not here. |
 | `src/domain/overdue.ts` | `isTerminal`, `dueAt`, `isOverdue`, `closedOnTime`. | `now` is a parameter, so it's pure and testable. Same rule must be used in the map SQL. |
 | `src/domain/trackingCode.ts` | `generateTrackingCode`, `isValidTrackingCode`, `normalizeTrackingCode`. | Crypto-random bytes, `byte % 32` has no bias; random source injectable for tests. |
+| `src/domain/access.ts` | `canViewRequest()`, `queueScope()`: who may see which request. | Role = kind of user; **scope = which rows**. Pure, unit-tested. |
 | `src/domain/feePayment.ts` | `checkMarkFeePaid()`. | Officer only, fee > 0, not yet paid, before approval. |
 | `src/security/password.ts` | `hashPassword` / `verifyPassword` with Node's built-in **scrypt**. | Random salt per user; OWASP parameters stored in the hash string; `timingSafeEqual` comparison. |
 | `src/security/token.ts` | `signSessionToken` / `verifySessionToken` (JWT, HS256, 8 h). | Payload = id, role, scope only (readable by anyone, so no secrets). Only `HS256` accepted (blocks the `alg: none` trick). |
@@ -345,6 +346,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/services/request.service.ts` | `submitRequest` (one transaction: request + CREATED event + PENDING ID check; retries on a tracking-code clash), `listMyRequests` (overdue via the domain rule). | |
 | `src/controllers/request.controller.ts`, `routes/request.routes.ts` | `POST /requests` (201), `GET /requests/mine`. | `requireAuth` + `requireRole('CITIZEN')` on both. |
 | `src/repositories/tracking.repository.ts`, `services/tracking.service.ts`, `controllers/tracking.controller.ts`, `routes/tracking.routes.ts` | `GET /track/:code`: public, 10/min/IP. | **Privacy by design:** the SQL selects only public columns; timeline = status + time only; response built from an allow-list; `Cache-Control: no-store`. |
+| `src/repositories/staff.repository.ts`, `services/staff.service.ts` | Staff queue (`listQueue`) and request detail (`findRequestDetail`, `findEvents`, `findLatestIdentityCheck`). | Optional filters `($n IS NULL OR col = $n)`; `count(*) OVER ()` gives page + total in one query; overdue in SQL with `now` as a parameter; scope from the user, never from the query. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
@@ -392,7 +394,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P2 | SQL migrations + runner, reference seed (7/77/753 locations, 6,743 wards, 5 service types) | ✅ (demo users come with auth in P4) |
 | P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
-| P5 | Requests: submit + my requests ✅ · public tracking ✅ · queue, detail, transitions, fee paid 🔜 | 🟡 |
+| P5 | Requests: submit + my requests ✅ · public tracking ✅ · staff queue + detail ✅ · transitions, fee paid 🔜 | 🟡 |
 | P6 | Stats: map endpoint, palika report | 🔜 |
 | P7 | Web frontend | 🔜 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |

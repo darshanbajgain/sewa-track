@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { RequestStatus, ServiceTypeCode } from './enums.js';
-import { serviceTypeCodeSchema } from './enums.js';
+import type { EventAction, RequestStatus, ServiceTypeCode } from './enums.js';
+import { requestStatusSchema, serviceTypeCodeSchema } from './enums.js';
 
 /**
  * Submitting a service request (PRD F4). Used by the API (validation) and the web Apply form.
@@ -48,4 +48,68 @@ export interface MyRequestDto {
   updatedAt: string;
   closedAt: string | null;
   overdue: boolean;
+}
+
+/**
+ * Staff queue query (PRD F6): GET /requests?status=&serviceType=&overdue=&page=
+ * Query values arrive as text, so "true"/"false" are turned into booleans here.
+ */
+export const queueQuerySchema = z.object({
+  status: requestStatusSchema.optional(),
+  serviceType: serviceTypeCodeSchema.optional(),
+  overdue: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+});
+export type QueueQuery = z.infer<typeof queueQuerySchema>;
+
+export const QUEUE_PAGE_SIZE = 20;
+
+/** One row in the staff queue. */
+export interface QueueItemDto {
+  id: string;
+  trackingCode: string;
+  serviceTypeCode: ServiceTypeCode;
+  serviceNameEn: string;
+  status: RequestStatus;
+  wardNumber: number;
+  submittedAt: string;
+  overdue: boolean;
+  assignedOfficerName: string | null;
+}
+
+export interface QueuePageDto {
+  items: QueueItemDto[];
+  page: number;
+  pageSize: number;
+  total: number; // matching rows across ALL pages
+}
+
+/** Path parameter for /requests/:id. */
+export const requestIdParamsSchema = z.object({ id: z.uuid('Invalid request id') });
+
+/** Full request detail for the owner or scoped staff (PRD F6). Includes private data: never public. */
+export interface RequestDetailDto {
+  id: string;
+  trackingCode: string;
+  status: RequestStatus;
+  version: number; // send back with any change (optimistic locking)
+  service: { code: ServiceTypeCode; nameEn: string; nameNe: string; feeNpr: number; serviceDays: number; requiresFieldVerification: boolean };
+  location: { wardId: number; wardNumber: number; palikaNameEn: string; palikaNameNe: string; districtNameEn: string };
+  purpose: string;
+  applicant: { name: string; nid: string };
+  assignedOfficer: { id: string; name: string } | null;
+  feePaidAt: string | null;
+  fieldVerifiedAt: string | null;
+  submittedAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  overdue: boolean;
+  identityCheck: { status: 'PENDING' | 'MATCH' | 'NO_MATCH' | 'FAILED'; attempts: number } | null;
+  events: { action: EventAction; fromStatus: RequestStatus | null; toStatus: RequestStatus | null; note: string | null; actorName: string | null; at: string }[];
+  /** What the CURRENT user may do now: drives which buttons the UI shows. */
+  allowedTransitions: RequestStatus[];
+  canMarkFeePaid: boolean;
 }

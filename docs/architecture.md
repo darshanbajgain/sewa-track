@@ -494,7 +494,8 @@ Formal write-ups: `docs/decisions/ADR-001-denormalized-location.md`, `ADR-002-op
 | Catalog and location endpoints | ✅ |
 | Requests: submit + my requests | ✅ |
 | Public tracking | ✅ |
-| Requests: queue, transitions, fee | 🔜 P5 |
+| Staff queue and request detail | ✅ |
+| Requests: transitions, fee | 🔜 P5 |
 | Stats and map endpoint | 🔜 P6 |
 | Web app | 🔜 P7 |
 | Performance work, deploy, README | 🔜 P8 |

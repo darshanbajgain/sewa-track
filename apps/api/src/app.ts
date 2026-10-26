@@ -6,6 +6,7 @@ import { createAuthRouter } from './routes/auth.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { referenceRouter } from './routes/reference.routes.js';
 import { requestRouter } from './routes/request.routes.js';
+import { createTrackingRouter } from './routes/tracking.routes.js';
 
 /**
  * Builds the Express app WITHOUT starting a server.
@@ -35,6 +36,7 @@ export function createApp(): Express {
   api.use(createAuthRouter());
   api.use(referenceRouter);
   api.use(requestRouter);
+  api.use(createTrackingRouter());
   app.use('/api/v1', api);
 
   // These two must be LAST: nothing above matched → 404; anything threw → errorHandler.

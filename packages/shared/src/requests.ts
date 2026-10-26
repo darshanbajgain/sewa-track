@@ -21,6 +21,22 @@ export const createRequestSchema = z.object({
 });
 export type CreateRequestInput = z.infer<typeof createRequestSchema>;
 
+/**
+ * PUBLIC tracking response (PRD F5). Anyone with the code can see this, without logging in, so it
+ * contains ONLY these fields: no names, no applicant data, no officer notes, no internal ids.
+ */
+export interface TrackingDto {
+  trackingCode: string;
+  service: { code: ServiceTypeCode; nameEn: string; nameNe: string };
+  ward: { number: number };
+  palika: { nameEn: string; nameNe: string };
+  status: RequestStatus;
+  submittedAt: string;
+  updatedAt: string;
+  overdue: boolean;
+  timeline: { status: RequestStatus; at: string }[]; // status changes only: no notes, no who
+}
+
 /** A request as its owner sees it in "My requests". */
 export interface MyRequestDto {
   id: string;

@@ -37,3 +37,18 @@ export async function kathmanduWardId(number: number): Promise<number> {
   ]);
   return rows[0]!.id;
 }
+
+/**
+ * A session cookie for a demo user WITHOUT calling the login endpoint.
+ * Use this when a test just needs "be user X". Logging in 6 users through the real endpoint
+ * trips the login rate limit (5/min), which is working as designed. Login itself is tested in auth.test.ts.
+ */
+export async function sessionFor(phone: string): Promise<string> {
+  const { signSessionToken } = await import('../src/security/token.js');
+  const { rows } = await pool.query(
+    `SELECT id, role, ward_id AS "wardId", local_level_id AS "localLevelId" FROM users WHERE phone = $1`,
+    [phone],
+  );
+  if (!rows[0]) throw new Error(`no user with phone ${phone}`);
+  return `sewa_session=${signSessionToken(rows[0])}`;
+}

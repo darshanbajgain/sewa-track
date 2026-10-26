@@ -319,6 +319,8 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/db/seed.cli.ts` | `pnpm db:seed` entry point. | |
 | `src/db/import-locations.ts` | One-time import that builds `db/seed-data/locations.json` from the public dataset. | Pinned commit, checks official counts, fixes one Nepali spelling. Output is committed, so seeding works offline. |
 | `src/db/transaction.ts` | `withTransaction(work)`: BEGIN → work(client) → COMMIT, or ROLLBACK on any error; always releases the connection. | A transaction lives on ONE connection, so repositories in a transaction take the `client`, not the pool. |
+| `src/db/seed-large.ts`, `seed-large.cli.ts` | `pnpm seed:large [n]`: n fake requests (default 100k), skewed by district, ~65% closed, plus audit events. | **Dev only, destructive** (TRUNCATEs request tables). Batches of 5,000 via `jsonb_to_recordset`; weighted ward picker (binary search over cumulative weights). |
+| `src/db/explain.cli.ts` | `pnpm db:explain`: EXPLAIN ANALYZE median of 7 runs for the heaviest queries. | Imports the **real** SQL from the repositories (`LIST_QUEUE_SQL`, `FIND_EVENTS_SQL`, `countByAreaSql`), so it can't drift. |
 | `src/db/pool.ts` | Shared `pg.Pool` (max 10 connections) + `closePool()`. | Reusing connections is much faster than one new connection per request. Idle-connection errors are logged, not fatal. |
 | `src/errors.ts` | `ERROR_STATUS` map and `AppError` class. | Codes come from `@sewa/shared`; `satisfies Record<ErrorCode, number>` fails the build if a code has no HTTP status. Throw `new AppError('NOT_FOUND', '…')` anywhere. |
 | `src/types/express.d.ts` | Adds `req.id: string` to Express' `Request` type. | TypeScript "declaration merging". |
@@ -399,7 +401,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
 | P5 | Requests: submit, my requests, public tracking, staff queue + detail, status change + fee paid with optimistic locking | ✅ (reassign: P5.5) |
-| P6 | Stats: map endpoint + palika/national report ✅ · large seed, indexes, performance doc 🔜 | 🟡 |
+| P6 | Stats endpoints + 100k seed, indexes (migration 003), `docs/performance.md` with measured before/after | ✅ |
 | P7 | Web frontend | 🔜 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |
 | P9 | NID mock + contract test, Swagger, ADRs, full Nepali UI | 🔜 |

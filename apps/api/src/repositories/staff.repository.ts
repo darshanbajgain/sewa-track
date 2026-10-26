@@ -45,9 +45,10 @@ export interface QueueRow {
  *    that number on every returned row, so we get the page AND the total in one round trip.
  *  - `ORDER BY submitted_at, id`: oldest first (PRD F6); `id` makes the order stable for paging.
  *  - LEFT JOIN users: many requests have no assigned officer yet; INNER JOIN would hide them.
+ *
+ * Exported so `pnpm db:explain` measures exactly the SQL the API runs.
  */
-export async function listQueue(f: QueueFilters): Promise<QueueRow[]> {
-  const sql = `
+export const LIST_QUEUE_SQL = `
     SELECT r.id,
            r.tracking_code     AS "trackingCode",
            r.service_type_code AS "serviceTypeCode",
@@ -70,7 +71,8 @@ export async function listQueue(f: QueueFilters): Promise<QueueRow[]> {
     ORDER BY r.submitted_at ASC, r.id ASC
     LIMIT ${QUEUE_PAGE_SIZE} OFFSET $6`;
 
-  const { rows } = await pool.query<QueueRow>(sql, [
+export async function listQueue(f: QueueFilters): Promise<QueueRow[]> {
+  const { rows } = await pool.query<QueueRow>(LIST_QUEUE_SQL, [
     f.wardId,
     f.localLevelId,
     f.status ?? null,
@@ -147,16 +149,16 @@ export interface EventRow {
 }
 
 /** Full history for staff and the owner: with notes and who did it (LEFT JOIN: system events have no actor). */
+export const FIND_EVENTS_SQL = `
+  SELECT e.action, e.from_status AS "fromStatus", e.to_status AS "toStatus", e.note,
+         u.name AS "actorName", e.created_at AS at
+  FROM request_events e
+  LEFT JOIN users u ON u.id = e.actor_id
+  WHERE e.request_id = $1
+  ORDER BY e.created_at, e.id`;
+
 export async function findEvents(requestId: string): Promise<EventRow[]> {
-  const { rows } = await pool.query<EventRow>(
-    `SELECT e.action, e.from_status AS "fromStatus", e.to_status AS "toStatus", e.note,
-            u.name AS "actorName", e.created_at AS at
-     FROM request_events e
-     LEFT JOIN users u ON u.id = e.actor_id
-     WHERE e.request_id = $1
-     ORDER BY e.created_at, e.id`,
-    [requestId],
-  );
+  const { rows } = await pool.query<EventRow>(FIND_EVENTS_SQL, [requestId]);
   return rows;
 }
 

@@ -89,7 +89,7 @@ and may be outdated.
 | Staff queue (scoped by ward/palika, filters, pagination) and request detail | ✅ |
 | Status changes + fee paid: transition rules, optimistic locking (409), audit in the same transaction, notifier stub | ✅ |
 | Map statistics API: overdue, on-time rate, pending, avg days per district/palika + staff reports | ✅ |
-| Performance work on 100k requests (indexes, EXPLAIN ANALYZE) | 🔜 |
+| Performance on 100k requests: indexes from EXPLAIN ANALYZE, measured before/after (queue 7.9 → 0.5 ms) | ✅ |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |
 
@@ -183,8 +183,9 @@ docs/             requirements, architecture, database, codebase guide
 - **Append-only audit log:** a trigger rejects any `UPDATE` or `DELETE` on the history table.
 - **Optimistic locking:** two officers editing the same request get one success and one `409 Conflict`,
   never a silent overwrite.
-- **Hand-written SQL, measured:** bulk seed in one query per table (`jsonb_to_recordset`,
-  `generate_series`); query performance to be documented with `EXPLAIN ANALYZE` before and after indexes.
+- **Hand-written SQL, measured:** on 100k fake requests, indexes chosen from `EXPLAIN ANALYZE` made the officer
+  queue ~15× and request history ~190× faster; API p95 is 5 ms (queue) and 66 ms (national map).
+  The honest part is in [performance.md](docs/performance.md): the national map needs every row, so no index helps it.
 - **Own migration runner:** one transaction per file, checksum check, advisory lock (same model as Flyway).
 - **Security basics from day one:** input validation, generic error responses, log redaction, request
   size limit, compressed request bodies refused, dependency audit in CI, patched Node.js required.
@@ -200,6 +201,7 @@ docs/             requirements, architecture, database, codebase guide
 | [docs/architecture.md](docs/architecture.md) | System design: containers, layers, flows, security, deployment |
 | [docs/database.md](docs/database.md) | ER diagrams, every table and data type, design decisions, migrations, seed |
 | [docs/api.md](docs/api.md) | Every endpoint: request, response, errors, curl examples |
+| [docs/performance.md](docs/performance.md) | 100k-row benchmarks: EXPLAIN ANALYZE before/after indexes, API p95, index cost |
 | [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
 | [docs/decisions/](docs/decisions/) | Architecture decision records (ADR-001 location copies, ADR-002 optimistic locking) |
 | [docs/incidents/](docs/incidents/) | Blameless reviews (001: a concurrency test that passed for the wrong reason) |

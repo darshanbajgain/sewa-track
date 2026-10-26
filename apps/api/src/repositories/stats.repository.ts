@@ -60,11 +60,11 @@ export interface MapFilters {
 /**
  * The map query: ONE GROUP BY over service_requests, no joins up the location hierarchy, because
  * the location ids were copied onto each request at insert (ADR-001). Optional filters use the
- * `($n IS NULL OR …)` pattern.
+ * `($n IS NULL OR …)` pattern. Exported so `pnpm db:explain` measures exactly what the API runs.
  */
-export async function countByArea(f: MapFilters): Promise<(Counters & { areaId: number })[]> {
-  const col = GROUP_COLUMN[f.level];
-  const sql = `
+export function countByAreaSql(level: MapLevel): string {
+  const col = GROUP_COLUMN[level];
+  return `
     SELECT ${col.area} AS "areaId", ${METRIC_COLUMNS}
     FROM service_requests r
     JOIN service_types st ON st.code = r.service_type_code
@@ -75,7 +75,10 @@ export async function countByArea(f: MapFilters): Promise<(Counters & { areaId: 
       AND ($5::int IS NULL OR ${col.parent} = $5)
     GROUP BY ${col.area}
     ORDER BY ${col.area}`.replaceAll('$NOW', '$6');
+}
 
+export async function countByArea(f: MapFilters): Promise<(Counters & { areaId: number })[]> {
+  const sql = countByAreaSql(f.level);
   const { rows } = await pool.query(sql, [
     f.serviceType ?? null,
     f.status ?? null,

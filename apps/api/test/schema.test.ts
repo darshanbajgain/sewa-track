@@ -83,6 +83,26 @@ describe('migrations', () => {
   });
 });
 
+describe('performance indexes (migration 003)', () => {
+  it('exist with the column order the queries need', async () => {
+    const { rows } = await client.query<{ indexname: string; indexdef: string }>(
+      `SELECT indexname, indexdef FROM pg_indexes WHERE indexname LIKE '%_idx' ORDER BY indexname`,
+    );
+    const defs = Object.fromEntries(rows.map((r) => [r.indexname, r.indexdef]));
+    expect(defs.service_requests_ward_queue_idx).toContain('(ward_id, submitted_at, id)');
+    expect(defs.service_requests_palika_queue_idx).toContain('(local_level_id, submitted_at, id)');
+    expect(defs.request_events_request_idx).toContain('(request_id, created_at, id)');
+    expect(Object.keys(defs)).toEqual(
+      expect.arrayContaining([
+        'service_requests_district_idx',
+        'service_requests_service_date_idx',
+        'service_requests_citizen_idx',
+        'identity_checks_request_idx',
+      ]),
+    );
+  });
+});
+
 describe('constraints', () => {
   it('accept a valid request', async () => {
     const { requestId } = await insertValidRequest();

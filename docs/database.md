@@ -457,11 +457,23 @@ never updated**. That makes this a safe, documented *denormalization* for read p
 | `local_levels` | `(district_id, name_en)` | Palika lookup inside a district |
 | `provinces`, `districts` | `name_en`, `name_ne` | Name lookups |
 
-**Not automatic:** Postgres does **not** index foreign key columns. Planned in a later migration
-(with `EXPLAIN ANALYZE` before/after in `docs/performance.md`):
+**Added in `003_performance_indexes.sql`**, each chosen from `EXPLAIN ANALYZE` on 100k requests
+([performance.md](./performance.md)). Postgres does **not** index foreign keys by itself, so lookups by
+parent id need explicit indexes.
 
-| Planned index | For |
-|---|---|
+| Index | For | Measured effect |
+|---|---|---|
+| `service_requests (ward_id, submitted_at, id)` | officer queue (filter + sort) | 7.87 → 0.54 ms |
+| `service_requests (local_level_id, submitted_at, id)` | palika admin queue | 14.74 → 2.79 ms |
+| `service_requests (district_id, submitted_at)` | map drill-down | 28.90 → 23.54 ms |
+| `service_requests (service_type_code, submitted_at)` | map by service + dates | 22.44 → 11.30 ms |
+| `service_requests (citizen_id, submitted_at DESC)` | my requests (FK) | — |
+| `request_events (request_id, created_at, id)` | request history (FK) | 9.55 → 0.05 ms |
+| `identity_checks (request_id, created_at DESC)` | latest ID check (FK) | — |
+
+The national map (all rows) stays a sequential scan: an index can't help a query that needs every row.
+
+---|---|
 | `service_requests (ward_id, status, submitted_at)` | Officer queue: "my ward, this status, oldest first" |
 | `service_requests (district_id, status, submitted_at)` | Map stats per district |
 | `request_events (request_id, created_at)` | Request timeline |
@@ -475,7 +487,8 @@ never updated**. That makes this a safe, documented *denormalization* for read p
 apps/api/db/migrations/
   001_init.sql                   initial schema
   002_location_coordinates.sql   wards: drop lat/lng; local_levels: lat/lng nullable, both-or-neither
-  003_...sql                     next change (never edit an applied file)
+  003_performance_indexes.sql    7 indexes chosen from EXPLAIN ANALYZE (docs/performance.md)
+  004_...sql                     next change (never edit an applied file)
 ```
 
 ### Commands

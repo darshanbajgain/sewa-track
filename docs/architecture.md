@@ -427,8 +427,8 @@ system would use a job queue with retries.
 
 - **Connection pool** (max 10) reuses DB connections ✅.
 - **Copied location ids** make map stats a single-table `GROUP BY` (ADR-001) ✅ schema.
-- **Composite indexes** for the officer queue and map, measured with `EXPLAIN ANALYZE` on 100k rows 🔜.
-- **Targets (PRD §10):** stats endpoint p95 < 200 ms, queue p95 < 150 ms locally on 100k rows.
+- **Composite indexes** for the queues, history and map filters, measured with `EXPLAIN ANALYZE` on 100k rows ✅ ([performance.md](./performance.md)).
+- **Targets (PRD §10):** stats endpoint p95 < 200 ms, queue p95 < 150 ms on 100k rows. **Measured: 66 ms and 5 ms.**
 - **Pagination** on lists (20 per page) 🔜.
 - **Stateless API** (JWT, no in-memory sessions): more API instances can run behind a load balancer.
 - **Next step if load grew (not in v1):** cache public map aggregates for a minute, a read
@@ -497,7 +497,7 @@ Formal write-ups: [ADR-001](./decisions/ADR-001-denormalized-location.md) ✅, [
 | Staff queue and request detail | ✅ |
 | Status change + fee paid (locking, audit, notifier) | ✅ |
 | Stats: map endpoint + reports | ✅ |
-| Large seed, indexes, performance doc | 🔜 P6 |
+| 100k seed, indexes, performance doc (measured) | ✅ |
 | Web app | 🔜 P7 |
 | Performance work, deploy, README | 🔜 P8 |
 | NID mock + contract test, Swagger, ADRs | 🔜 P9 |

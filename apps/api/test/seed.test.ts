@@ -90,7 +90,9 @@ describe('reference seed', () => {
   });
 
   it('is idempotent: running it again changes no counts', async () => {
-    const summary = await runSeed(client);
-    expect(summary).toEqual({ provinces: 7, districts: 77, localLevels: 753, wards: 6743, serviceTypes: 5, users: 6 });
+    const first = await runSeed(client);
+    const second = await runSeed(client);
+    expect(second).toEqual(first); // nothing added, nothing duplicated
+    expect(second).toMatchObject({ provinces: 7, districts: 77, localLevels: 753, wards: 6743, serviceTypes: 5 });
   });
 });

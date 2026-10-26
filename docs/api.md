@@ -17,8 +17,8 @@ Status: ✅ available · 🔜 planned
 | GET | `/locations/districts?provinceId=` | — | Districts (all, or of one province) | ✅ |
 | GET | `/locations/local-levels?districtId=` | — | Palikas of a district | ✅ |
 | GET | `/locations/wards?localLevelId=` | — | Wards of a palika | ✅ |
-| POST | `/requests` | citizen | Submit a request | 🔜 |
-| GET | `/requests/mine` | citizen | Own requests | 🔜 |
+| POST | `/requests` | citizen | Submit a request | ✅ |
+| GET | `/requests/mine` | citizen | Own requests | ✅ |
 | GET | `/requests` | staff (scoped) | Queue | 🔜 |
 | GET | `/requests/:id` | owner / scoped staff | Detail + history | 🔜 |
 | POST | `/requests/:id/transitions` | officer / citizen | Change status | 🔜 |
@@ -113,3 +113,22 @@ Fees and days are **demo values**.
 
 ### `GET /locations/wards?localLevelId=307`
 `localLevelId` required. `{ "wards": [{ "id", "number" }] }` in number order. `400` / `404` as above.
+
+---
+
+## Requests
+
+### `POST /requests` (citizen)
+```json
+{ "serviceTypeCode": "RESIDENCE", "wardId": 1234, "purpose": "Needed to open a bank account",
+  "applicant": { "name": "Demo Applicant", "nid": "DEMO-1234567" }, "consent": true }
+```
+- `purpose` 10–500 chars · `applicant.nid` must be `DEMO-` + 7 digits (demo data only) · `consent` must be `true`
+- In **one transaction**: the request (location ids copied from the ward), a `CREATED` audit event,
+  and a `PENDING` identity check. If any step fails, nothing is saved.
+- `201` `{ "request": { "id", "trackingCode": "ST-7K3QX9M2PD", "status": "SUBMITTED", "submittedAt" } }`
+- `400` invalid body (field details) · `401` not logged in · `403` not a citizen · `404` unknown ward
+
+### `GET /requests/mine` (citizen)
+`200` `{ "requests": [{ "id", "trackingCode", "serviceTypeCode", "status", "wardId", "submittedAt",
+"updatedAt", "closedAt", "overdue" }] }`, newest first, **only the caller's own** requests.

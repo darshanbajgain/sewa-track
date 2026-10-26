@@ -84,7 +84,8 @@ and may be outdated.
 | Workflow rules (transitions, overdue, tracking codes, fee payment), 160+ unit tests | ✅ |
 | Auth: login with httpOnly JWT cookie, role checks, login rate limit, demo accounts | ✅ |
 | Public API: service catalog and location hierarchy (province → district → palika → ward) | ✅ |
-| Request submission, tracking, officer queue, status changes | 🔜 |
+| Request submission (one transaction with audit event) and "my requests" | ✅ |
+| Public tracking, officer queue, status changes | 🔜 |
 | Map statistics API and performance work on 100k requests | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |

@@ -19,8 +19,8 @@ Status: ✅ available · 🔜 planned
 | GET | `/locations/wards?localLevelId=` | — | Wards of a palika | ✅ |
 | POST | `/requests` | citizen | Submit a request | ✅ |
 | GET | `/requests/mine` | citizen | Own requests | ✅ |
-| GET | `/requests` | staff (scoped) | Queue | 🔜 |
-| GET | `/requests/:id` | owner / scoped staff | Detail + history | 🔜 |
+| GET | `/requests` | staff (scoped) | Queue | ✅ |
+| GET | `/requests/:id` | owner / scoped staff | Detail + history | ✅ |
 | POST | `/requests/:id/transitions` | officer / citizen | Change status | 🔜 |
 | POST | `/requests/:id/fee-paid` | officer | Mark fee paid | 🔜 |
 | GET | `/track/:trackingCode` | — (rate limited) | Public tracking | ✅ |
@@ -154,3 +154,29 @@ The code is cleaned first: trimmed, uppercased, look-alikes mapped (`O`→`0`, `
 **Only these fields, ever** (PRD F5): no applicant data, purpose, names, officer notes or internal ids.
 The SQL selects only public columns, and a test plants private values and checks none appear.
 `Cache-Control: no-store`. Errors: `400` malformed code · `404` unknown code · `429` rate limit.
+
+---
+
+## Staff queue and request detail
+
+### `GET /requests?status=&serviceType=&overdue=&page=` (ward officer, palika admin, system admin)
+**Scope comes from the logged-in user, never from the query string:** officer → own ward,
+palika admin → own palika, system admin → all. Oldest first, 20 per page.
+
+| Query | Values |
+|---|---|
+| `status` | one of the 8 statuses |
+| `serviceType` | one of the 5 codes |
+| `overdue` | `true` / `false` (same rule as the domain: open and past `submittedAt + serviceDays`) |
+| `page` | 1, 2, … (default 1) |
+
+`200` `{ "items": [{ "id", "trackingCode", "serviceTypeCode", "serviceNameEn", "status", "wardNumber",
+"submittedAt", "overdue", "assignedOfficerName" }], "page": 1, "pageSize": 20, "total": 23 }`
+`400` bad filter · `401` · `403` citizen.
+
+### `GET /requests/:id` (owner citizen or scoped staff)
+Full detail including applicant data and the history **with notes and actor names** (never public).
+Also `version` (send it back with any change) and what **the current user** may do now:
+`allowedTransitions` (e.g. `["UNDER_REVIEW"]` for an officer on a new request, `["CANCELLED"]` for its
+owner, `[]` for admins) and `canMarkFeePaid`.
+`400` not a uuid · `403` outside the user's ward/palika or not the owner · `404` unknown.

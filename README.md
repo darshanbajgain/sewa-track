@@ -86,7 +86,8 @@ and may be outdated.
 | Public API: service catalog and location hierarchy (province → district → palika → ward) | ✅ |
 | Request submission (one transaction with audit event) and "my requests" | ✅ |
 | Public tracking by code (no login, no personal data, rate limited) | ✅ |
-| Officer queue, status changes | 🔜 |
+| Staff queue (scoped by ward/palika, filters, pagination) and request detail | ✅ |
+| Status changes with optimistic locking | 🔜 |
 | Map statistics API and performance work on 100k requests | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |

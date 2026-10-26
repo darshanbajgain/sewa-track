@@ -23,7 +23,7 @@ Status: ✅ available · 🔜 planned
 | GET | `/requests/:id` | owner / scoped staff | Detail + history | 🔜 |
 | POST | `/requests/:id/transitions` | officer / citizen | Change status | 🔜 |
 | POST | `/requests/:id/fee-paid` | officer | Mark fee paid | 🔜 |
-| GET | `/track/:trackingCode` | — (rate limited) | Public tracking | 🔜 |
+| GET | `/track/:trackingCode` | — (rate limited) | Public tracking | ✅ |
 | GET | `/stats/map` | — / admin | Map data | 🔜 |
 
 ---
@@ -132,3 +132,25 @@ Fees and days are **demo values**.
 ### `GET /requests/mine` (citizen)
 `200` `{ "requests": [{ "id", "trackingCode", "serviceTypeCode", "status", "wardId", "submittedAt",
 "updatedAt", "closedAt", "overdue" }] }`, newest first, **only the caller's own** requests.
+
+---
+
+## Public tracking
+
+### `GET /track/:trackingCode` (no login, 10 requests/min/IP)
+The code is cleaned first: trimmed, uppercased, look-alikes mapped (`O`→`0`, `I`/`L`→`1`).
+
+```json
+{ "tracking": {
+    "trackingCode": "ST-7K3QX9M2PD",
+    "service": { "code": "LAND_BOUNDARY", "nameEn": "Land boundary (four-sides) verification", "nameNe": "चार किल्ला प्रमाणित" },
+    "ward": { "number": 1 },
+    "palika": { "nameEn": "Kathmandu", "nameNe": "काठमाण्डौं" },
+    "status": "UNDER_REVIEW",
+    "submittedAt": "2026-10-26T04:50:00.000Z", "updatedAt": "2026-10-26T05:10:00.000Z",
+    "overdue": false,
+    "timeline": [{ "status": "SUBMITTED", "at": "…" }, { "status": "UNDER_REVIEW", "at": "…" }] } }
+```
+**Only these fields, ever** (PRD F5): no applicant data, purpose, names, officer notes or internal ids.
+The SQL selects only public columns, and a test plants private values and checks none appear.
+`Cache-Control: no-store`. Errors: `400` malformed code · `404` unknown code · `429` rate limit.

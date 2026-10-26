@@ -332,7 +332,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/security/token.ts` | `signSessionToken` / `verifySessionToken` (JWT, HS256, 8 h). | Payload = id, role, scope only (readable by anyone, so no secrets). Only `HS256` accepted (blocks the `alg: none` trick). |
 | `src/security/cookies.ts` | Cookie name + options; `readCookie()`. | `httpOnly`, `SameSite=Lax`, `Secure` in production. No cookie-parser package needed. |
 | `src/middleware/auth.ts` | `requireAuth` (401) and `requireRole(...roles)` (403). | Authentication = who are you; authorization = may you. Scope (own ward) is checked later in services. |
-| `src/middleware/rateLimit.ts` | `createLoginRateLimit()`: 5 tries/min/IP → 429. | A factory, so every app instance (and every test) gets its own counter. |
+| `src/middleware/rateLimit.ts` | `createLoginRateLimit()` (5/min) and `createTrackRateLimit()` (10/min) → 429. | A factory, so every app instance (and every test) gets its own counter. |
 | `src/repositories/user.repository.ts` | `findUserByPhone`, `findUserById`. | Only the login query selects `password_hash`. |
 | `src/services/auth.service.ts` | `login()`, `getCurrentUser()`. | Same message for unknown phone and wrong password; dummy hash check so both take the same time. |
 | `src/controllers/auth.controller.ts` | `postLogin`, `postLogout`, `getMe`. | Token goes only into the httpOnly cookie, never into the JSON body. |
@@ -344,6 +344,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/repositories/event.repository.ts` | `insertEvent` only. | Append-only by design: no update/delete function exists. Takes the transaction client. |
 | `src/services/request.service.ts` | `submitRequest` (one transaction: request + CREATED event + PENDING ID check; retries on a tracking-code clash), `listMyRequests` (overdue via the domain rule). | |
 | `src/controllers/request.controller.ts`, `routes/request.routes.ts` | `POST /requests` (201), `GET /requests/mine`. | `requireAuth` + `requireRole('CITIZEN')` on both. |
+| `src/repositories/tracking.repository.ts`, `services/tracking.service.ts`, `controllers/tracking.controller.ts`, `routes/tracking.routes.ts` | `GET /track/:code`: public, 10/min/IP. | **Privacy by design:** the SQL selects only public columns; timeline = status + time only; response built from an allow-list; `Cache-Control: no-store`. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
@@ -391,7 +392,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P2 | SQL migrations + runner, reference seed (7/77/753 locations, 6,743 wards, 5 service types) | ✅ (demo users come with auth in P4) |
 | P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
-| P5 | Requests: submit + my requests ✅ · track, queue, detail, transitions, fee paid 🔜 | 🟡 |
+| P5 | Requests: submit + my requests ✅ · public tracking ✅ · queue, detail, transitions, fee paid 🔜 | 🟡 |
 | P6 | Stats: map endpoint, palika report | 🔜 |
 | P7 | Web frontend | 🔜 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |

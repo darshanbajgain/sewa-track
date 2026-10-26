@@ -85,7 +85,8 @@ and may be outdated.
 | Auth: login with httpOnly JWT cookie, role checks, login rate limit, demo accounts | ✅ |
 | Public API: service catalog and location hierarchy (province → district → palika → ward) | ✅ |
 | Request submission (one transaction with audit event) and "my requests" | ✅ |
-| Public tracking, officer queue, status changes | 🔜 |
+| Public tracking by code (no login, no personal data, rate limited) | ✅ |
+| Officer queue, status changes | 🔜 |
 | Map statistics API and performance work on 100k requests | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |

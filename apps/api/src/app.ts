@@ -1,5 +1,6 @@
 import express, { type Express } from 'express';
 import helmet from 'helmet';
+import { ConsoleNotifier, type Notifier } from './integrations/notifier.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { requestId } from './middleware/requestId.js';
 import { createAuthRouter } from './routes/auth.routes.js';
@@ -15,9 +16,18 @@ import { createTrackingRouter } from './routes/tracking.routes.js';
  * HTTP requests to it in memory, with no real port opened.
  *
  * Middleware runs top to bottom for every request, so ORDER MATTERS.
+ *
+ * `deps` = outside services the app uses. Production gets the real ones by default; tests pass
+ * fakes (e.g. a notifier that records calls). This is dependency injection.
  */
-export function createApp(): Express {
+export interface AppDeps {
+  notifier: Notifier;
+}
+
+export function createApp(deps: AppDeps = { notifier: new ConsoleNotifier() }): Express {
   const app = express();
+  // app.locals is Express' place for app-wide values; controllers read the notifier from here.
+  app.locals.notifier = deps.notifier;
 
   // Security headers (e.g. no "X-Powered-By: Express", no MIME sniffing, protect from web vulnerabilities like Cross-Site Scripting (XSS), clickjacking).
   app.use(helmet());

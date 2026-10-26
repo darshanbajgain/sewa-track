@@ -113,3 +113,22 @@ export interface RequestDetailDto {
   allowedTransitions: RequestStatus[];
   canMarkFeePaid: boolean;
 }
+
+/** POST /requests/:id/transitions: change the status (PRD §6, F6). */
+export const transitionBodySchema = z.object({
+  toStatus: requestStatusSchema,
+  version: z.number().int().min(0), // the version the user saw; a newer one in the DB → 409
+  note: z.string().trim().max(1000).optional(),
+  reason: z.string().trim().max(1000).optional(),
+});
+export type TransitionBody = z.infer<typeof transitionBodySchema>;
+
+/** POST /requests/:id/fee-paid */
+export const feePaidBodySchema = z.object({ version: z.number().int().min(0) });
+
+/** What a successful change returns: enough for the UI to continue (or reload the detail). */
+export interface ChangeResultDto {
+  id: string;
+  status: RequestStatus;
+  version: number;
+}

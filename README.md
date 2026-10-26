@@ -87,7 +87,7 @@ and may be outdated.
 | Request submission (one transaction with audit event) and "my requests" | ✅ |
 | Public tracking by code (no login, no personal data, rate limited) | ✅ |
 | Staff queue (scoped by ward/palika, filters, pagination) and request detail | ✅ |
-| Status changes with optimistic locking | 🔜 |
+| Status changes + fee paid: transition rules, optimistic locking (409), audit in the same transaction, notifier stub | ✅ |
 | Map statistics API and performance work on 100k requests | 🔜 |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |
@@ -200,6 +200,8 @@ docs/             requirements, architecture, database, codebase guide
 | [docs/database.md](docs/database.md) | ER diagrams, every table and data type, design decisions, migrations, seed |
 | [docs/api.md](docs/api.md) | Every endpoint: request, response, errors, curl examples |
 | [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
+| [docs/decisions/](docs/decisions/) | Architecture decision records (ADR-001 location copies, ADR-002 optimistic locking) |
+| [docs/incidents/](docs/incidents/) | Blameless reviews (001: a concurrency test that passed for the wrong reason) |
 
 ---
 

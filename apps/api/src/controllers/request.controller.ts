@@ -1,5 +1,13 @@
-import { createRequestSchema, queueQuerySchema, requestIdParamsSchema } from '@sewa/shared';
+import {
+  createRequestSchema,
+  feePaidBodySchema,
+  queueQuerySchema,
+  requestIdParamsSchema,
+  transitionBodySchema,
+} from '@sewa/shared';
 import type { RequestHandler } from 'express';
+import type { Notifier } from '../integrations/notifier.js';
+import { changeStatus, markFeePaid } from '../services/change.service.js';
 import { listMyRequests, submitRequest } from '../services/request.service.js';
 import { getQueue, getRequestDetail } from '../services/staff.service.js';
 
@@ -26,4 +34,19 @@ export const getQueueHandler: RequestHandler = async (req, res) => {
 export const getRequestDetailHandler: RequestHandler = async (req, res) => {
   const { id } = requestIdParamsSchema.parse(req.params); // not a uuid → 400
   res.json({ request: await getRequestDetail(req.user!, id) });
+};
+
+/** POST /api/v1/requests/:id/transitions (ward officer or citizen): change the status. */
+export const postTransition: RequestHandler = async (req, res) => {
+  const { id } = requestIdParamsSchema.parse(req.params);
+  const body = transitionBodySchema.parse(req.body);
+  const notifier = req.app.locals.notifier as Notifier; // injected in createApp()
+  res.json({ request: await changeStatus(req.user!, id, body, notifier) });
+};
+
+/** POST /api/v1/requests/:id/fee-paid (ward officer) */
+export const postFeePaid: RequestHandler = async (req, res) => {
+  const { id } = requestIdParamsSchema.parse(req.params);
+  const { version } = feePaidBodySchema.parse(req.body);
+  res.json({ request: await markFeePaid(req.user!, id, version) });
 };

@@ -21,8 +21,8 @@ Status: ✅ available · 🔜 planned
 | GET | `/requests/mine` | citizen | Own requests | ✅ |
 | GET | `/requests` | staff (scoped) | Queue | ✅ |
 | GET | `/requests/:id` | owner / scoped staff | Detail + history | ✅ |
-| POST | `/requests/:id/transitions` | officer / citizen | Change status | 🔜 |
-| POST | `/requests/:id/fee-paid` | officer | Mark fee paid | 🔜 |
+| POST | `/requests/:id/transitions` | officer / citizen | Change status | ✅ |
+| POST | `/requests/:id/fee-paid` | officer | Mark fee paid | ✅ |
 | GET | `/track/:trackingCode` | — (rate limited) | Public tracking | ✅ |
 | GET | `/stats/map` | — / admin | Map data | 🔜 |
 
@@ -180,3 +180,35 @@ Also `version` (send it back with any change) and what **the current user** may 
 `allowedTransitions` (e.g. `["UNDER_REVIEW"]` for an officer on a new request, `["CANCELLED"]` for its
 owner, `[]` for admins) and `canMarkFeePaid`.
 `400` not a uuid · `403` outside the user's ward/palika or not the owner · `404` unknown.
+
+---
+
+## Changing a request
+
+Both endpoints use **optimistic locking** ([ADR-002](./decisions/ADR-002-optimistic-locking.md)):
+send the `version` you loaded; if someone changed the request since, you get `409 CONFLICT`
+("This request was updated by someone else. Reload to see the latest.").
+The change and its audit row are saved in one transaction.
+
+### `POST /requests/:id/transitions` (ward officer, own ward · citizen, own request)
+```json
+{ "toStatus": "NEEDS_DOCUMENTS", "version": 1, "note": "Please bring the plot map" }
+```
+`note` is required for NEEDS_DOCUMENTS, resubmitting (citizen: NEEDS_DOCUMENTS → UNDER_REVIEW) and
+returning from field verification; `reason` is required for REJECTED.
+
+`200` `{ "request": { "id", "status": "NEEDS_DOCUMENTS", "version": 2 } }`; the citizen is notified (demo: log line).
+
+| Error | When |
+|---|---|
+| `400` | bad body, or a required note/reason missing |
+| `403` | other ward / not your request / palika or system admin / wrong role for this move |
+| `404` | unknown request |
+| `409` | stale `version` |
+| `422` | move not allowed now (e.g. approve before fee paid or before field verification) |
+
+Allowed moves: see the state machine in [architecture.md §5](./architecture.md#5-the-request-workflow-state-machine).
+
+### `POST /requests/:id/fee-paid` (ward officer, own ward)
+`{ "version": 1 }` → `200` `{ "request": { "id", "status", "version": 2 } }` · audit event `FEE_PAID`.
+`422` if the service is free, already paid, or the request is approved/closed. Same `403`/`404`/`409` rules.

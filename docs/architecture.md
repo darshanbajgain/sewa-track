@@ -475,8 +475,8 @@ never in the repo. Migrations run as a release step before the new API version s
 | Web ↔ API | Same-origin proxy | CORS + cross-site cookies | Cookies work with `SameSite=Lax`; simpler security |
 | ID check | Background with timeout/retry (ADR-003) | Block submission | Citizens aren't blocked by an outside outage |
 
-Formal write-ups: `docs/decisions/ADR-001-denormalized-location.md`, `ADR-002-optimistic-locking.md`,
-`ADR-003-mock-nid-integration.md` 🔜.
+Formal write-ups: [ADR-001](./decisions/ADR-001-denormalized-location.md) ✅, [ADR-002](./decisions/ADR-002-optimistic-locking.md) ✅,
+`ADR-003-mock-nid-integration.md` 🔜. Incident review: [001](./incidents/001-concurrent-status-update.md).
 
 ---
 
@@ -495,7 +495,7 @@ Formal write-ups: `docs/decisions/ADR-001-denormalized-location.md`, `ADR-002-op
 | Requests: submit + my requests | ✅ |
 | Public tracking | ✅ |
 | Staff queue and request detail | ✅ |
-| Requests: transitions, fee | 🔜 P5 |
+| Status change + fee paid (locking, audit, notifier) | ✅ |
 | Stats and map endpoint | 🔜 P6 |
 | Web app | 🔜 P7 |
 | Performance work, deploy, README | 🔜 P8 |

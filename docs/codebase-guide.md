@@ -347,6 +347,9 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/controllers/request.controller.ts`, `routes/request.routes.ts` | `POST /requests` (201), `GET /requests/mine`. | `requireAuth` + `requireRole('CITIZEN')` on both. |
 | `src/repositories/tracking.repository.ts`, `services/tracking.service.ts`, `controllers/tracking.controller.ts`, `routes/tracking.routes.ts` | `GET /track/:code`: public, 10/min/IP. | **Privacy by design:** the SQL selects only public columns; timeline = status + time only; response built from an allow-list; `Cache-Control: no-store`. |
 | `src/repositories/staff.repository.ts`, `services/staff.service.ts` | Staff queue (`listQueue`) and request detail (`findRequestDetail`, `findEvents`, `findLatestIdentityCheck`). | Optional filters `($n IS NULL OR col = $n)`; `count(*) OVER ()` gives page + total in one query; overdue in SQL with `now` as a parameter; scope from the user, never from the query. |
+| `src/repositories/change.repository.ts` | `findChangeFacts`, `updateStatusWithVersion`, `markFeePaidWithVersion`. | **Optimistic locking:** `WHERE id = $1 AND version = $2` + `version = version + 1`; 0 rows → `null` → 409. Effects via `COALESCE` / `CASE WHEN`. |
+| `src/services/change.service.ts` | `changeStatus`, `markFeePaid`. | Order: 404 → scope 403 → stale version 409 → domain rule 422/403/400 → transaction (update + audit) → notify after commit. |
+| `src/integrations/notifier.ts` | `Notifier` interface + `ConsoleNotifier`. | Injected via `createApp({ notifier })`; tests pass a fake that records calls. Logs only code + statuses. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |
@@ -394,7 +397,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P2 | SQL migrations + runner, reference seed (7/77/753 locations, 6,743 wards, 5 service types) | ✅ (demo users come with auth in P4) |
 | P3 | Domain rules: transitions, overdue, tracking code, fee payment + unit tests | ✅ |
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
-| P5 | Requests: submit + my requests ✅ · public tracking ✅ · staff queue + detail ✅ · transitions, fee paid 🔜 | 🟡 |
+| P5 | Requests: submit, my requests, public tracking, staff queue + detail, status change + fee paid with optimistic locking | ✅ (reassign: P5.5) |
 | P6 | Stats: map endpoint, palika report | 🔜 |
 | P7 | Web frontend | 🔜 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |

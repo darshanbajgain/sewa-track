@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { Button, ButtonLink } from '@/components/common';
 import { useLogout, useMe } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
 
@@ -62,33 +63,22 @@ export function SiteHeader() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggle}
-            className="min-h-11 rounded-md border border-line px-3 text-sm font-medium hover:bg-surface"
-          >
+          <Button variant="ghost" onClick={toggle} lang={t('nav.language') === 'English' ? 'en' : 'ne'}>
             {t('nav.language')}
-          </button>
+          </Button>
           {me ? (
             <>
               <span className="hidden text-sm text-muted sm:inline">
                 {t('login.loggedInAs')} <strong className="text-ink">{me.name}</strong>
               </span>
-              <button
-                type="button"
-                onClick={() => logout.mutate(undefined, { onSuccess: () => router.push('/') })}
-                className="min-h-11 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-accent-soft"
-              >
+              <Button variant="danger" loading={logout.isPending} onClick={() => logout.mutate(undefined, { onSuccess: () => router.push('/') })}>
                 {t('login.logout')}
-              </button>
+              </Button>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-semibold text-white hover:opacity-90"
-            >
+            <ButtonLink href="/login" variant="accent">
               {t('nav.login')}
-            </Link>
+            </ButtonLink>
           )}
         </div>
       </div>

@@ -81,5 +81,13 @@
   "login.wrong": "Phone or password is incorrect.",
   "login.tooMany": "Too many attempts. Please wait a minute.",
   "login.loggedInAs": "Logged in as",
-  "login.logout": "Log out"
+  "login.logout": "Log out",
+  "common.forbidden": "You don't have access to this page or request.",
+  "common.close": "Close",
+  "login.expired": "Your session has ended. Please log in again.",
+  "login.required": "Please log in to continue.",
+  "track.helpButton": "Where do I find my code?",
+  "track.helpTitle": "Your tracking code",
+  "track.helpBody": "You get a tracking code like ST-7K3QX9M2PD when you submit a request. It is shown on screen right after you apply and in “My requests”. Anyone with the code can see the status, but never your name or documents.",
+  "track.helpOk": "Got it"
 }

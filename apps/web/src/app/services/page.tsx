@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, PageTitle, QueryState } from '@/components/ui';
+import { Badge, Card, PageTitle, QueryState } from '@/components/common';
 import { pickName, useI18n } from '@/lib/i18n';
 import { useServiceTypes } from '@/hooks/useReference';
 
@@ -18,7 +18,7 @@ export default function ServicesPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {(services.data ?? []).map((s) => (
-          <Card key={s.code} className="flex flex-col gap-3">
+          <Card as="article" key={s.code} className="flex flex-col gap-3">
             <h2 id={s.code} className="scroll-mt-4 text-xl font-bold text-primary">
               {pickName(s, lang)}
             </h2>
@@ -29,7 +29,7 @@ export default function ServicesPage() {
               <span className="rounded bg-surface px-2 py-1">
                 {s.serviceDays} {s.serviceDays === 1 ? t('services.day') : t('services.days')}
               </span>
-              {s.requiresFieldVerification && <span className="rounded bg-primary-soft px-2 py-1 text-primary">{t('services.fieldVisit')}</span>}
+              {s.requiresFieldVerification && <Badge tone="info">{t('services.fieldVisit')}</Badge>}
             </div>
             <div>
               <h3 className="mb-1 text-sm font-semibold">{t('services.documents')}</h3>

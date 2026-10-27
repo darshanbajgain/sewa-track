@@ -1,25 +1,33 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
-import { Card, PageTitle } from '@/components/ui';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/client';
+import { Alert, Button, Card, PageTitle, TextField } from '@/components/common';
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, useLogin } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
+import { ROLE_HOME, safeNextPath } from '@/lib/routing';
 
 /**
  * Login (PRD F3): one-click demo accounts, plus a normal phone + password form.
  * No sign-up page on purpose: a real sign-up would collect real phone numbers (hard rule #3).
+ *
+ * `?next=/some/page` brings the user back where they were (only to OUR pages: safeNextPath blocks
+ * open redirects). `?reason=expired|required` explains why they're here.
  */
-export default function LoginPage() {
+function LoginForm() {
   const { t } = useI18n();
   const router = useRouter();
+  const params = useSearchParams();
   const login = useLogin();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const reason = params.get('reason');
 
   function logIn(credentials: { phone: string; password: string }) {
-    login.mutate(credentials, { onSuccess: () => router.push('/') });
+    login.mutate(credentials, {
+      onSuccess: (user) => router.push(safeNextPath(params.get('next'), ROLE_HOME[user.role])),
+    });
   }
 
   function onSubmit(event: FormEvent) {
@@ -41,71 +49,68 @@ export default function LoginPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10">
       <PageTitle title={t('login.title')} />
-      {error && (
-        <p role="alert" className="rounded-md bg-accent-soft p-4 text-accent">
-          {error}
-        </p>
-      )}
+      {reason === 'expired' && <Alert tone="warning">{t('login.expired')}</Alert>}
+      {reason === 'required' && <Alert tone="info">{t('login.required')}</Alert>}
+      {error && <Alert tone="error">{error}</Alert>}
+
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="flex flex-col gap-3">
-          <h2 className="text-xl font-bold text-primary">{t('login.demoTitle')}</h2>
+        <Card as="section" aria-labelledby="demo-title" className="flex flex-col gap-3">
+          <h2 id="demo-title" className="text-xl font-bold text-primary">
+            {t('login.demoTitle')}
+          </h2>
           <p className="text-sm text-muted">{t('login.demoIntro')}</p>
           {DEMO_ACCOUNTS.map((account, i) => (
-            <button
+            <Button
               key={account.phone}
-              type="button"
+              variant={i === 0 ? 'primary' : 'secondary'}
+              size="lg"
               disabled={login.isPending}
               onClick={() => logIn({ phone: account.phone, password: DEMO_PASSWORD })}
-              className={`flex min-h-12 items-center justify-between rounded-md px-4 text-left font-semibold disabled:opacity-60 ${
-                i === 0 ? 'bg-primary text-white hover:bg-primary-dark' : 'border border-primary text-primary hover:bg-primary-soft'
-              }`}
+              className="justify-between text-left"
             >
               <span>{t(account.labelKey)}</span>
               <span aria-hidden="true">→</span>
-            </button>
+            </Button>
           ))}
         </Card>
 
-        <Card>
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold text-primary">{t('login.formTitle')}</h2>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="phone" className="text-sm font-semibold">
-                {t('login.phone')}
-              </label>
-              <input
-                id="phone"
-                inputMode="numeric"
-                autoComplete="username"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="9000000002"
-                className="min-h-12 rounded-md border border-muted px-3"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="password" className="text-sm font-semibold">
-                {t('login.password')}
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="min-h-12 rounded-md border border-muted px-3"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={login.isPending}
-              className="min-h-12 rounded-md bg-primary font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
-            >
+        <Card as="section" aria-labelledby="form-title">
+          <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+            <h2 id="form-title" className="text-xl font-bold text-primary">
+              {t('login.formTitle')}
+            </h2>
+            <TextField
+              label={t('login.phone')}
+              inputMode="numeric"
+              autoComplete="username"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="9000000002"
+              required
+            />
+            <TextField
+              label={t('login.password')}
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <Button type="submit" size="lg" loading={login.isPending}>
               {t('login.submit')}
-            </button>
+            </Button>
           </form>
         </Card>
       </div>
     </div>
+  );
+}
+
+// useSearchParams() needs a Suspense boundary so the rest of the page can still be pre-rendered.
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

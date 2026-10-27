@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Card, QueryState } from '@/components/ui';
+import { ButtonLink, Card, QueryState } from '@/components/common';
 import { pickName, useI18n } from '@/lib/i18n';
 import { useDistricts, useServiceTypes } from '@/hooks/useReference';
 import { useMapStats } from '@/hooks/useStats';
@@ -31,12 +31,12 @@ export default function HomePage() {
           <h1 className="max-w-3xl text-4xl font-bold leading-tight text-primary">{t('home.title')}</h1>
           <p className="max-w-3xl text-lg text-ink">{t('home.subtitle')}</p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/login" className="flex min-h-12 items-center rounded-md bg-primary px-6 font-semibold text-white hover:bg-primary-dark">
+            <ButtonLink href="/login" size="lg">
               {t('home.apply')}
-            </Link>
-            <Link href="/track" className="flex min-h-12 items-center rounded-md border-2 border-primary bg-white px-6 font-semibold text-primary hover:bg-primary-soft">
+            </ButtonLink>
+            <ButtonLink href="/track" variant="secondary" size="lg">
               {t('home.track')}
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       </section>

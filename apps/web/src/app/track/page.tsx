@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/client';
-import { Card, PageTitle } from '@/components/ui';
+import { Alert, Badge, Button, Card, Modal, PageTitle, Spinner, TextField } from '@/components/common';
 import { useTracking } from '@/hooks/useTracking';
 import { pickName, useI18n } from '@/lib/i18n';
 
@@ -14,7 +14,7 @@ export default function TrackPage() {
   const { t, lang } = useI18n();
   const [input, setInput] = useState('');
   const [code, setCode] = useState<string | null>(null);
-
+  const [helpOpen, setHelpOpen] = useState(false);
   const tracking = useTracking(code); // only fetches after the form is submitted
 
   function onSubmit(event: FormEvent) {
@@ -40,43 +40,37 @@ export default function TrackPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10">
       <PageTitle title={t('track.title')} intro={t('track.intro')} />
 
-      <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-3">
-        <div className="flex min-w-64 flex-1 flex-col gap-1">
-          <label htmlFor="code" className="text-sm font-semibold">
-            {t('track.label')}
-          </label>
-          <input
+      <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-3" noValidate>
+        <div className="min-w-64 flex-1">
+          <TextField
             id="code"
+            label={t('track.label')}
+            hint={t('track.hint')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="ST-7K3QX9M2PD"
             autoComplete="off"
             spellCheck={false}
-            aria-describedby="code-hint"
-            className="min-h-12 rounded-md border border-muted px-3 font-mono tracking-wider uppercase"
+            className="font-mono tracking-wider uppercase"
           />
         </div>
-        <button type="submit" className="min-h-12 rounded-md bg-primary px-6 font-semibold text-white hover:bg-primary-dark">
+        <Button type="submit" size="lg" loading={tracking.isFetching} className="mb-7">
           {t('track.button')}
-        </button>
+        </Button>
       </form>
-      <p id="code-hint" className="-mt-4 text-sm text-muted">
-        {t('track.hint')}
-      </p>
+      <Button variant="ghost" onClick={() => setHelpOpen(true)} className="-mt-4 self-start px-0 underline">
+        {t('track.helpButton')}
+      </Button>
 
       {tracking.isFetching && (
-        <p role="status" className="text-muted">
-          {t('common.loading')}
+        <p role="status" className="flex items-center gap-2 text-muted">
+          <Spinner /> {t('common.loading')}
         </p>
       )}
-      {errorMessage && (
-        <p role="alert" className="rounded-md bg-accent-soft p-4 text-accent">
-          {errorMessage}
-        </p>
-      )}
+      {errorMessage && <Alert tone="error">{errorMessage}</Alert>}
 
       {data && (
-        <Card className="flex flex-col gap-5">
+        <Card as="section" aria-label={data.trackingCode} className="flex flex-col gap-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-mono text-sm text-muted">{data.trackingCode}</p>
@@ -86,12 +80,8 @@ export default function TrackPage() {
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <span className="rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold text-primary">{t(`status.${data.status}`)}</span>
-              <span
-                className={`rounded-full px-3 py-1 text-sm font-semibold ${data.overdue ? 'bg-accent-soft text-accent' : 'bg-ok-soft text-ok'}`}
-              >
-                {data.overdue ? t('track.overdue') : t('track.onTime')}
-              </span>
+              <Badge tone="info">{t(`status.${data.status}`)}</Badge>
+              <Badge tone={data.overdue ? 'danger' : 'success'}>{data.overdue ? t('track.overdue') : t('track.onTime')}</Badge>
             </div>
           </div>
 
@@ -115,6 +105,16 @@ export default function TrackPage() {
           <p className="text-sm text-muted">{t('track.privacy')}</p>
         </Card>
       )}
+
+      <Modal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title={t('track.helpTitle')}
+        closeLabel={t('common.close')}
+        footer={<Button onClick={() => setHelpOpen(false)}>{t('track.helpOk')}</Button>}
+      >
+        <p>{t('track.helpBody')}</p>
+      </Modal>
     </div>
   );
 }

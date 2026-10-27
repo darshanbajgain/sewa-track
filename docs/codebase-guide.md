@@ -567,12 +567,20 @@ apps/web/
 │  ├─ login/page.tsx       demo-account buttons + phone form (no sign-up: never collects real numbers)
 │  └─ icon.svg             our own "ST" mark
 ├─ src/components/         SiteChrome (banner, header, nav, footer), ui (PageTitle, Card, QueryState)
-└─ src/lib/
-   ├─ api.ts               fetch wrapper: same-origin /api/v1, turns error JSON into ApiError(code)
-   ├─ auth.ts              useMe (GET /auth/me, 401 → null), useLogin, useLogout, demo accounts
-   ├─ i18n.tsx             useI18n(): t(key), lang toggle (saved in localStorage), pickName()
-   └─ queries.ts           TanStack Query hooks per API resource
+├─ src/api/                talks HTTP; no React
+│  ├─ client.ts            ONE axios instance: baseURL /api/v1, cookies, 15 s timeout, interceptor → ApiError(code)
+│  ├─ endpoints.ts         every API path in one place (ENDPOINTS.requests.detail(id) …)
+│  └─ auth / reference / requests / tracking / stats .api.ts   one async function per endpoint
+├─ src/hooks/              React + TanStack Query; pages only use these
+│  ├─ queryKeys.ts         every cache key from one factory (['requests', 'detail', id] …)
+│  └─ useAuth / useReference / useRequests / useTracking / useStats .ts
+└─ src/lib/i18n.tsx        useI18n(): t(key), language toggle, pickName()
 ```
+
+**Data flow (one direction):** page → hook (`src/hooks`) → API function (`src/api/*.api.ts`) →
+`client` + `ENDPOINTS` → `/api/v1` → Express. Mutations **invalidate** query keys (`['requests']`, `['stats']`)
+so every screen refetches by itself after a change; `useChangeStatus` invalidates even on error, because a
+409 means our copy is old. To add an endpoint: path in `endpoints.ts` → function in `*.api.ts` → hook → page.
 
 **Design rules:** a government-portal *pattern* in our own design. No emblem, flag, palika logo or
 "Government of Nepal" wording; the bilingual demo banner is always first; crimson is a sparing accent.

@@ -114,6 +114,24 @@ describe('GET /auth/me and logout', () => {
     expect(res.status).toBe(401);
   });
 
+  it('an EXPIRED token gets 401 and the browser is told to delete the cookie', async () => {
+    const { rows } = await (await import('../src/db/pool.js')).pool.query(`SELECT id FROM users WHERE phone = '9000000002'`);
+    const expired = jwt.sign(
+      { role: 'WARD_OFFICER', wardId: 1, localLevelId: null, exp: Math.floor(Date.now() / 1000) - 60 }, // ended a minute ago
+      'test-only-secret-0123456789-abcdefghijklmnop',
+      { algorithm: 'HS256', subject: rows[0].id },
+    );
+    const res = await request(app).get('/api/v1/auth/me').set('Cookie', `sewa_session=${expired}`);
+    expect(res.status).toBe(401);
+    expect(sessionCookie(res)).toMatch(/sewa_session=;|Expires=Thu, 01 Jan 1970/);
+  });
+
+  it('a missing cookie gets 401 without any Set-Cookie (nothing to clear)', async () => {
+    const res = await request(app).get('/api/v1/auth/me');
+    expect(res.status).toBe(401);
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
   it('logout clears the cookie', async () => {
     const res = await request(app).post('/api/v1/auth/logout');
     expect(res.status).toBe(204);

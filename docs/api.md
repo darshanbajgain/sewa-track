@@ -4,6 +4,10 @@
 
 Base URL: `/api/v1` · JSON only · Requirements: [PRD §9](./PRD.md#9-api-v1) · Design: [architecture.md](./architecture.md)
 
+> **Interactive docs:** run the API and open **`/api/docs`** (Swagger UI, "Try it out" works with the demo
+> accounts). Machine-readable spec: **`/api/v1/openapi.json`** (OpenAPI 3.1). Input schemas are generated from
+> the same Zod rules the API validates with, and a test fails if any route is undocumented.
+
 Status: ✅ available · 🔜 planned
 
 | Method | Path | Auth | Purpose | Status |

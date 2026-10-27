@@ -4,6 +4,7 @@ import { ConsoleNotifier, type Notifier } from './integrations/notifier.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { requestId } from './middleware/requestId.js';
 import { createAuthRouter } from './routes/auth.routes.js';
+import { createDocsRouter } from './routes/docs.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { referenceRouter } from './routes/reference.routes.js';
 import { requestRouter } from './routes/request.routes.js';
@@ -50,6 +51,8 @@ export function createApp(deps: AppDeps = { notifier: new ConsoleNotifier() }): 
   api.use(createTrackingRouter());
   api.use(statsRouter);
   app.use('/api/v1', api);
+  // API docs: /api/v1/openapi.json and Swagger UI at /api/docs.
+  app.use(createDocsRouter());
 
   // These two must be LAST: nothing above matched → 404; anything threw → errorHandler.
   app.use(notFound);

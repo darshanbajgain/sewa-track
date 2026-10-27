@@ -500,4 +500,5 @@ Formal write-ups: [ADR-001](./decisions/ADR-001-denormalized-location.md) ✅, [
 | 100k seed, indexes, performance doc (measured) | ✅ |
 | Web app | 🔜 P7 |
 | Performance work, deploy, README | 🔜 P8 |
-| NID mock + contract test, Swagger, ADRs | 🔜 P9 |
+| Swagger UI + OpenAPI 3.1 (`/api/docs`), ADR-001/002, incident 001 | ✅ |
+| NID mock + contract test, ADR-003 | 🔜 P9 |

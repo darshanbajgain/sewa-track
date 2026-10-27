@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useLogout, useMe } from '@/lib/auth';
+import { useLogout, useMe } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
 
 /**

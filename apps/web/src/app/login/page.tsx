@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Card, PageTitle } from '@/components/ui';
-import { ApiError } from '@/lib/api';
-import { DEMO_ACCOUNTS, DEMO_PASSWORD, useLogin } from '@/lib/auth';
+import { ApiError } from '@/api/client';
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, useLogin } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
 
 /**

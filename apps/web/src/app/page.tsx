@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { Card, QueryState } from '@/components/ui';
 import { pickName, useI18n } from '@/lib/i18n';
-import { useDistricts, useMapStats, useServiceTypes } from '@/lib/queries';
+import { useDistricts, useServiceTypes } from '@/hooks/useReference';
+import { useMapStats } from '@/hooks/useStats';
 
 /**
  * Home (PRD F8): leads with the national delay picture. Numbers come live from GET /stats/map

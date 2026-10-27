@@ -1,10 +1,9 @@
 'use client';
 
-import type { TrackingDto } from '@sewa/shared';
-import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
+import { ApiError } from '@/api/client';
 import { Card, PageTitle } from '@/components/ui';
-import { ApiError, api } from '@/lib/api';
+import { useTracking } from '@/hooks/useTracking';
 import { pickName, useI18n } from '@/lib/i18n';
 
 /**
@@ -16,12 +15,7 @@ export default function TrackPage() {
   const [input, setInput] = useState('');
   const [code, setCode] = useState<string | null>(null);
 
-  const tracking = useQuery({
-    queryKey: ['track', code],
-    queryFn: () => api<{ tracking: TrackingDto }>(`/track/${encodeURIComponent(code!)}`).then((r) => r.tracking),
-    enabled: code !== null, // only fetch after the form is submitted
-    retry: false, // a 404 or 429 won't fix itself by retrying
-  });
+  const tracking = useTracking(code); // only fetches after the form is submitted
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();

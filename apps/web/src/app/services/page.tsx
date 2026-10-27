@@ -2,7 +2,7 @@
 
 import { Card, PageTitle, QueryState } from '@/components/ui';
 import { pickName, useI18n } from '@/lib/i18n';
-import { useServiceTypes } from '@/lib/queries';
+import { useServiceTypes } from '@/hooks/useReference';
 
 /** Service catalog (PRD F1): documents, demo fee and promised days for each service. */
 export default function ServicesPage() {

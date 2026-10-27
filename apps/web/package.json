@@ -12,6 +12,7 @@
   "dependencies": {
     "@sewa/shared": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
+    "axios": "^1.21.0",
     "leaflet": "^1.9.4",
     "next": "^16.4.3",
     "react": "^19.3.1",

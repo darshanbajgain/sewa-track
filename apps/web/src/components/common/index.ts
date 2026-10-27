@@ -3,6 +3,7 @@ export { Alert, type AlertTone } from './Alert';
 export { Badge, type BadgeTone } from './Badge';
 export { Button, ButtonLink, buttonClasses, type ButtonSize, type ButtonVariant } from './Button';
 export { Card, PageTitle } from './Card';
+export { CheckboxField } from './CheckboxField';
 export { SelectField, TextAreaField, TextField } from './FormField';
 export { Modal } from './Modal';
 export { QueryState } from './QueryState';

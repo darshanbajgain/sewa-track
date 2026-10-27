@@ -18,6 +18,11 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   // How long a login lasts (PRD F3: 8 hours).
   SESSION_HOURS: z.coerce.number().int().positive().max(24).default(8),
+  // Serve Swagger UI at /api/docs and the OpenAPI spec at /api/v1/openapi.json.
+  API_DOCS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
   // Shown by /health so we can tell which build is running after a deploy.
   APP_VERSION: z.string().default('0.0.1'),
   GIT_COMMIT: z.string().default('local'),

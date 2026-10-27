@@ -60,7 +60,10 @@ apps/web/
    │  ├─ services/           /services  catalog ✅
    │  ├─ track/              /track     public tracking ✅
    │  ├─ login/              /login     demo accounts + phone form ✅
-   │  ├─ citizen/            /citizen/* citizen portal 🔜 (layout wraps <RequireRole roles={CITIZEN}>)
+   │  ├─ citizen/            /citizen/* citizen portal ✅ (layout = RequireRole + portal tabs)
+   │  │  ├─ page.tsx         my requests
+   │  │  ├─ apply/page.tsx   apply (cascading dropdowns, shared Zod validation, tracking code)
+   │  │  └─ requests/[id]/   detail: history, resubmit (note), cancel (confirm modal), 409 handling
    │  └─ staff/              /staff/*   staff portal 🔜 (layout wraps <RequireRole roles={staff}>)
    ├─ api/                   HTTP ONLY (no React)
    │  ├─ client.ts           axios instance + interceptor → ApiError; 401 hook
@@ -170,6 +173,8 @@ class wins). Add a variant instead (that's how `accent` was added to Button).
 | `Modal` | `open`, `onClose`, `title`, `description`, `footer`, `closeLabel` | see below |
 | `QueryState` | `isLoading`, `error`, `onRetry` | spinner / retry / 403 message |
 | `Spinner` | `className` | decorative (`aria-hidden`) |
+| `CheckboxField` | `label`, `error` + native props | whole label clickable; error linked |
+| `StatusBadge`, `OverdueBadge` (`components/requests`) | `status` / `overdue` | one colour per status, label always written |
 
 ### Modal behaviour (WAI-ARIA "dialog (modal)" pattern)
 - Rendered with **`createPortal` into `<body>`**: no parent `overflow` or stacking order can clip it.
@@ -211,7 +216,7 @@ One app, three portals (decided 2026-10-26):
 | Portal | Routes | Who |
 |---|---|---|
 | Public ✅ | `/`, `/services`, `/track`, `/login` | anyone |
-| Citizen 🔜 | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
+| Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
 | Staff 🔜 | `/staff` (queue), `/staff/requests/[id]`, `/staff/reports`, `/staff/map` | `WARD_OFFICER`, `PALIKA_ADMIN`, `SYSTEM_ADMIN` |
 
 ### Three layers of protection for a portal page
@@ -225,8 +230,12 @@ Layers 1–2 are for a smooth experience; **layer 3 is the only one that protect
 a page in the browser is never security.
 
 ### After login
-`ROLE_HOME` in `lib/routing.ts` decides where each role lands (all `/` until the portals exist; then citizen →
-`/citizen`, officers and palika admins → `/staff`, system admin → `/staff/map`). If the user was sent to login
+`ROLE_HOME` in `lib/routing.ts` decides where each role lands: citizen → `/citizen` ✅; staff roles → `/` until
+the staff portal exists (then officers and palika admins → `/staff`, system admin → `/staff/map`).
+
+**After login we do a full page load** (`window.location.assign`), not `router.push`: while logged out, Next.js
+may have pre-fetched the target and cached proxy.ts's "redirect to login" answer, so a client-side push would
+bounce back to login (found in end-to-end testing). A fresh load also resets all client state for the new user. If the user was sent to login
 from a page, `?next=` brings them back, but only to **our own paths** (`safeNextPath`, see §8).
 
 ### Portal layout (planned shape)
@@ -316,6 +325,11 @@ pre-fetches links in production (see §11).
   - security headers present on every page
 - **Lesson learned:** test the production build. Next.js pre-fetches every link in production; a link to
   a not-yet-existing page made page loads hang, which dev mode didn't show.
+- Citizen journey end to end (production build, Chrome): Apply while logged out → login → back on the form;
+  empty submit marks 6 invalid fields; cascading dropdowns; documents panel; tracking code; a second officer
+  changes the request meanwhile → **409 message + automatic refetch**; officer note shown; empty resubmit note
+  blocked; resubmit; Cancel hidden once under review; listed in My requests; an officer opening /citizen → no access;
+  Nepali at 375 px without sideways scroll.
 - 🔜 Component tests (Vitest + React Testing Library) and one Playwright end-to-end flow (PRD §13).
 
 ---

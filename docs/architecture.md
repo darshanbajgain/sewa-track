@@ -4,7 +4,7 @@
 
 How Sewa Track is put together, how a request flows through it, and why it is designed this way.
 
-- Requirements: [`PRD.md`](./PRD.md) · Database: [`database.md`](./database.md) · Code map: [`codebase-guide.md`](./codebase-guide.md)
+- Requirements: [`PRD.md`](./PRD.md) · Database: [`database.md`](./database.md) · Frontend: [`frontend.md`](./frontend.md) · Code map: [`codebase-guide.md`](./codebase-guide.md)
 - Status markers: ✅ built · 🔜 planned (designed here, implemented in a later phase)
 
 > Diagrams use **Mermaid** (GitHub renders them; in VS Code install "Markdown Preview Mermaid Support").

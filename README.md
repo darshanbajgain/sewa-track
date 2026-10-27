@@ -205,6 +205,7 @@ docs/             requirements, architecture, database, codebase guide
 | [docs/database.md](docs/database.md) | ER diagrams, every table and data type, design decisions, migrations, seed |
 | [docs/api.md](docs/api.md) | Every endpoint: request, response, errors, curl examples (live version: `/api/docs`) |
 | [docs/performance.md](docs/performance.md) | 100k-row benchmarks: EXPLAIN ANALYZE before/after indexes, API p95, index cost |
+| [docs/frontend.md](docs/frontend.md) | Web app: folder structure, data flow, design system, components, accessibility, security, portals and routing |
 | [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
 | [docs/decisions/](docs/decisions/) | Architecture decision records (ADR-001 location copies, ADR-002 optimistic locking) |
 | [docs/incidents/](docs/incidents/) | Blameless reviews (001: a concurrency test that passed for the wrong reason) |

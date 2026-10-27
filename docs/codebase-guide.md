@@ -551,6 +551,8 @@ checkout → install pnpm (version from package.json) → install Node (from .nv
 
 ## 18. Web app: `apps/web`
 
+> Full frontend architecture (components, accessibility, security, portals/routing): [frontend.md](./frontend.md).
+
 Next.js 16 (App Router), React 19, Tailwind CSS 4, TanStack Query 5. Runs on port 3000.
 
 ```
@@ -566,7 +568,10 @@ apps/web/
 │  ├─ track/page.tsx       public tracking (GET /track/:code), friendly 400/404/429 messages
 │  ├─ login/page.tsx       demo-account buttons + phone form (no sign-up: never collects real numbers)
 │  └─ icon.svg             our own "ST" mark
-├─ src/components/         SiteChrome (banner, header, nav, footer), ui (PageTitle, Card, QueryState)
+├─ src/proxy.ts            Next 16 proxy: no session cookie on /citizen, /staff → /login
+├─ src/components/common/  Button, ButtonLink, Card, Badge, Alert, Modal, Text/TextArea/SelectField, QueryState, Spinner
+├─ src/components/auth/    SessionWatcher (401 → login), RequireRole (portal guard)
+├─ src/components/         SiteChrome (banner, header, nav, footer)
 ├─ src/api/                talks HTTP; no React
 │  ├─ client.ts            ONE axios instance: baseURL /api/v1, cookies, 15 s timeout, interceptor → ApiError(code)
 │  ├─ endpoints.ts         every API path in one place (ENDPOINTS.requests.detail(id) …)
@@ -574,7 +579,8 @@ apps/web/
 ├─ src/hooks/              React + TanStack Query; pages only use these
 │  ├─ queryKeys.ts         every cache key from one factory (['requests', 'detail', id] …)
 │  └─ useAuth / useReference / useRequests / useTracking / useStats .ts
-└─ src/lib/i18n.tsx        useI18n(): t(key), language toggle, pickName()
+├─ src/lib/i18n.tsx        useI18n(): t(key), language toggle, pickName()
+└─ src/lib/routing.ts      ROLE_HOME, PORTAL_ROLES, safeNextPath() (open-redirect guard), loginUrl()
 ```
 
 **Data flow (one direction):** page → hook (`src/hooks`) → API function (`src/api/*.api.ts`) →

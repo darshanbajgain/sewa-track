@@ -31,7 +31,7 @@ export default function HomePage() {
           <h1 className="max-w-3xl text-4xl font-bold leading-tight text-primary">{t('home.title')}</h1>
           <p className="max-w-3xl text-lg text-ink">{t('home.subtitle')}</p>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/login" size="lg">
+            <ButtonLink href="/citizen/apply" size="lg">
               {t('home.apply')}
             </ButtonLink>
             <ButtonLink href="/track" variant="secondary" size="lg">

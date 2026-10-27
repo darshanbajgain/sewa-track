@@ -91,7 +91,8 @@ and may be outdated.
 | Map statistics API: overdue, on-time rate, pending, avg days per district/palika + staff reports | ✅ |
 | Interactive API docs: OpenAPI 3.1 + Swagger UI at `/api/docs`, generated from the same Zod schemas | ✅ |
 | Performance on 100k requests: indexes from EXPLAIN ANALYZE, measured before/after (queue 7.9 → 0.5 ms) | ✅ |
-| Web app (Nepali / English), national delay map | 🔜 |
+| Web app foundation: portal layout, English/Nepali, home with live national numbers, services, public tracking, demo login | ✅ |
+| Citizen and staff portals, national delay map | 🔜 |
 | Live demo | 🔜 |
 
 ---
@@ -121,7 +122,7 @@ as pure functions in `domain/`. Full design: [docs/architecture.md](docs/archite
 | Monorepo | pnpm workspaces |
 | API | Express 5, Zod, pino, helmet |
 | Database | PostgreSQL 16 with `pg` and hand-written, parameterized SQL (no ORM); plain SQL migrations |
-| Web (planned) | Next.js App Router, Tailwind, TanStack Query, react-leaflet |
+| Web | Next.js 16 (App Router), React 19, Tailwind CSS 4, TanStack Query 5, Leaflet (map, planned) |
 | Tests | Vitest + Supertest against a real Postgres |
 | Infra | Docker Compose (local), GitHub Actions (CI) |
 
@@ -139,8 +140,8 @@ pnpm db:migrate && pnpm db:seed
 pnpm dev
 ```
 
-Then open <http://localhost:4000/api/v1/health>, or the **interactive API docs (Swagger UI)** at
-<http://localhost:4000/api/docs>. Run the tests with `pnpm test`.
+Then open the **web app** at <http://localhost:3000> (log in with a demo account), or the **interactive API
+docs (Swagger UI)** at <http://localhost:4000/api/docs>. Run the tests with `pnpm test`.
 
 ### Demo accounts
 
@@ -168,7 +169,7 @@ curl -b cookies.txt localhost:4000/api/v1/auth/me
 ```
 apps/
   api/            Express REST API (src/, SQL migrations, seed data, tests)
-  web/            Next.js frontend (planned)
+  web/            Next.js frontend (public pages, login; portals in progress)
   nid-mock/       mock "existing ID service" (planned)
 packages/
   shared/         enums, Zod schemas and types used by api and web

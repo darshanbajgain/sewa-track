@@ -75,7 +75,7 @@ flowchart LR
 flowchart LR
   browser["Browser"]
 
-  subgraph web_box["apps/web · Next.js 🔜"]
+  subgraph web_box["apps/web · Next.js ✅"]
     pages["Pages (App Router)<br/>Tailwind · TanStack Query · Leaflet"]
     proxy["Rewrite /api/* to API"]
   end
@@ -99,7 +99,7 @@ flowchart LR
 
 | Container | Tech | Responsibility | Port (local) |
 |---|---|---|---|
-| `apps/web` 🔜 | Next.js App Router, Tailwind, TanStack Query, react-leaflet | UI in Nepali/English; calls the API; never talks to the DB | 3000 |
+| `apps/web` ✅ | Next.js 16 App Router, Tailwind 4, TanStack Query 5, Leaflet (planned map) | UI in Nepali/English; calls the API; never talks to the DB | 3000 |
 | `apps/api` ✅ | Express 5, TypeScript, Zod, `pg`, pino | All business rules, auth, validation, SQL | 4000 |
 | PostgreSQL ✅ | Postgres 16 | Source of truth; enforces constraints | 5432 |
 | `apps/nid-mock` 🔜 | Express | Simulates a slow, sometimes failing external ID service | 5000 |
@@ -498,7 +498,8 @@ Formal write-ups: [ADR-001](./decisions/ADR-001-denormalized-location.md) ✅, [
 | Status change + fee paid (locking, audit, notifier) | ✅ |
 | Stats: map endpoint + reports | ✅ |
 | 100k seed, indexes, performance doc (measured) | ✅ |
-| Web app | 🔜 P7 |
+| Web app foundation (public pages, login) | ✅ |
+| Citizen + staff portals, delay map | 🔜 P7 |
 | Performance work, deploy, README | 🔜 P8 |
 | Swagger UI + OpenAPI 3.1 (`/api/docs`), ADR-001/002, incident 001 | ✅ |
 | NID mock + contract test, ADR-003 | 🔜 P9 |

@@ -70,7 +70,7 @@ sewa-track/
 │  │  ├─ package.json           ✅ API dependencies and scripts
 │  │  ├─ tsconfig.json          ✅ extends the root TypeScript config
 │  │  └─ vitest.config.ts       ✅ test runner config (points tests at the test DB)
-│  ├─ web/                      🔜 Next.js frontend
+│  ├─ web/                      ✅ Next.js frontend (see §18)
 │  └─ nid-mock/                 🔜 tiny mock "existing government ID service"
 ├─ packages/
 │  └─ shared/                   ✅ enums, Zod schemas, error types used by both api and web
@@ -407,7 +407,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
 | P5 | Requests: submit, my requests, public tracking, staff queue + detail, status change + fee paid with optimistic locking | ✅ (reassign: P5.5) |
 | P6 | Stats endpoints + 100k seed, indexes (migration 003), `docs/performance.md` with measured before/after | ✅ |
-| P7 | Web frontend | 🔜 |
+| P7 | Web: foundation (layout, i18n, home, services, track, login) ✅ · portals + map 🔜 | 🟡 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |
 | P9 | NID mock + contract test, Swagger, ADRs, full Nepali UI | 🔜 |
 
@@ -546,3 +546,36 @@ checkout → install pnpm (version from package.json) → install Node (from .nv
 | `cache: pnpm` | Reuses downloaded packages between runs (faster CI) |
 
 **Workflow:** work on a branch → push → open a PR → CI must be green ✅ → merge into `main`.
+
+---
+
+## 18. Web app: `apps/web`
+
+Next.js 16 (App Router), React 19, Tailwind CSS 4, TanStack Query 5. Runs on port 3000.
+
+```
+apps/web/
+├─ next.config.ts          /api/* rewritten to the Express API (same origin → the login cookie works, no CORS)
+├─ messages/en.json, ne.json   all labels (English / Nepali); TypeScript fails if a Nepali key is missing
+├─ src/app/
+│  ├─ layout.tsx           demo banner → header → blue nav → page → footer; Noto Sans + Noto Sans Devanagari
+│  ├─ providers.tsx        TanStack Query client + language provider
+│  ├─ globals.css          design tokens (Nepal blue #003893, crimson #dc143c, white), focus outline
+│  ├─ page.tsx             home: live national numbers + most-overdue districts (GET /stats/map)
+│  ├─ services/page.tsx    catalog with documents and demo fees (GET /service-types)
+│  ├─ track/page.tsx       public tracking (GET /track/:code), friendly 400/404/429 messages
+│  ├─ login/page.tsx       demo-account buttons + phone form (no sign-up: never collects real numbers)
+│  └─ icon.svg             our own "ST" mark
+├─ src/components/         SiteChrome (banner, header, nav, footer), ui (PageTitle, Card, QueryState)
+└─ src/lib/
+   ├─ api.ts               fetch wrapper: same-origin /api/v1, turns error JSON into ApiError(code)
+   ├─ auth.ts              useMe (GET /auth/me, 401 → null), useLogin, useLogout, demo accounts
+   ├─ i18n.tsx             useI18n(): t(key), lang toggle (saved in localStorage), pickName()
+   └─ queries.ts           TanStack Query hooks per API resource
+```
+
+**Design rules:** a government-portal *pattern* in our own design. No emblem, flag, palika logo or
+"Government of Nepal" wording; the bilingual demo banner is always first; crimson is a sparing accent.
+
+**Commands:** `pnpm --filter @sewa/web dev` (needs the API on :4000) · `pnpm --filter @sewa/web build`.
+`API_ORIGIN` (default `http://localhost:4000`) sets where `/api/*` is forwarded.

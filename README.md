@@ -89,6 +89,7 @@ and may be outdated.
 | Staff queue (scoped by ward/palika, filters, pagination) and request detail | ✅ |
 | Status changes + fee paid: transition rules, optimistic locking (409), audit in the same transaction, notifier stub | ✅ |
 | Map statistics API: overdue, on-time rate, pending, avg days per district/palika + staff reports | ✅ |
+| Interactive API docs: OpenAPI 3.1 + Swagger UI at `/api/docs`, generated from the same Zod schemas | ✅ |
 | Performance on 100k requests: indexes from EXPLAIN ANALYZE, measured before/after (queue 7.9 → 0.5 ms) | ✅ |
 | Web app (Nepali / English), national delay map | 🔜 |
 | Live demo | 🔜 |
@@ -138,7 +139,8 @@ pnpm db:migrate && pnpm db:seed
 pnpm dev
 ```
 
-Then open <http://localhost:4000/api/v1/health>. Run the tests with `pnpm test`.
+Then open <http://localhost:4000/api/v1/health>, or the **interactive API docs (Swagger UI)** at
+<http://localhost:4000/api/docs>. Run the tests with `pnpm test`.
 
 ### Demo accounts
 
@@ -200,7 +202,7 @@ docs/             requirements, architecture, database, codebase guide
 | [docs/PRD.md](docs/PRD.md) | Requirements and scope |
 | [docs/architecture.md](docs/architecture.md) | System design: containers, layers, flows, security, deployment |
 | [docs/database.md](docs/database.md) | ER diagrams, every table and data type, design decisions, migrations, seed |
-| [docs/api.md](docs/api.md) | Every endpoint: request, response, errors, curl examples |
+| [docs/api.md](docs/api.md) | Every endpoint: request, response, errors, curl examples (live version: `/api/docs`) |
 | [docs/performance.md](docs/performance.md) | 100k-row benchmarks: EXPLAIN ANALYZE before/after indexes, API p95, index cost |
 | [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
 | [docs/decisions/](docs/decisions/) | Architecture decision records (ADR-001 location copies, ADR-002 optimistic locking) |

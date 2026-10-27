@@ -230,6 +230,9 @@ If one is missing or invalid, the API **exits immediately** and prints the varia
 | `LOG_LEVEL` | `info` | pino level; tests use `silent` |
 | `APP_VERSION` | `0.0.1` | Reported by `/health` |
 | `GIT_COMMIT` | `local` | Reported by `/health` so you can tell which build is deployed |
+| `JWT_SECRET` | 48 random chars | Signs login tokens (≥ 32 chars; placeholder refused in production) |
+| `SESSION_HOURS` | `8` | Login lifetime |
+| `API_DOCS_ENABLED` | `true` | Serve Swagger UI at `/api/docs` |
 
 `.env` is loaded by Node's built-in `--env-file-if-exists` flag (dev script) and
 `process.loadEnvFile` (Vitest config), so no `dotenv` package is needed.
@@ -353,6 +356,8 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/services/change.service.ts` | `changeStatus`, `markFeePaid`. | Order: 404 → scope 403 → stale version 409 → domain rule 422/403/400 → transaction (update + audit) → notify after commit. |
 | `src/integrations/notifier.ts` | `Notifier` interface + `ConsoleNotifier`. | Injected via `createApp({ notifier })`; tests pass a fake that records calls. Logs only code + statuses. |
 | `src/repositories/stats.repository.ts`, `services/stats.service.ts`, `controllers/stats.controller.ts`, `routes/stats.routes.ts` | `GET /stats/map` (public), `GET /stats/summary` (admins). | One `GROUP BY` with `count(*) FILTER (WHERE …)` computes every metric; the requested metric is picked in code. Group column from an allow-list. Same overdue rule as the domain (tested). Report starts `FROM wards LEFT JOIN requests` so empty wards show 0. |
+| `src/docs/openapi.ts` | The OpenAPI 3.1 document. | Inputs from the shared Zod schemas via `z.toJSONSchema({ io: 'input' })`; outputs written by hand. `test/docs.test.ts` walks the Express router and fails on any undocumented (or non-existent) route. |
+| `src/routes/docs.routes.ts` | `GET /api/v1/openapi.json`, Swagger UI at `GET /api/docs`. | Free, self-hosted (`swagger-ui-dist`, Apache-2.0); only same-origin files, so helmet's strict CSP stays on; allow-list of 3 files. `API_DOCS_ENABLED=false` turns it off. |
 | `src/repositories/health.repository.ts` | `pingDatabase()` runs `SELECT 1`. | Repositories are the only layer that touches SQL. |
 | `src/controllers/health.controller.ts` | `getHealth` returns 200 or 503. | Lets hosting platforms and smoke tests check the API and DB. |
 | `src/routes/health.routes.ts` | `GET /health` → `getHealth`. | Routes contain no logic. |

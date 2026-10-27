@@ -30,9 +30,26 @@ export const client = axios.create({
   headers: { Accept: 'application/json' },
 });
 
+/**
+ * Session-expiry hook. The 8-hour login token can expire (or the account can be removed) while a page
+ * is open; the API then answers 401. The app registers a handler (see SessionWatcher in providers.tsx)
+ * that clears cached data and sends the user to the login page. Kept as a setter so this file stays
+ * free of React and routing code.
+ */
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
+
+// For these calls a 401 is a normal answer ("nobody logged in" / "wrong password"), not an expired session.
+const EXPECTS_401 = ['/auth/me', '/auth/login'];
+
 client.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorBody>) => {
+    if (error.response?.status === 401 && !EXPECTS_401.includes(error.config?.url ?? '')) {
+      onUnauthorized?.();
+    }
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       return Promise.reject(new ApiError(0, 'TIMEOUT', 'The server took too long to answer.'));
     }

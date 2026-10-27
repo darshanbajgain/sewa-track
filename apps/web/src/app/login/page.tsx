@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Suspense, useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/client';
 import { Alert, Button, Card, PageTitle, TextField } from '@/components/common';
@@ -17,7 +17,6 @@ import { ROLE_HOME, safeNextPath } from '@/lib/routing';
  */
 function LoginForm() {
   const { t } = useI18n();
-  const router = useRouter();
   const params = useSearchParams();
   const login = useLogin();
   const [phone, setPhone] = useState('');
@@ -26,7 +25,10 @@ function LoginForm() {
 
   function logIn(credentials: { phone: string; password: string }) {
     login.mutate(credentials, {
-      onSuccess: (user) => router.push(safeNextPath(params.get('next'), ROLE_HOME[user.role])),
+      // A FULL page load, not router.push: while logged out, Next.js may have pre-fetched and cached the
+      // target page as "redirect to login" (that's what proxy.ts answers without a session). A fresh load
+      // also resets all client state for the new user.
+      onSuccess: (user) => window.location.assign(safeNextPath(params.get('next'), ROLE_HOME[user.role])),
     });
   }
 
@@ -66,7 +68,6 @@ function LoginForm() {
               size="lg"
               disabled={login.isPending}
               onClick={() => logIn({ phone: account.phone, password: DEMO_PASSWORD })}
-              className="justify-between text-left"
             >
               <span>{t(account.labelKey)}</span>
               <span aria-hidden="true">→</span>

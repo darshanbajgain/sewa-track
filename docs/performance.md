@@ -115,6 +115,14 @@ indexes. It still meets the target (p95 66 ms). If it ever didn't (millions of r
 - Indexes were created with plain `CREATE INDEX` (inside the migration transaction). On a large live table:
   `CREATE INDEX CONCURRENTLY` to avoid blocking writes.
 
+## Re-check after tuning the generator (2026-10-27)
+The generator was later tuned so open requests are mostly recent (overdue share of open requests went
+from ~97% to ~52%, which is more realistic). Re-measured with `pnpm db:explain` on the new dataset:
+officer queue 0.47 ms, overdue-only 0.48 ms, request history 0.07 ms, national map 67.6 ms, drill-down
+25.1 ms (all in line with the table above), and the palika queue **9.5 ms** (was 2.8 ms): the busiest
+palika differs between generated datasets, and `count(*) OVER ()` counts all of its matching rows.
+Still far below the 150 ms target.
+
 ## Machine
 Intel Core i5-1035G1 (8 threads), 15 GB RAM, PostgreSQL 16.15 in Docker (`shared_buffers` 128 MB,
 `work_mem` 4 MB, defaults), Node.js 22.23.4. Measured 2026-10-26.

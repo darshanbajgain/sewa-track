@@ -7,7 +7,7 @@ import { generateTrackingCode } from '../domain/trackingCode.js';
  *
  * Realistic skew, so the map looks like a real country and indexes are tested on uneven data:
  *   - busy districts (Kathmandu valley, Jhapa, Morang, Sunsari, Rupandehi, Kaski, Chitwan…) get more requests
- *   - ~65% closed (mostly ISSUED), ~35% still open; open requests are mostly recent
+ *   - ~65% closed (mostly ISSUED), ~35% still open; most open requests are recent, some are stuck
  *   - closing takes 0.2× to 2.5× the promised days, so some are late
  *
  * Inserted in batches with one INSERT … SELECT FROM jsonb_to_recordset per batch (as in seed.ts).
@@ -81,8 +81,10 @@ export async function seedLarge(client: pg.ClientBase, count: number, now = new 
         const days = SERVICE_DAYS[service]!;
         const ward = randomWard();
         const closed = Math.random() < 0.65;
-        // Open requests are mostly recent (last 30 days); closed ones spread over the year.
-        const ageDays = closed ? Math.random() * 365 : Math.random() < 0.8 ? Math.random() * 30 : Math.random() * 365;
+        // Closed requests spread over the year. Open ones are mostly recent: 70% within 1.5× the
+        // promised days (some just past due), 30% older (genuinely stuck). Otherwise nearly every open
+        // request would look overdue, which is not a realistic picture.
+        const ageDays = closed ? Math.random() * 365 : Math.random() < 0.7 ? Math.random() * days * 1.5 : Math.random() * 60;
         const submittedAt = new Date(now.getTime() - ageDays * DAY_MS);
 
         let status: string;

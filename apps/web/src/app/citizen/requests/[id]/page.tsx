@@ -4,8 +4,9 @@ import type { RequestDetailDto } from '@sewa/shared';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { ApiError } from '@/api/client';
+import { changeErrorText } from '@/components/requests/changeError';
 import { Alert, Button, Card, Modal, QueryState, TextAreaField } from '@/components/common';
+import { RequestHistory } from '@/components/requests/RequestHistory';
 import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
 import { useChangeStatus, useRequestDetail } from '@/hooks/useRequests';
 import { dueDate, formatDateTime } from '@/lib/format';
@@ -61,14 +62,7 @@ function RequestView({ request }: { request: RequestDetailDto }) {
     run({ toStatus: 'UNDER_REVIEW', note: note.trim() });
   }
 
-  const changeError =
-    change.error instanceof ApiError
-      ? change.error.code === 'CONFLICT'
-        ? t('detail.conflict')
-        : change.error.message
-      : change.error
-        ? t('common.error')
-        : null;
+  const changeError = changeErrorText(change.error, t);
 
   return (
     <>
@@ -130,23 +124,7 @@ function RequestView({ request }: { request: RequestDetailDto }) {
           </p>
         </Card>
 
-        <Card as="section" aria-labelledby="history-title" className="flex flex-[2_1_420px] flex-col gap-3">
-          <h2 id="history-title" className="text-lg font-bold">
-            {t('detail.history')}
-          </h2>
-          <ol className="flex flex-col gap-3 text-sm">
-            {request.events.map((e, i) => (
-              <li key={i} className="border-l-2 border-primary pl-3">
-                <p className="font-semibold">
-                  {e.toStatus ? t(`status.${e.toStatus}`) : t(`action.${e.action}`)}
-                  <span className="font-normal text-muted"> · {e.actorName ?? t('detail.system')}</span>
-                </p>
-                <p className="text-muted">{formatDateTime(e.at, lang)}</p>
-                {e.note && <p className="mt-1">“{e.note}”</p>}
-              </li>
-            ))}
-          </ol>
-        </Card>
+        <RequestHistory events={request.events} />
       </div>
 
       <Modal

@@ -93,7 +93,8 @@ and may be outdated.
 | Performance on 100k requests: indexes from EXPLAIN ANALYZE, measured before/after (queue 7.9 → 0.5 ms) | ✅ |
 | Web app foundation: portal layout, English/Nepali, home with live national numbers, services, public tracking, demo login | ✅ |
 | Citizen portal: my requests, apply (cascading dropdowns, shared validation), detail with resubmit/cancel and 409 handling | ✅ |
-| Staff portal, national delay map | 🔜 |
+| Staff portal: queue (filters in the URL, paging), detail with only the allowed actions, fee paid, 409 handling, palika/national reports | ✅ |
+| National delay map | 🔜 |
 | Live demo | 🔜 |
 
 ---
@@ -170,7 +171,7 @@ curl -b cookies.txt localhost:4000/api/v1/auth/me
 ```
 apps/
   api/            Express REST API (src/, SQL migrations, seed data, tests)
-  web/            Next.js frontend (public pages, login; portals in progress)
+  web/            Next.js frontend (public pages, login, citizen and staff portals)
   nid-mock/       mock "existing ID service" (planned)
 packages/
   shared/         enums, Zod schemas and types used by api and web

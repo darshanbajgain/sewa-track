@@ -64,7 +64,10 @@ apps/web/
    │  │  ├─ page.tsx         my requests
    │  │  ├─ apply/page.tsx   apply (cascading dropdowns, shared Zod validation, tracking code)
    │  │  └─ requests/[id]/   detail: history, resubmit (note), cancel (confirm modal), 409 handling
-   │  └─ staff/              /staff/*   staff portal 🔜 (layout wraps <RequireRole roles={staff}>)
+   │  └─ staff/              /staff/*   staff portal ✅ (layout = RequireRole + tabs filtered by role)
+   │     ├─ page.tsx         queue: filters + page in the URL, read with the shared Zod schema
+   │     ├─ requests/[id]/   detail: buttons from allowedTransitions, confirm modal, note/reason, fee paid, 409
+   │     └─ reports/         palika/system summary (nested RequireRole: ward officers get "no access")
    ├─ api/                   HTTP ONLY (no React)
    │  ├─ client.ts           axios instance + interceptor → ApiError; 401 hook
    │  ├─ endpoints.ts        ENDPOINTS: every API path in one place
@@ -175,6 +178,8 @@ class wins). Add a variant instead (that's how `accent` was added to Button).
 | `Spinner` | `className` | decorative (`aria-hidden`) |
 | `CheckboxField` | `label`, `error` + native props | whole label clickable; error linked |
 | `StatusBadge`, `OverdueBadge` (`components/requests`) | `status` / `overdue` | one colour per status, label always written |
+| `RequestHistory` (`components/requests`) | `events` | audit timeline, shared by the citizen and staff detail pages |
+| `changeErrorText()` (`components/requests`) | `error`, `t` | 409 → "someone else saved first"; other API errors → safe server message |
 
 ### Modal behaviour (WAI-ARIA "dialog (modal)" pattern)
 - Rendered with **`createPortal` into `<body>`**: no parent `overflow` or stacking order can clip it.
@@ -217,7 +222,7 @@ One app, three portals (decided 2026-10-26):
 |---|---|---|
 | Public ✅ | `/`, `/services`, `/track`, `/login` | anyone |
 | Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
-| Staff 🔜 | `/staff` (queue), `/staff/requests/[id]`, `/staff/reports`, `/staff/map` | `WARD_OFFICER`, `PALIKA_ADMIN`, `SYSTEM_ADMIN` |
+| Staff ✅ | `/staff` (queue), `/staff/requests/[id]`, `/staff/reports` (palika/system admin), `/staff/map` 🔜 | `WARD_OFFICER`, `PALIKA_ADMIN`, `SYSTEM_ADMIN` |
 
 ### Three layers of protection for a portal page
 ```
@@ -230,23 +235,32 @@ Layers 1–2 are for a smooth experience; **layer 3 is the only one that protect
 a page in the browser is never security.
 
 ### After login
-`ROLE_HOME` in `lib/routing.ts` decides where each role lands: citizen → `/citizen` ✅; staff roles → `/` until
-the staff portal exists (then officers and palika admins → `/staff`, system admin → `/staff/map`).
+`ROLE_HOME` in `lib/routing.ts` decides where each role lands: citizen → `/citizen`; all staff roles → `/staff`
+(the system admin moves to `/staff/map` once the delay map exists).
 
 **After login we do a full page load** (`window.location.assign`), not `router.push`: while logged out, Next.js
 may have pre-fetched the target and cached proxy.ts's "redirect to login" answer, so a client-side push would
 bounce back to login (found in end-to-end testing). A fresh load also resets all client state for the new user. If the user was sent to login
 from a page, `?next=` brings them back, but only to **our own paths** (`safeNextPath`, see §8).
 
-### Portal layout (planned shape)
+### Portal layout
 ```tsx
-// app/staff/layout.tsx
+// app/staff/layout.tsx (shortened)
 export default function StaffLayout({ children }) {
-  return <RequireRole roles={PORTAL_ROLES.staff}><StaffNav />{children}</RequireRole>;
+  return <RequireRole roles={PORTAL_ROLES.staff}><StaffTabs />{children}</RequireRole>;
 }
 ```
-Navigation per portal: citizen → My requests · Apply · Track; staff → Queue · Map · Reports (Reports and
-Map shown to admins; the officer sees the queue and their ward).
+Navigation per portal: citizen → My requests · Apply; staff → Queue · Reports (Reports only for
+`PORTAL_ROLES.reports` = palika and system admin, the roles allowed to call `/stats/summary`).
+
+### Staff pages: the rules the UI follows
+- **Which requests** the queue shows is decided by the API from the session (ward / palika / all). The page
+  sends only filters. Filters and page number live **in the URL**, so back, refresh and shared links keep them.
+- **Which buttons** a request shows come only from `allowedTransitions` and `canMarkFeePaid` (computed by
+  `domain/transitions.ts` on the server). Palika and system admins get none → "Read only".
+- **Every action opens a confirm modal.** Asking for documents and finishing a field visit need a note,
+  rejecting needs a reason (same as the domain's NOTE/REASON conditions; the API re-checks → 400).
+- **409**: a second tab or officer that saved first → "someone else saved first", and the detail refetches.
 
 ---
 
@@ -321,7 +335,7 @@ pre-fetches links in production (see §11).
   - Modal: portal into `<body>`, `aria-modal`, focus in on open, Tab/Shift+Tab trapped, Esc closes, focus
     returns to opener, scroll lock, inside click keeps open, backdrop click closes
   - open redirect: `?next=//evil.example/steal` → lands on `/`; `?next=/services` honoured
-  - `proxy.ts`: `/citizen` and `/staff/queue` without a session → 307 to `/login?next=…&reason=required`
+  - `proxy.ts`: `/citizen` and `/staff` without a session → 307 to `/login?next=…&reason=required`
   - security headers present on every page
 - **Lesson learned:** test the production build. Next.js pre-fetches every link in production; a link to
   a not-yet-existing page made page loads hang, which dev mode didn't show.

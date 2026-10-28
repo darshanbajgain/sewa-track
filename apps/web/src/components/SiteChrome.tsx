@@ -42,6 +42,8 @@ const PUBLIC_NAV = [
 ] as const;
 // Extra item per role, shown only when that role is logged in (portals are protected by the API anyway).
 const CITIZEN_NAV = { href: '/citizen', key: 'nav.myRequests' } as const;
+const STAFF_NAV = { href: '/staff', key: 'nav.staff' } as const;
+const roleNav = (role?: string) => (role === 'CITIZEN' ? [CITIZEN_NAV] : role ? [STAFF_NAV] : []);
 
 export function SiteHeader() {
   const { t, toggle } = useI18n();
@@ -86,7 +88,7 @@ export function SiteHeader() {
       </div>
       <nav aria-label={t('nav.menu')} className="bg-primary">
         <ul className="mx-auto flex max-w-6xl flex-wrap px-2">
-          {[...PUBLIC_NAV, ...(me?.role === 'CITIZEN' ? [CITIZEN_NAV] : [])].map((item) => {
+          {[...PUBLIC_NAV, ...roleNav(me?.role)].map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
               <li key={item.href}>

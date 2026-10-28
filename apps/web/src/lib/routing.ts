@@ -2,19 +2,21 @@ import type { Role } from '@sewa/shared';
 
 /**
  * Where each role lands after login, and which roles may open each portal.
- * The citizen portal exists (P7.2); staff roles land on the home page until the staff portal (P7.3).
  * Changing the landing pages is a one-line change here. See docs/frontend.md §7.
+ * (System admin moves to '/staff/map' once the delay map exists.)
  */
 export const ROLE_HOME: Record<Role, string> = {
   CITIZEN: '/citizen',
-  WARD_OFFICER: '/', // → '/staff'
-  PALIKA_ADMIN: '/', // → '/staff'
-  SYSTEM_ADMIN: '/', // → '/staff/map'
+  WARD_OFFICER: '/staff',
+  PALIKA_ADMIN: '/staff',
+  SYSTEM_ADMIN: '/staff',
 };
 
 export const PORTAL_ROLES = {
   citizen: ['CITIZEN'],
   staff: ['WARD_OFFICER', 'PALIKA_ADMIN', 'SYSTEM_ADMIN'],
+  // Reports use GET /stats/summary, which only these two roles may call.
+  reports: ['PALIKA_ADMIN', 'SYSTEM_ADMIN'],
 } as const satisfies Record<string, readonly Role[]>;
 
 /**

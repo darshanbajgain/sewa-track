@@ -407,7 +407,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P4 | Auth (login/logout/me, JWT cookie, requireRole, rate limit, demo users) + read APIs (catalog, locations) | ✅ |
 | P5 | Requests: submit, my requests, public tracking, staff queue + detail, status change + fee paid with optimistic locking | ✅ (reassign: P5.5) |
 | P6 | Stats endpoints + 100k seed, indexes (migration 003), `docs/performance.md` with measured before/after | ✅ |
-| P7 | Web: foundation (layout, i18n, home, services, track, login) ✅ · portals + map 🔜 | 🟡 |
+| P7 | Web: foundation ✅ · citizen portal ✅ · staff portal + map 🔜 | 🟡 |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |
 | P9 | NID mock + contract test, Swagger, ADRs, full Nepali UI | 🔜 |
 

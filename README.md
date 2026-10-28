@@ -92,7 +92,8 @@ and may be outdated.
 | Interactive API docs: OpenAPI 3.1 + Swagger UI at `/api/docs`, generated from the same Zod schemas | ✅ |
 | Performance on 100k requests: indexes from EXPLAIN ANALYZE, measured before/after (queue 7.9 → 0.5 ms) | ✅ |
 | Web app foundation: portal layout, English/Nepali, home with live national numbers, services, public tracking, demo login | ✅ |
-| Citizen and staff portals, national delay map | 🔜 |
+| Citizen portal: my requests, apply (cascading dropdowns, shared validation), detail with resubmit/cancel and 409 handling | ✅ |
+| Staff portal, national delay map | 🔜 |
 | Live demo | 🔜 |
 
 ---

@@ -2,11 +2,11 @@ import type { Role } from '@sewa/shared';
 
 /**
  * Where each role lands after login, and which roles may open each portal.
- * The portals (/citizen, /staff) are built in P7.2–P7.3; until then everyone lands on the home page.
+ * The citizen portal exists (P7.2); staff roles land on the home page until the staff portal (P7.3).
  * Changing the landing pages is a one-line change here. See docs/frontend.md §7.
  */
 export const ROLE_HOME: Record<Role, string> = {
-  CITIZEN: '/', // → '/citizen' once the citizen portal exists
+  CITIZEN: '/citizen',
   WARD_OFFICER: '/', // → '/staff'
   PALIKA_ADMIN: '/', // → '/staff'
   SYSTEM_ADMIN: '/', // → '/staff/map'

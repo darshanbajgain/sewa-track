@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { ButtonLink, Card, QueryState } from '@/components/common';
+import { DelayMap } from '@/components/map/DelayMap';
 import { pickName, useI18n } from '@/lib/i18n';
 import { useDistricts, useServiceTypes } from '@/hooks/useReference';
 import { useMapStats } from '@/hooks/useStats';
 
 /**
  * Home (PRD F8): leads with the national delay picture. Numbers come live from GET /stats/map
- * (its `totals`), the district table from the same response. The table doubles as the
- * "view as table" fallback the PRD asks for; the map is added once verified boundaries exist.
+ * (its `totals`), then the district delay map, then the most-overdue districts (full map: /stats).
  */
 export default function HomePage() {
   const { t, lang } = useI18n();
@@ -69,6 +69,14 @@ export default function HomePage() {
           <p className="text-sm text-muted">{t('home.demoData')}</p>
         </section>
 
+        {/* The headline: where are requests late? */}
+        <section aria-labelledby="map" className="flex flex-col gap-4">
+          <h2 id="map" className="text-2xl font-bold">
+            {t('map.title')}
+          </h2>
+          <DelayMap variant="compact" />
+        </section>
+
         {/* Most overdue districts (table fallback for the map) */}
         <section aria-labelledby="overdue" className="flex flex-col gap-4">
           <h2 id="overdue" className="text-2xl font-bold">
@@ -96,7 +104,9 @@ export default function HomePage() {
               </table>
             </div>
           )}
-          <p className="text-sm text-muted">{t('home.mapSoon')}</p>
+          <Link href="/stats" className="self-start font-semibold text-primary">
+            {t('home.fullMap')} →
+          </Link>
         </section>
 
         {/* How it works */}

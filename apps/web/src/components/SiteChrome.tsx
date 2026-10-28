@@ -39,6 +39,7 @@ const PUBLIC_NAV = [
   { href: '/', key: 'nav.home' },
   { href: '/services', key: 'nav.services' },
   { href: '/track', key: 'nav.track' },
+  { href: '/stats', key: 'nav.map' },
 ] as const;
 // Extra item per role, shown only when that role is logged in (portals are protected by the API anyway).
 const CITIZEN_NAV = { href: '/citizen', key: 'nav.myRequests' } as const;

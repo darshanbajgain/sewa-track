@@ -1,4 +1,4 @@
-import type { AuthUser, LoginInput } from '@sewa/shared';
+import type { AuthUser, LoginInput, RegisterInput } from '@sewa/shared';
 import { ApiError, client } from './client';
 import { ENDPOINTS } from './endpoints';
 
@@ -6,6 +6,12 @@ import { ENDPOINTS } from './endpoints';
 
 export async function login(input: LoginInput): Promise<AuthUser> {
   const { data } = await client.post<{ user: AuthUser }>(ENDPOINTS.auth.login, input);
+  return data.user;
+}
+
+/** Citizen sign-up. The API creates a CITIZEN and logs them in (sets the cookie). */
+export async function register(input: RegisterInput): Promise<AuthUser> {
+  const { data } = await client.post<{ user: AuthUser }>(ENDPOINTS.auth.register, input);
   return data.user;
 }
 

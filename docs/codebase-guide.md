@@ -339,8 +339,9 @@ The `requestId` lets you find the exact log lines for a failed request.
 | `src/security/cookies.ts` | Cookie name + options; `readCookie()`. | `httpOnly`, `SameSite=Lax`, `Secure` in production. No cookie-parser package needed. |
 | `src/middleware/auth.ts` | `requireAuth` (401) and `requireRole(...roles)` (403). | Authentication = who are you; authorization = may you. Scope (own ward) is checked later in services. |
 | `src/middleware/rateLimit.ts` | `createLoginRateLimit()` (5/min) and `createTrackRateLimit()` (10/min) → 429. | A factory, so every app instance (and every test) gets its own counter. |
-| `src/repositories/user.repository.ts` | `findUserByPhone`, `findUserById`. | Only the login query selects `password_hash`. |
-| `src/services/auth.service.ts` | `login()`, `getCurrentUser()`. | Same message for unknown phone and wrong password; dummy hash check so both take the same time. |
+| `src/repositories/user.repository.ts` | `findUserByEmail`, `findUserById`, `isUserActive`, `insertUser`, `setUserActive`, `listUsers`. | Only the login query selects `password_hash`; `INSERT … ON CONFLICT (email) DO NOTHING` lets the UNIQUE constraint decide duplicates. |
+| `src/services/auth.service.ts` | `login()`, `register()`, `getCurrentUser()`. | Same message for unknown email and wrong password; dummy hash check so both take the same time; sign-up role is always CITIZEN. |
+| `src/services/admin.service.ts`, `routes/admin.routes.ts` | System admin user management (F14). | Only officers/palika admins can be created; system admins can't be deactivated; `created_by` recorded. |
 | `src/controllers/auth.controller.ts` | `postLogin`, `postLogout`, `getMe`. | Token goes only into the httpOnly cookie, never into the JSON body. |
 | `src/routes/auth.routes.ts` | `POST /auth/login` (rate limited), `POST /auth/logout`, `GET /auth/me` (requireAuth). | |
 | `src/repositories/catalog.repository.ts`, `location.repository.ts` | SQL for the service catalog and the location hierarchy. | `$1::smallint IS NULL OR province_id = $1`: one query for "all" or "filtered". `exists()` takes a table name from a fixed allow-list (table names can't be `$1` parameters). |
@@ -566,7 +567,8 @@ apps/web/
 │  ├─ page.tsx             home: live national numbers + most-overdue districts (GET /stats/map)
 │  ├─ services/page.tsx    catalog with documents and demo fees (GET /service-types)
 │  ├─ track/page.tsx       public tracking (GET /track/:code), friendly 400/404/429 messages
-│  ├─ login/page.tsx       demo-account buttons + phone form (no sign-up: never collects real numbers)
+│  ├─ login/page.tsx       email form + "Demo mode" panel
+│  ├─ register/page.tsx    citizen sign-up (@example.com only: never collects real emails)
 │  └─ icon.svg             our own "ST" mark
 ├─ src/proxy.ts            Next 16 proxy: no session cookie on /citizen, /staff → /login
 ├─ src/components/common/  Button, ButtonLink, Card, Badge, Alert, Modal, Text/TextArea/SelectField, QueryState, Spinner

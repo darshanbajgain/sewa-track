@@ -90,7 +90,7 @@ describe('POST /requests (submit)', () => {
 describe('transactions: all or nothing', () => {
   it('rolls back the request if a later step in the same transaction fails', async () => {
     const trackingCode = 'ST-RBACK00000'; // valid format (no I, L, O, U), so only our simulated failure can stop it
-    const { rows: users } = await pool.query(`SELECT id FROM users WHERE phone = $1`, [DEMO.citizen]);
+    const { rows: users } = await pool.query(`SELECT id FROM users WHERE email = $1`, [DEMO.citizen]);
 
     await expect(
       withTransaction(async (client) => {
@@ -113,7 +113,7 @@ describe('GET /requests/mine', () => {
   it("lists only the citizen's own requests, newest first, with an overdue flag", async () => {
     // A request that belongs to someone else must not appear.
     const { rows: other } = await pool.query(
-      `INSERT INTO users (role, name, phone, password_hash) VALUES ('CITIZEN', 'Other Citizen (Demo)', '9000000099', 'x')
+      `INSERT INTO users (role, name, email, phone, password_hash) VALUES ('CITIZEN', 'Other Citizen (Demo)', 'user-9000000099@example.com', '9000000099', 'x')
        ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
     );
     await pool.query(

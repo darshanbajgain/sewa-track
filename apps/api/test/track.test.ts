@@ -37,7 +37,7 @@ beforeAll(async () => {
 
   // Simulate an officer starting the review (with a private note) and recording a fee payment.
   // (The real status-change endpoint arrives in P5.4; here we only need history to exist.)
-  const { rows } = await pool.query(`SELECT id FROM users WHERE phone = $1`, [DEMO.officerWard1]);
+  const { rows } = await pool.query(`SELECT id FROM users WHERE email = $1`, [DEMO.officerWard1]);
   const officerId = rows[0].id;
   const { rows: owner } = await pool.query(`SELECT citizen_id FROM service_requests WHERE id = $1`, [requestId]);
   citizenId = owner[0].citizen_id;

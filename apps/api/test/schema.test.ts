@@ -45,7 +45,7 @@ async function insertValidRequest() {
     `INSERT INTO wards (local_level_id, number) VALUES (99999, 1) RETURNING id`,
   );
   const citizen = await client.query<{ id: string }>(
-    `INSERT INTO users (role, name, phone, password_hash) VALUES ('CITIZEN', 'Demo Citizen', '9000099999', 'x') RETURNING id`,
+    `INSERT INTO users (role, name, email, phone, password_hash) VALUES ('CITIZEN', 'Demo Citizen', 'user-9000099999@example.com', '9000099999', 'x') RETURNING id`,
   );
   await client.query(
     `INSERT INTO service_types (code, name_en, name_ne, fee_npr, service_days)
@@ -133,7 +133,7 @@ describe('constraints', () => {
 
   it('reject a ward officer with no ward (role scope)', async () => {
     const msg = await expectDbError(
-      `INSERT INTO users (role, name, phone, password_hash) VALUES ('WARD_OFFICER', 'Ward Officer (Demo)', '9000088888', 'x')`,
+      `INSERT INTO users (role, name, email, phone, password_hash) VALUES ('WARD_OFFICER', 'Ward Officer (Demo)', 'user-9000088888@example.com', '9000088888', 'x')`,
     );
     expect(msg).toMatch(/users_role_scope/);
   });

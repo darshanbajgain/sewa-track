@@ -47,7 +47,7 @@ const payFee = (who: string, id: string, version: number) =>
 
 async function row(id: string) {
   const { rows } = await pool.query(
-    `SELECT r.status, r.version, r.closed_at, r.fee_paid_at, r.field_verified_at, u.phone AS officer_phone
+    `SELECT r.status, r.version, r.closed_at, r.fee_paid_at, r.field_verified_at, u.email AS officer_email
      FROM service_requests r LEFT JOIN users u ON u.id = r.assigned_officer_id WHERE r.id = $1`,
     [id],
   );
@@ -68,7 +68,7 @@ describe('the full happy path: land boundary request from SUBMITTED to ISSUED', 
     let res = await move('officerWard1', id, { toStatus: 'UNDER_REVIEW', version: 0 });
     expect(res.status).toBe(200);
     expect(res.body.request).toEqual({ id, status: 'UNDER_REVIEW', version: 1 });
-    expect((await row(id)).officer_phone).toBe(DEMO.officerWard1); // effect: officer assigned
+    expect((await row(id)).officer_email).toBe(DEMO.officerWard1); // effect: officer assigned
 
     res = await payFee('officerWard1', id, 1);
     expect(res.body.request.version).toBe(2);

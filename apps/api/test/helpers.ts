@@ -2,20 +2,20 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { pool } from '../src/db/pool.js';
 
-/** Demo phone numbers from db/seed-data/demo-users.json (password demo1234). */
+/** Demo login emails from db/seed-data/demo-users.json (password demo1234). */
 export const DEMO = {
-  citizen: '9000000001',
-  officerWard1: '9000000002',
-  officer2Ward1: '9000000003',
-  officerWard2: '9000000004',
-  palikaAdmin: '9000000005',
-  systemAdmin: '9000000006',
+  citizen: 'citizen@example.com',
+  officerWard1: 'officer.ward1@example.com',
+  officer2Ward1: 'officer2.ward1@example.com',
+  officerWard2: 'officer.ward2@example.com',
+  palikaAdmin: 'palika.admin@example.com',
+  systemAdmin: 'system.admin@example.com',
 } as const;
 
 /** Logs in through the real endpoint and returns the "sewa_session=..." cookie for later requests. */
-export async function loginAs(app: Express, phone: string): Promise<string> {
-  const res = await request(app).post('/api/v1/auth/login').send({ phone, password: 'demo1234' });
-  if (res.status !== 200) throw new Error(`login failed for ${phone}: ${res.status}`);
+export async function loginAs(app: Express, email: string): Promise<string> {
+  const res = await request(app).post('/api/v1/auth/login').send({ email, password: 'demo1234' });
+  if (res.status !== 200) throw new Error(`login failed for ${email}: ${res.status}`);
   const cookie = ([] as string[]).concat(res.headers['set-cookie'] ?? []).find((c) => c.startsWith('sewa_session='));
   return cookie!.split(';')[0]!;
 }
@@ -43,12 +43,12 @@ export async function kathmanduWardId(number: number): Promise<number> {
  * Use this when a test just needs "be user X". Logging in 6 users through the real endpoint
  * trips the login rate limit (5/min), which is working as designed. Login itself is tested in auth.test.ts.
  */
-export async function sessionFor(phone: string): Promise<string> {
+export async function sessionFor(email: string): Promise<string> {
   const { signSessionToken } = await import('../src/security/token.js');
   const { rows } = await pool.query(
-    `SELECT id, role, ward_id AS "wardId", local_level_id AS "localLevelId" FROM users WHERE phone = $1`,
-    [phone],
+    `SELECT id, role, ward_id AS "wardId", local_level_id AS "localLevelId" FROM users WHERE email = $1`,
+    [email],
   );
-  if (!rows[0]) throw new Error(`no user with phone ${phone}`);
+  if (!rows[0]) throw new Error(`no user with email ${email}`);
   return `sewa_session=${signSessionToken(rows[0])}`;
 }

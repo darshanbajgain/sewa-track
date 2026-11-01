@@ -22,5 +22,8 @@ function createRateLimit(limitPerMinute: number, message: string): RateLimitRequ
 /** Login: 5 per minute. Slows down password guessing and credential stuffing. */
 export const createLoginRateLimit = () => createRateLimit(5, 'Too many login attempts. Try again in a minute.');
 
+/** Sign-up: 5 per minute. Stops scripted mass sign-ups and testing many emails for "already exists". */
+export const createRegisterRateLimit = () => createRateLimit(5, 'Too many sign-up attempts. Try again in a minute.');
+
 /** Public tracking: 10 per minute. Makes guessing tracking codes pointless (32^10 possible codes). */
 export const createTrackRateLimit = () => createRateLimit(10, 'Too many tracking lookups. Try again in a minute.');

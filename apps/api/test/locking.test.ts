@@ -18,7 +18,7 @@ let requestId: string;
 
 beforeEach(async () => {
   await resetRequests();
-  const { rows: users } = await pool.query(`SELECT id FROM users WHERE phone = $1`, [DEMO.citizen]);
+  const { rows: users } = await pool.query(`SELECT id FROM users WHERE email = $1`, [DEMO.citizen]);
   const { rows } = await pool.query(
     `INSERT INTO service_requests (tracking_code, citizen_id, service_type_code, ward_id, local_level_id, district_id, province_id, purpose, applicant)
      VALUES ('ST-K0CK000001', $1, 'RESIDENCE', $2, 307, 27, 3, 'Locking test request', '{"name":"Demo","nid":"DEMO-0000000"}')

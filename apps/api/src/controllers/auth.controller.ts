@@ -1,14 +1,14 @@
-import { loginSchema } from '@sewa/shared';
+import { loginSchema, registerSchema } from '@sewa/shared';
 import type { RequestHandler } from 'express';
 import { SESSION_COOKIE, sessionCookieOptions } from '../security/cookies.js';
-import { getCurrentUser, login } from '../services/auth.service.js';
+import { getCurrentUser, login, register } from '../services/auth.service.js';
 
 /**
  * Controllers: read the HTTP request, validate it, call the service, shape the HTTP response.
  * No SQL and no business rules here.
  */
 
-/** POST /api/v1/auth/login  body: { phone, password } */
+/** POST /api/v1/auth/login  body: { email, password } */
 export const postLogin: RequestHandler = async (req, res) => {
   // .parse throws a ZodError on bad input → the error handler turns it into 400 VALIDATION_ERROR.
   const input = loginSchema.parse(req.body);
@@ -16,6 +16,15 @@ export const postLogin: RequestHandler = async (req, res) => {
 
   res.cookie(SESSION_COOKIE, token, sessionCookieOptions());
   res.status(200).json({ user }); // the token itself is NOT in the body: only in the httpOnly cookie
+};
+
+/** POST /api/v1/auth/register  body: { name, email, password } → 201, logged in as a CITIZEN */
+export const postRegister: RequestHandler = async (req, res) => {
+  const input = registerSchema.parse(req.body);
+  const { user, token } = await register(input);
+
+  res.cookie(SESSION_COOKIE, token, sessionCookieOptions());
+  res.status(201).json({ user });
 };
 
 /** POST /api/v1/auth/logout: removes the cookie from the browser. */

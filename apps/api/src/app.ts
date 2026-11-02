@@ -1,5 +1,6 @@
 import express, { type Express } from 'express';
 import helmet from 'helmet';
+import { env } from './config/env.js';
 import { ConsoleNotifier, type Notifier } from './integrations/notifier.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { requestId } from './middleware/requestId.js';
@@ -31,6 +32,9 @@ export function createApp(deps: AppDeps = { notifier: new ConsoleNotifier() }): 
   const app = express();
   // app.locals is Express' place for app-wide values; controllers read the notifier from here.
   app.locals.notifier = deps.notifier;
+  // Behind proxies, req.ip would be the proxy's address for everyone (one shared rate-limit counter).
+  // Trusting exactly N hops makes req.ip the real client. See TRUST_PROXY in config/env.ts.
+  app.set('trust proxy', env.TRUST_PROXY);
 
   // Security headers (e.g. no "X-Powered-By: Express", no MIME sniffing, protect from web vulnerabilities like Cross-Site Scripting (XSS), clickjacking).
   app.use(helmet());

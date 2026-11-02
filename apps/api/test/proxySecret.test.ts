@@ -49,6 +49,20 @@ describe('PROXY_SECRET: the website is the only way in', () => {
     expect(res.status).toBe(200);
   });
 
+  it('counts the login limit per visitor IP reported by the web app', async () => {
+    const badLogin = (ip: string) =>
+      request(app)
+        .post('/api/v1/auth/login')
+        .set('x-proxy-secret', SECRET)
+        .set('x-client-ip', ip)
+        .send({ email: 'nobody@example.com', password: 'wrong-password' });
+
+    for (let i = 0; i < 5; i++) expect((await badLogin('203.0.113.7')).status).toBe(401);
+    expect((await badLogin('203.0.113.7')).status).toBe(429);
+    // Another visitor behind the same web app still has their own 5 attempts.
+    expect((await badLogin('198.51.100.9')).status).toBe(401);
+  });
+
   // The platform health check and the keep-awake pinger don't go through the website.
   it.each(['/api/v1/live', '/api/v1/health'])('leaves %s open', async (path) => {
     const res = await request(app).get(path);

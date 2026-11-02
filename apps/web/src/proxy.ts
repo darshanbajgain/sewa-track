@@ -4,10 +4,10 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Next.js 16 "proxy" (formerly middleware): runs on the server BEFORE a page renders or a rewrite runs.
  * Two jobs:
  *
- * 1. /api/* → add the shared PROXY_SECRET header before next.config.ts forwards the request to the API.
- *    The API refuses requests without it, so the website is the only way in and the API always knows how
- *    many proxies are in front of it (real client IP for the rate limits; docs/deployment.md §5).
- *    Server-only variable (no NEXT_PUBLIC_), so the secret never reaches the browser. Unset = no header.
+ * 1. /api/* → add the shared PROXY_SECRET header, and the visitor's IP, before next.config.ts forwards the
+ *    request to the API. The API refuses requests without the secret, and believes the IP only together
+ *    with it (rate limits per visitor; docs/deployment.md §5).
+ *    Server-only variable (no NEXT_PUBLIC_), so the secret never reaches the browser. Unset = no headers.
  *
  * 2. Portal pages → an OPTIMISTIC check only: if there's no session cookie at all, send the visitor to the
  *    login page straight away instead of rendering a portal page that would immediately redirect. It does
@@ -16,6 +16,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  */
 const SESSION_COOKIE = 'sewa_session';
 const PROXY_SECRET_HEADER = 'x-proxy-secret';
+const CLIENT_IP_HEADER = 'x-client-ip';
 
 export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/api/')) {
@@ -23,6 +24,12 @@ export function proxy(request: NextRequest) {
     if (!secret) return NextResponse.next();
     const headers = new Headers(request.headers);
     headers.set(PROXY_SECRET_HEADER, secret);
+    // The visitor's IP for the API's rate limits (it doesn't reach the API host any other way).
+    // x-real-ip is set by the web host's edge (Vercel replaces any value the visitor sent).
+    // Never pass on an X-Client-IP the visitor sent themselves.
+    const clientIp = request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    if (clientIp) headers.set(CLIENT_IP_HEADER, clientIp);
+    else headers.delete(CLIENT_IP_HEADER);
     return NextResponse.next({ request: { headers } });
   }
 

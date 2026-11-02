@@ -1,4 +1,4 @@
-import { rateLimit, type RateLimitRequestHandler } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit, type RateLimitRequestHandler } from 'express-rate-limit';
 import { AppError } from '../errors.js';
 
 /**
@@ -14,6 +14,9 @@ function createRateLimit(limitPerMinute: number, message: string): RateLimitRequ
     limit: limitPerMinute,
     standardHeaders: 'draft-8', // tells clients their remaining attempts in a standard header
     legacyHeaders: false,
+    // Count per visitor: the IP our web app reported (deployed), else req.ip (local, direct).
+    // ipKeyGenerator groups an IPv6 visitor's whole /56 block, so changing addresses inside it doesn't help.
+    keyGenerator: (req) => ipKeyGenerator(req.clientIp ?? req.ip ?? ''),
     // Send our standard error JSON (429 RATE_LIMITED) instead of the library's plain text.
     handler: (_req, _res, next) => next(new AppError('RATE_LIMITED', message)),
   });

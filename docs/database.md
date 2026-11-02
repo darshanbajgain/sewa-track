@@ -104,10 +104,13 @@ erDiagram
     uuid id PK "gen_random_uuid()"
     text role "CITIZEN | WARD_OFFICER | PALIKA_ADMIN | SYSTEM_ADMIN"
     text name
-    text phone UK "login id (demo)"
-    text password_hash "bcrypt"
+    text email UK "login id; lowercase (CHECK); demo: @example.com"
+    text phone UK "nullable (optional contact)"
+    text password_hash "scrypt"
     integer ward_id FK "nullable; ward officers only"
     integer local_level_id FK "nullable; palika admins only"
+    boolean is_active "default true; false = can't log in"
+    uuid created_by FK "nullable -> users.id (admin who created a staff account)"
     timestamptz created_at "default now()"
   }
   service_types {

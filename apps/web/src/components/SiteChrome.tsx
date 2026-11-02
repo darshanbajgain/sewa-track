@@ -81,9 +81,14 @@ export function SiteHeader() {
               </Button>
             </>
           ) : (
-            <ButtonLink href="/login" variant="accent">
-              {t('nav.login')}
-            </ButtonLink>
+            <>
+              <ButtonLink href="/register" variant="secondary">
+                {t('nav.register')}
+              </ButtonLink>
+              <ButtonLink href="/login" variant="accent">
+                {t('nav.login')}
+              </ButtonLink>
+            </>
           )}
         </div>
       </div>

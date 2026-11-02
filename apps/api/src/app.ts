@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import { ConsoleNotifier, type Notifier } from './integrations/notifier.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { requestId } from './middleware/requestId.js';
+import { adminRouter } from './routes/admin.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createDocsRouter } from './routes/docs.routes.js';
 import { healthRouter } from './routes/health.routes.js';
@@ -50,6 +51,7 @@ export function createApp(deps: AppDeps = { notifier: new ConsoleNotifier() }): 
   api.use(requestRouter);
   api.use(createTrackingRouter());
   api.use(statsRouter);
+  api.use(adminRouter);
   app.use('/api/v1', api);
   // API docs: /api/v1/openapi.json and Swagger UI at /api/docs.
   app.use(createDocsRouter());

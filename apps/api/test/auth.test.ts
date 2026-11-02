@@ -1,9 +1,9 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
-import { closePool } from '../src/db/pool.js';
+import { closePool, pool } from '../src/db/pool.js';
 import { requireAuth, requireRole } from '../src/middleware/auth.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
 import { requestId } from '../src/middleware/requestId.js';
@@ -15,7 +15,7 @@ import { signSessionToken } from '../src/security/token.js';
  */
 afterAll(() => closePool());
 
-const CITIZEN = { phone: '9000000001', password: 'demo1234' };
+const CITIZEN = { email: 'citizen@example.com', password: 'demo1234' };
 
 /** Pulls the "sewa_session=..." part out of the Set-Cookie response header. */
 function sessionCookie(res: request.Response): string {
@@ -32,7 +32,7 @@ describe('POST /auth/login', () => {
     const res = await request(app).post('/api/v1/auth/login').send(CITIZEN);
 
     expect(res.status).toBe(200);
-    expect(res.body.user).toMatchObject({ role: 'CITIZEN', name: 'Citizen (Demo)', wardId: null, localLevelId: null });
+    expect(res.body.user).toMatchObject({ role: 'CITIZEN', name: 'Citizen (Demo)', email: 'citizen@example.com', wardId: null, localLevelId: null });
     expect(JSON.stringify(res.body)).not.toMatch(/password|hash|token/i);
 
     const cookie = sessionCookie(res);
@@ -41,22 +41,27 @@ describe('POST /auth/login', () => {
     expect(cookie).toMatch(/Max-Age=28800/); // 8 hours
   });
 
-  it('returns the same 401 message for a wrong password and an unknown phone (no user enumeration)', async () => {
+  it('returns the same 401 message for a wrong password and an unknown email (no user enumeration)', async () => {
     const wrongPassword = await request(app).post('/api/v1/auth/login').send({ ...CITIZEN, password: 'nope' });
-    const unknownPhone = await request(app).post('/api/v1/auth/login').send({ phone: '9000099999', password: 'nope' });
+    const unknownEmail = await request(app).post('/api/v1/auth/login').send({ email: 'nobody@example.com', password: 'nope' });
 
     expect(wrongPassword.status).toBe(401);
-    expect(unknownPhone.status).toBe(401);
-    expect(wrongPassword.body.error).toEqual(unknownPhone.body.error);
+    expect(unknownEmail.status).toBe(401);
+    expect(wrongPassword.body.error).toEqual(unknownEmail.body.error);
     expect(wrongPassword.body.error.code).toBe('UNAUTHENTICATED');
   });
 
+  it('accepts the email in any letter case (emails are stored lowercase)', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send({ ...CITIZEN, email: '  Citizen@Example.COM ' });
+    expect(res.status).toBe(200);
+  });
+
   it('rejects an invalid body with 400 and field details', async () => {
-    const res = await request(app).post('/api/v1/auth/login').send({ phone: 'abc' });
+    const res = await request(app).post('/api/v1/auth/login').send({ email: 'abc' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
     expect(res.body.error.details.issues.map((i: { path: string }) => i.path)).toEqual(
-      expect.arrayContaining(['phone', 'password']),
+      expect.arrayContaining(['email', 'password']),
     );
   });
 });
@@ -85,7 +90,7 @@ describe('GET /auth/me and logout', () => {
   });
 
   it('returns the logged-in user with the cookie', async () => {
-    const login = await request(app).post('/api/v1/auth/login').send({ phone: '9000000002', password: 'demo1234' });
+    const login = await request(app).post('/api/v1/auth/login').send({ email: 'officer.ward1@example.com', password: 'demo1234' });
     const res = await request(app).get('/api/v1/auth/me').set('Cookie', sessionCookie(login));
 
     expect(res.status).toBe(200);
@@ -115,7 +120,7 @@ describe('GET /auth/me and logout', () => {
   });
 
   it('an EXPIRED token gets 401 and the browser is told to delete the cookie', async () => {
-    const { rows } = await (await import('../src/db/pool.js')).pool.query(`SELECT id FROM users WHERE phone = '9000000002'`);
+    const { rows } = await pool.query(`SELECT id FROM users WHERE email = 'officer.ward1@example.com'`);
     const expired = jwt.sign(
       { role: 'WARD_OFFICER', wardId: 1, localLevelId: null, exp: Math.floor(Date.now() / 1000) - 60 }, // ended a minute ago
       'test-only-secret-0123456789-abcdefghijklmnop',
@@ -148,8 +153,16 @@ describe('requireRole (authorization by role)', () => {
   });
   app.use(errorHandler);
 
+  // requireAuth checks the account is active in the DB, so the tokens must belong to real (seeded) users.
+  const ids: Record<string, string> = {};
+  beforeAll(async () => {
+    const { rows } = await pool.query<{ id: string; role: string }>(
+      `SELECT id, role FROM users WHERE email IN ('citizen@example.com', 'system.admin@example.com')`,
+    );
+    for (const r of rows) ids[r.role] = r.id;
+  });
   const tokenFor = (role: 'CITIZEN' | 'SYSTEM_ADMIN') =>
-    `sewa_session=${signSessionToken({ id: '00000000-0000-4000-8000-000000000001', role, wardId: null, localLevelId: null })}`;
+    `sewa_session=${signSessionToken({ id: ids[role]!, role, wardId: null, localLevelId: null })}`;
 
   it('lets the right role through', async () => {
     const res = await request(app).get('/admin-only').set('Cookie', tokenFor('SYSTEM_ADMIN'));

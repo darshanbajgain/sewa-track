@@ -87,7 +87,7 @@ describe('GET /requests: filters, order, pagination', () => {
 
   it('pages 20 at a time and reports the total', async () => {
     // Add 21 more requests to ward 1 directly (fast), then read page 1 and 2.
-    const { rows } = await pool.query(`SELECT id FROM users WHERE phone = $1`, [DEMO.citizen]);
+    const { rows } = await pool.query(`SELECT id FROM users WHERE email = $1`, [DEMO.citizen]);
     await pool.query(
       `INSERT INTO service_requests (tracking_code, citizen_id, service_type_code, ward_id, local_level_id, district_id, province_id, purpose, applicant)
        SELECT 'ST-9' || lpad(n::text, 9, '0'), $1, 'RESIDENCE', $2, 307, 27, 3, 'Bulk demo request', '{"name":"Demo","nid":"DEMO-0000000"}'
@@ -146,10 +146,10 @@ describe('GET /requests/:id: detail and scope', () => {
 
   it('forbids a different citizen (403)', async () => {
     await pool.query(
-      `INSERT INTO users (role, name, phone, password_hash) VALUES ('CITIZEN', 'Other Citizen (Demo)', '9000000098', 'x')
+      `INSERT INTO users (role, name, email, phone, password_hash) VALUES ('CITIZEN', 'Other Citizen (Demo)', 'user-9000000098@example.com', '9000000098', 'x')
        ON CONFLICT (phone) DO NOTHING`,
     );
-    const other = await sessionFor('9000000098');
+    const other = await sessionFor('user-9000000098@example.com');
     const res = await request(app).get(`/api/v1/requests/${ids.land}`).set('Cookie', other);
     expect(res.status).toBe(403);
   });

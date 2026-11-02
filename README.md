@@ -91,7 +91,8 @@ and may be outdated.
 | Map statistics API: overdue, on-time rate, pending, avg days per district/palika + staff reports | ✅ |
 | Interactive API docs: OpenAPI 3.1 + Swagger UI at `/api/docs`, generated from the same Zod schemas | ✅ |
 | Performance on 100k requests: indexes from EXPLAIN ANALYZE, measured before/after (queue 7.9 → 0.5 ms) | ✅ |
-| Web app foundation: portal layout, English/Nepali, home with live national numbers, services, public tracking, demo login | ✅ |
+| Web app foundation: portal layout, English/Nepali, home with live national numbers, services, public tracking, login | ✅ |
+| Accounts: citizen sign-up, email login, demo mode, system admin creates/deactivates staff accounts (deactivation is immediate) | ✅ |
 | Citizen portal: my requests, apply (cascading dropdowns, shared validation), detail with resubmit/cancel and 409 handling | ✅ |
 | Staff portal: queue (filters in the URL, paging), detail with only the allowed actions, fee paid, 409 handling, palika/national reports | ✅ |
 | National delay map: district choropleth (official 2020 boundaries), 4 measures, filters, side panel, legend, table view | ✅ |
@@ -149,18 +150,21 @@ docs (Swagger UI)** at <http://localhost:4000/api/docs>. Run the tests with `pnp
 
 All accounts are **fake** and use the password **`demo1234`**.
 
-| Phone | Role |
+| Email | Role |
 |---|---|
-| `9000000001` | Citizen (Demo) |
-| `9000000002` | Ward Officer (Demo), Kathmandu Ward 1 |
-| `9000000003` | Ward Officer 2 (Demo), Kathmandu Ward 1 |
-| `9000000004` | Ward Officer (Demo), Kathmandu Ward 2 |
-| `9000000005` | Palika Admin (Demo), Kathmandu |
-| `9000000006` | System Admin (Demo) |
+| `citizen@example.com` | Citizen (Demo) |
+| `officer.ward1@example.com` | Ward Officer (Demo), Kathmandu Ward 1 |
+| `officer2.ward1@example.com` | Ward Officer 2 (Demo), Kathmandu Ward 1 |
+| `officer.ward2@example.com` | Ward Officer (Demo), Kathmandu Ward 2 |
+| `palika.admin@example.com` | Palika Admin (Demo), Kathmandu |
+| `system.admin@example.com` | System Admin (Demo) |
+
+Citizens can also **sign up** at `/register`; staff accounts are created by the system admin. New accounts
+must use an `@example.com` email (a domain reserved for examples), so the demo never stores a real address.
 
 ```bash
 curl -c cookies.txt -X POST localhost:4000/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"phone":"9000000002","password":"demo1234"}'
+  -H 'Content-Type: application/json' -d '{"email":"officer.ward1@example.com","password":"demo1234"}'
 curl -b cookies.txt localhost:4000/api/v1/auth/me
 ```
 
@@ -209,7 +213,7 @@ docs/             requirements, architecture, database, codebase guide
 | [docs/performance.md](docs/performance.md) | 100k-row benchmarks: EXPLAIN ANALYZE before/after indexes, API p95, index cost |
 | [docs/frontend.md](docs/frontend.md) | Web app: folder structure, data flow, design system, components, accessibility, security, portals and routing |
 | [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
-| [docs/decisions/](docs/decisions/) | Architecture decision records (ADR-001 location copies, ADR-002 optimistic locking) |
+| [docs/decisions/](docs/decisions/) | Architecture decision records (ADR-001 location copies, ADR-002 optimistic locking, ADR-003 accounts) |
 | [docs/incidents/](docs/incidents/) | Blameless reviews (001: a concurrency test that passed for the wrong reason) |
 
 ---
@@ -234,7 +238,7 @@ service delays. Details: [PRD §2.1](docs/PRD.md#21-existing-systems-and-how-sew
   MIT License, © 2018 Aashish Manandhar. Follows Nepal's official 2020 map (including Lipulekh, Kalapani and
   Limpiyadhura; checked, see [seed-data/README.md](apps/api/db/seed-data/README.md#district-boundaries)).
   Simplified, not survey-grade. Built by `apps/api/src/db/import-district-map.ts`.
-- **All people, phone numbers and IDs in the demo are fake.** IDs are prefixed `DEMO-`.
+- **All people, emails, phone numbers and IDs in the demo are fake.** IDs are prefixed `DEMO-`.
 
 ---
 

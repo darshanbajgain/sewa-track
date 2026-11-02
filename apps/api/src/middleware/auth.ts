@@ -2,16 +2,22 @@ import type { Role } from '@sewa/shared';
 import type { RequestHandler } from 'express';
 import { AppError } from '../errors.js';
 import { readCookie, SESSION_COOKIE, sessionCookieOptions } from '../security/cookies.js';
+import { isUserActive } from '../repositories/user.repository.js';
 import { verifySessionToken } from '../security/token.js';
 
 /**
  * AUTHENTICATION ("who are you?"): the request must carry a valid login cookie.
  * On success, `req.user` holds { id, role, wardId, localLevelId } for the next steps.
- * Missing, expired or tampered token → 401 UNAUTHENTICATED.
+ * Missing, expired or tampered token, or a DEACTIVATED account → 401 UNAUTHENTICATED.
+ *
+ * The token alone would stay valid for up to 8 hours after a system admin deactivates someone.
+ * So we also check `is_active` in the database: one primary-key lookup per request, a cheap price
+ * for "deactivate takes effect immediately".
  */
-export const requireAuth: RequestHandler = (req, res, next) => {
+export const requireAuth: RequestHandler = async (req, res, next) => {
   const token = readCookie(req, SESSION_COOKIE);
-  const user = token ? verifySessionToken(token) : null;
+  const verified = token ? verifySessionToken(token) : null;
+  const user = verified && (await isUserActive(verified.id)) ? verified : null;
   if (!user) {
     // A cookie was sent but it's expired or tampered with: tell the browser to delete it, so the dead
     // token isn't sent with every later request (and the web app sees a clean "logged out" state).

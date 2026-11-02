@@ -77,8 +77,10 @@ describe('OpenAPI spec', () => {
 
   it('takes input rules from the same Zod schemas the API validates with', async () => {
     const spec = await getSpec();
-    const login = (spec.paths['/api/v1/auth/login']!.post as unknown as { requestBody: { content: Record<string, { schema: { properties: { phone: { pattern: string } } } }> } }).requestBody;
-    expect(login.content['application/json']!.schema.properties.phone.pattern).toBe('^\\d{10}$');
+    const login = (spec.paths['/api/v1/auth/login']!.post as unknown as { requestBody: { content: Record<string, { schema: { required: string[]; properties: { password: { maxLength: number } } } }> } }).requestBody;
+    const schema = login.content['application/json']!.schema;
+    expect(schema.required).toEqual(expect.arrayContaining(['email', 'password']));
+    expect(schema.properties.password.maxLength).toBe(200);
   });
 });
 

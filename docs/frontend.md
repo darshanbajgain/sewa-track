@@ -60,7 +60,8 @@ apps/web/
    │  ├─ services/           /services  catalog ✅
    │  ├─ track/              /track     public tracking ✅
    │  ├─ stats/              /stats     national delay map ✅ (public, aggregates only)
-   │  ├─ login/              /login     demo accounts + phone form ✅
+   │  ├─ login/              /login     email form + collapsed "Demo mode" panel (fills the form) ✅
+   │  ├─ register/           /register  citizen sign-up (shared registerSchema; 409 → "email taken") ✅
    │  ├─ citizen/            /citizen/* citizen portal ✅ (layout = RequireRole + portal tabs)
    │  │  ├─ page.tsx         my requests
    │  │  ├─ apply/page.tsx   apply (cascading dropdowns, shared Zod validation, tracking code)

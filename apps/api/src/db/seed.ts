@@ -114,14 +114,14 @@ export async function runSeed(client: pg.ClientBase): Promise<SeedSummary> {
     // other roles have no ward, so the join finds nothing and ward_id stays NULL.
     // On re-run: update name/role/scope, but keep the existing password hash (no needless change).
     await client.query(
-      `INSERT INTO users (role, name, phone, password_hash, ward_id, local_level_id)
-       SELECT x.role, x.name, x.phone, x."passwordHash", w.id, x."localLevelId"
+      `INSERT INTO users (role, name, email, phone, password_hash, ward_id, local_level_id)
+       SELECT x.role, x.name, x.email, x.phone, x."passwordHash", w.id, x."localLevelId"
        FROM jsonb_to_recordset($1::jsonb) AS x(
-         role text, name text, phone text, "passwordHash" text,
+         role text, name text, email text, phone text, "passwordHash" text,
          "wardLocalLevelId" integer, "wardNumber" integer, "localLevelId" integer)
        LEFT JOIN wards w ON w.local_level_id = x."wardLocalLevelId" AND w.number = x."wardNumber"
        ON CONFLICT (phone) DO UPDATE
-         SET role = EXCLUDED.role, name = EXCLUDED.name,
+         SET role = EXCLUDED.role, name = EXCLUDED.name, email = EXCLUDED.email, is_active = true,
              ward_id = EXCLUDED.ward_id, local_level_id = EXCLUDED.local_level_id`,
       [JSON.stringify(demoUsers)],
     );

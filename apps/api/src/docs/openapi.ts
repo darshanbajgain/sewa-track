@@ -1,5 +1,6 @@
 import {
   createRequestSchema,
+  createStaffSchema,
   districtsQuerySchema,
   ERROR_CODES,
   EVENT_ACTIONS,
@@ -11,10 +12,13 @@ import {
   MAP_METRICS,
   mapQuerySchema,
   queueQuerySchema,
+  registerSchema,
   REQUEST_STATUSES,
   ROLES,
   SERVICE_TYPE_CODES,
   transitionBodySchema,
+  updateUserSchema,
+  userListQuerySchema,
   wardsQuerySchema,
 } from '@sewa/shared';
 import { z } from 'zod';
@@ -74,6 +78,7 @@ const E = {
 };
 
 const cookieAuth = [{ cookieAuth: [] }];
+const userIdParam = { name: 'id', in: 'path', required: true, schema: str({ format: 'uuid' }), description: 'User id (uuid)' };
 
 const components = {
   securitySchemes: {
@@ -96,8 +101,21 @@ const components = {
       id: str({ format: 'uuid' }),
       role: str({ enum: [...ROLES] }),
       name: str(),
+      email: str({ format: 'email' }),
       wardId: nullable(int()),
       localLevelId: nullable(int()),
+    }),
+    AdminUser: obj({
+      id: str({ format: 'uuid' }),
+      role: str({ enum: [...ROLES] }),
+      name: str(),
+      email: str({ format: 'email' }),
+      isActive: bool,
+      wardId: nullable(int()),
+      wardNumber: nullable(int()),
+      localLevelId: nullable(int()),
+      palikaNameEn: nullable(str()),
+      createdAt: dateTime,
     }),
     ServiceType: obj({
       code: ref('ServiceTypeCode'),
@@ -229,12 +247,28 @@ const paths = {
       tags: ['Auth'],
       summary: 'Log in (sets the session cookie)',
       description:
-        'Demo accounts (all fake), password `demo1234`: `9000000001` citizen · `9000000002` / `9000000003` ward officers, Kathmandu ward 1 · `9000000004` officer, ward 2 · `9000000005` palika admin · `9000000006` system admin. Rate limited: 5 per minute per IP. Wrong phone and wrong password give the same 401.',
-      requestBody: { required: true, ...json(input(loginSchema), { phone: '9000000002', password: 'demo1234' }) },
+        'Demo accounts (all fake), password `demo1234`: `citizen@example.com` · `officer.ward1@example.com` / `officer2.ward1@example.com` (Kathmandu ward 1) · `officer.ward2@example.com` · `palika.admin@example.com` · `system.admin@example.com`. Rate limited: 5 per minute per IP. Unknown email and wrong password give the same 401; a deactivated account gets 403.',
+      requestBody: { required: true, ...json(input(loginSchema), { email: 'officer.ward1@example.com', password: 'demo1234' }) },
       responses: {
         200: { description: 'Logged in. `Set-Cookie: sewa_session=…` (httpOnly)', ...json(obj({ user: ref('AuthUser') })) },
         400: E[400],
         401: E[401],
+        403: err('Account deactivated'),
+        429: E[429],
+      },
+    },
+  },
+  '/api/v1/auth/register': {
+    post: {
+      tags: ['Auth'],
+      summary: 'Citizen sign-up (sets the session cookie)',
+      description:
+        'Always creates a CITIZEN (staff accounts are created by a system admin). Demo rule: the email must end in `@example.com` (reserved for examples, so no real addresses are stored). Rate limited: 5 per minute per IP.',
+      requestBody: { required: true, ...json(input(registerSchema), { name: 'Sita Demo', email: 'sita@example.com', password: 'demo-pass-123' }) },
+      responses: {
+        201: { description: 'Account created and logged in', ...json(obj({ user: ref('AuthUser') })) },
+        400: E[400],
+        409: err('Email already registered'),
         429: E[429],
       },
     },
@@ -378,6 +412,38 @@ const paths = {
       },
     },
   },
+  '/api/v1/admin/users': {
+    get: {
+      tags: ['Admin'],
+      summary: 'List users (system admin)',
+      description: 'Newest first, 20 per page. `q` matches name or email.',
+      security: cookieAuth,
+      parameters: queryParams(userListQuerySchema),
+      responses: { 200: { description: 'One page', ...json(obj({ items: arr(ref('AdminUser')), page: int(), pageSize: int(), total: int() })) }, 400: E[400], 401: E[401], 403: E[403] },
+    },
+    post: {
+      tags: ['Admin'],
+      summary: 'Create a ward officer or palika admin (system admin)',
+      description: '`role` decides the scope field: WARD_OFFICER needs `wardId`, PALIKA_ADMIN needs `localLevelId`. Email must end in `@example.com` (demo rule).',
+      security: cookieAuth,
+      requestBody: {
+        required: true,
+        ...json(input(createStaffSchema), { role: 'WARD_OFFICER', name: 'Ward Officer (Demo), Ward 5', email: 'officer.ward5@example.com', password: 'demo-pass-123', wardId: 5 }),
+      },
+      responses: { 201: { description: 'Created', ...json(obj({ user: ref('AdminUser') })) }, 400: E[400], 401: E[401], 403: E[403], 409: err('Email already registered') },
+    },
+  },
+  '/api/v1/admin/users/{id}': {
+    patch: {
+      tags: ['Admin'],
+      summary: 'Activate or deactivate an account (system admin)',
+      description: 'A deactivated user cannot log in, and their open sessions stop working immediately. System admin accounts cannot be deactivated.',
+      security: cookieAuth,
+      parameters: [userIdParam],
+      requestBody: { required: true, ...json(input(updateUserSchema), { isActive: false }) },
+      responses: { 200: { description: 'Updated', ...json(obj({ user: ref('AdminUser') })) }, 400: E[400], 401: E[401], 403: E[403], 404: E[404] },
+    },
+  },
   '/api/v1/track/{trackingCode}': {
     get: {
       tags: ['Public'],
@@ -417,7 +483,7 @@ export function buildOpenApiDocument(version: string): Json {
         '**Demo / portfolio project. Not affiliated with any government body. All data is fake.**\n\n' +
         'Citizen-service request tracker for ward recommendation letters in Nepal. JSON only; every error has the shape ' +
         '`{ "error": { "code", "message", "details" }, "requestId" }`.\n\n' +
-        '**Try it:** run `POST /api/v1/auth/login` with a demo account (password `demo1234`); the session cookie is then used automatically.',
+        '**Try it:** run `POST /api/v1/auth/login` with a demo account (e.g. `officer.ward1@example.com`, password `demo1234`); the session cookie is then used automatically.',
       license: { name: 'MIT', identifier: 'MIT' },
     },
     servers: [{ url: '/', description: 'This server' }],
@@ -429,6 +495,7 @@ export function buildOpenApiDocument(version: string): Json {
       { name: 'Requests', description: 'Citizen: submit, own requests' },
       { name: 'Staff', description: 'Officers and admins: queue, detail, changes' },
       { name: 'Statistics' },
+      { name: 'Admin', description: 'System admin: user management' },
     ],
     paths,
     components,

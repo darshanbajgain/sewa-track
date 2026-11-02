@@ -80,10 +80,12 @@ Online sifaris **already exists** in parts of Nepal. Sewa Track does not claim t
 | `CITIZEN` | Applicant | Own requests | Submit, view own requests, resubmit when documents requested, cancel (early states only) |
 | `WARD_OFFICER` | Ward staff | **One ward** (`wardId`) | View ward queue, change status, mark fee paid, add notes |
 | `PALIKA_ADMIN` | Palika IT/admin | **One local level** (`localLevelId`), all its wards | Read all requests in palika, reassign officer, palika map and reports. **Cannot change status.** |
-| `SYSTEM_ADMIN` | National view | All of Nepal | National map, reports. **Cannot change status.** |
+| `SYSTEM_ADMIN` | National view | All of Nepal | National map, reports, **user management** (create ward officers and palika admins, deactivate accounts; F14). **Cannot change status.** |
 | Public (no login) | Anyone | — | Service catalog, track by code (limited fields), public aggregate stats map |
 
 Rule: **authorization is checked on the server for every request** (never trust the UI). Officers acting outside their ward get `403 FORBIDDEN`.
+
+**Accounts (changed 2026-11-01, ADR-003):** citizens **sign up themselves** (always as `CITIZEN`). Staff accounts are **created only by the system admin**; nobody can self-register as staff. Each role has its own portal: citizen `/citizen`, ward officer `/ward`, palika admin `/palika`, system admin `/admin`.
 
 ## 5. Service types (v1: exactly 5)
 
@@ -144,10 +146,13 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 - Source of names, types and ward counts: [local-states-nepal](https://github.com/sagautam5/local-states-nepal) (MIT), see `apps/api/db/seed-data/README.md`.
 - **AC:** cascading dropdowns (province → district → palika → ward) work; counts are 7 / 77 / 753.
 
-### F3. Authentication
-- Phone + password login (bcrypt). JWT in an **httpOnly, Secure, SameSite=Lax cookie**, 8h expiry.
-- **Demo login buttons** on the login page: "Login as Citizen / Ward Officer / Palika Admin / System Admin" (seeded demo accounts).
-- **AC:** wrong password → 401 with generic message; protected routes without a cookie → 401.
+### F3. Authentication and citizen sign-up
+- **Email** + password login for every role (scrypt hash). JWT in an **httpOnly, Secure, SameSite=Lax cookie**, 8h expiry.
+- **Citizen sign-up** (`/register`): name, email, password (≥ 8). Logged in straight away. Role is always `CITIZEN`.
+- **Demo rule:** new accounts must use an `@example.com` email (reserved for examples, RFC 2606), so the public demo never stores a real address (§12.3).
+- **Demo mode** on the login page: a separate, collapsed panel listing one fake account per role; choosing one fills the normal form.
+- Deactivated accounts can't log in (403) and their sessions stop working immediately.
+- **AC:** wrong password or unknown email → same 401; sign-up with a taken email → 409; non-demo email → 400; protected routes without a cookie → 401; sign-up and login rate limited (5/min).
 
 ### F4. Submit request (citizen)
 - Fields: service type, ward (via cascading selects), purpose (text, 10–500 chars), applicant details (demo: name, demo NID like `DEMO-1234567`), consent checkbox ("I understand this is a demo and I am not entering real information").
@@ -211,6 +216,11 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 - Nepali / English toggle; dictionary files `messages/en.json`, `messages/ne.json`. All user-facing labels go through the dictionary.
 - Nepali digits optional (next step).
 
+### F14. User management (system admin)
+- `/admin/users`: list (role filter, search by name/email, 20 per page), **create** a ward officer (choose palika → ward) or palika admin (choose palika), **deactivate / reactivate**.
+- Only `WARD_OFFICER` and `PALIKA_ADMIN` can be created; system admin accounts can't be deactivated. Accounts are never deleted (requests and audit rows point at them). `created_by` records which admin created each staff account.
+- **AC:** non-system-admin → 403; role without its scope (officer without ward) → 400; deactivated officer's existing session → 401.
+
 ### F13. Demo safety
 - Fixed banner on every page (both languages): **"Demo / portfolio project. Not affiliated with any government body. Do not enter real information."**
 - `pnpm demo:reset` re-seeds the database (can be run nightly by the host's cron or a scheduled GitHub Action).
@@ -257,7 +267,8 @@ Base: `/api/v1`. JSON only. Swagger UI at `/docs` (generated from Zod schemas or
 | GET | `/health` | — | `{status, db, version, commit}` |
 | GET | `/service-types` | — | Catalog |
 | GET | `/locations/provinces` · `/districts?provinceId=` · `/local-levels?districtId=` · `/wards?localLevelId=` | — | Hierarchy |
-| POST | `/auth/login` · `/auth/logout` · GET `/auth/me` | — / any | Auth |
+| POST | `/auth/login` · `/auth/register` · `/auth/logout` · GET `/auth/me` | — / any | Auth, citizen sign-up |
+| GET · POST | `/admin/users` · PATCH `/admin/users/:id` | System admin | User management (F14) |
 | POST | `/requests` | Citizen | Submit |
 | GET | `/requests/mine` | Citizen | Own requests |
 | GET | `/requests` | Officer / Palika / System | Queue (scoped by role) |

@@ -24,7 +24,7 @@ let other: { wardId: number; localLevelId: number; districtId: number; provinceI
 
 beforeAll(async () => {
   await resetRequests();
-  const { rows: users } = await pool.query(`SELECT id FROM users WHERE phone = $1`, [DEMO.citizen]);
+  const { rows: users } = await pool.query(`SELECT id FROM users WHERE email = $1`, [DEMO.citizen]);
   const citizenId = users[0].id;
   const ktmWard = await kathmanduWardId(1);
   const { rows: o } = await pool.query(

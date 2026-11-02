@@ -14,6 +14,7 @@ Status: ✅ available · 🔜 planned
 |---|---|---|---|---|
 | GET | `/health` | — | API and database status | ✅ |
 | POST | `/auth/login` | — (rate limited) | Log in, sets session cookie | ✅ |
+| POST | `/auth/register` | — (rate limited) | Citizen sign-up, sets session cookie | ✅ |
 | POST | `/auth/logout` | — | Clear session cookie | ✅ |
 | GET | `/auth/me` | logged in | Current user | ✅ |
 | GET | `/service-types` | — | Service catalog | ✅ |
@@ -75,10 +76,16 @@ Reference data (`/service-types`, `/locations/*`) is sent with `Cache-Control: p
 ## Auth
 
 ### `POST /auth/login`
-Body: `{ "phone": "9000000002", "password": "demo1234" }` (phone = 10 digits; password 1–200 chars)
+Body: `{ "email": "officer.ward1@example.com", "password": "demo1234" }` (email is lowercased; password 1–200 chars)
 
-- `200` `{ "user": { "id", "role", "name", "wardId", "localLevelId" } }` + `Set-Cookie: sewa_session=…`
-- `400` invalid body · `401` wrong phone **or** password (same message for both) · `429` after 5 attempts per minute per IP
+- `200` `{ "user": { "id", "role", "name", "email", "wardId", "localLevelId" } }` + `Set-Cookie: sewa_session=…`
+- `400` invalid body · `401` unknown email **or** wrong password (same message for both) · `403` account deactivated · `429` after 5 attempts per minute per IP
+
+### `POST /auth/register`
+Body: `{ "name": "Sita Demo", "email": "sita@example.com", "password": "at-least-8" }`. Always creates a **CITIZEN**
+(a `role` in the body is ignored). Demo rule: the email must end in `@example.com`.
+
+- `201` `{ "user": … }` + session cookie (logged in) · `400` invalid (field in `details.issues`) · `409` email taken (`details.field = "email"`) · `429` 5 per minute
 
 ### `POST /auth/logout`
 `204`, clears the cookie.
@@ -88,9 +95,25 @@ Body: `{ "phone": "9000000002", "password": "demo1234" }` (phone = 10 digits; pa
 
 ```bash
 curl -c cookies.txt -X POST localhost:4000/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"phone":"9000000002","password":"demo1234"}'
+  -H 'Content-Type: application/json' -d '{"email":"officer.ward1@example.com","password":"demo1234"}'
 curl -b cookies.txt localhost:4000/api/v1/auth/me
 ```
+
+---
+
+## Admin: user management (system admin only)
+
+All three answer `401` without a session and `403` for any other role.
+
+### `GET /admin/users?role=&q=&page=`
+Newest first, 20 per page. `q` matches name or email. `200` `{ items: [{ id, role, name, email, isActive, wardId, wardNumber, localLevelId, palikaNameEn, createdAt }], page, pageSize, total }`.
+
+### `POST /admin/users`
+`{ "role": "WARD_OFFICER", "name", "email", "password", "wardId" }` or `{ "role": "PALIKA_ADMIN", …, "localLevelId" }`.
+`201` `{ user }` · `400` wrong/missing scope, unknown ward/palika, non-demo email, or another role · `409` email taken.
+
+### `PATCH /admin/users/:id`
+`{ "isActive": false }` → the user can't log in and their open sessions stop at once. `200` · `403` target is a system admin · `404` unknown user.
 
 ---
 

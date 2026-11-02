@@ -202,19 +202,21 @@ sequenceDiagram
   participant B as Browser
   participant A as API
   participant D as PostgreSQL
-  B->>A: POST /auth/login with phone and password
+  B->>A: POST /auth/login with email and password
   Note over A: rate limit 5 per min per IP, Zod validation
-  A->>D: SELECT id, role, password_hash, scope FROM users WHERE phone = $1
+  A->>D: SELECT id, role, password_hash, scope FROM users WHERE email = $1
   A->>A: bcrypt.compare(password, hash)
-  alt wrong phone or password
+  alt unknown email or wrong password
     A-->>B: 401 UNAUTHENTICATED (same generic message for both)
   else correct
     A->>A: sign JWT with sub, role, wardId or localLevelId (8h)
     A-->>B: 200 user info + Set-Cookie httpOnly, SameSite=Lax, Secure in prod
   end
 ```
-The same message for "unknown phone" and "wrong password" stops attackers from finding which
-phone numbers have accounts.
+The same message for "unknown email" and "wrong password" stops attackers from finding which
+emails have accounts. Citizens sign up at `POST /auth/register` (always `CITIZEN`); staff accounts are
+created only by the system admin (`/admin/users`). A deactivated account is refused on every request:
+`requireAuth` checks `is_active` (ADR-003).
 
 ### 6.3 Citizen submits a request 🔜
 ```mermaid
@@ -334,7 +336,7 @@ SQL string, so the query stays injection-safe.
 
 ## 7. Authentication and authorization
 
-**Authentication (who are you?)** 🔜: phone + password → bcrypt check → JWT in an
+**Authentication (who are you?)** ✅: email + password → password-hash check → JWT in an
 `httpOnly` cookie (JavaScript can't read it, which protects against XSS token theft), 8-hour expiry.
 The API is **stateless**: any API instance can verify the token, with no server-side session store.
 
@@ -475,7 +477,7 @@ never in the repo. Migrations run as a release step before the new API version s
 | Web ↔ API | Same-origin proxy | CORS + cross-site cookies | Cookies work with `SameSite=Lax`; simpler security |
 | ID check | Background with timeout/retry (ADR-003) | Block submission | Citizens aren't blocked by an outside outage |
 
-Formal write-ups: [ADR-001](./decisions/ADR-001-denormalized-location.md) ✅, [ADR-002](./decisions/ADR-002-optimistic-locking.md) ✅,
+Formal write-ups: [ADR-001](./decisions/ADR-001-denormalized-location.md) ✅, [ADR-002](./decisions/ADR-002-optimistic-locking.md) ✅, [ADR-003](./decisions/ADR-003-accounts.md) ✅,
 `ADR-003-mock-nid-integration.md` 🔜. Incident review: [001](./incidents/001-concurrent-status-update.md).
 
 ---

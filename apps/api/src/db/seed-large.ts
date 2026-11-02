@@ -68,7 +68,7 @@ export async function seedLarge(client: pg.ClientBase, count: number, now = new 
   try {
     await client.query('TRUNCATE request_events, identity_checks, service_requests');
     const { rows: citizen } = await client.query<{ id: string }>(
-      `INSERT INTO users (role, name, phone, password_hash) VALUES ('CITIZEN', 'Bulk Citizen (Demo)', '9099999999', 'no-login')
+      `INSERT INTO users (role, name, email, phone, password_hash) VALUES ('CITIZEN', 'Bulk Citizen (Demo)', 'bulk.citizen@example.com', '9099999999', 'no-login')
        ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
     );
     const citizenId = citizen[0]!.id;

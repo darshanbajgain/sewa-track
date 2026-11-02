@@ -67,3 +67,15 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # Build both production images, so a broken Dockerfile fails the PR instead of the deploy.
+  # Runs in parallel with `check`. Images are only built here, never pushed anywhere.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile -t sewa-api .
+      - name: Build web image
+        run: docker build -f apps/web/Dockerfile --build-arg API_ORIGIN=http://api:4000 -t sewa-web .

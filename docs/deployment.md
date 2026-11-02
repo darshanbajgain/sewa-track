@@ -100,24 +100,30 @@ With no edge proxy in front (docker compose), a client can therefore fake its IP
 On a real host the edge proxy appends the true IP last, and that last entry is the one the API reads.
 
 ### Web and API on two hosts: one way in (`PROXY_SECRET`)
-Found in the post-deploy test: through the website, the login limit never triggered. The two ways to reach
-the API had a **different number of proxies**:
+Found in the post-deploy test: through the website, the login limit never triggered.
 
 ```
 direct:       client → API host's edge → API host's load balancer → API
-via website:  client → web host → API host's edge → API host's load balancer → API   (one more)
+via website:  client → web host → API host's edge → API host's load balancer → API
 ```
 
-With `TRUST_PROXY` set for the direct path, website requests were counted under the **web host's outgoing
-IP**, which changes almost every request, so every attempt looked like a new visitor. Raising the number
-would fix the website path but let a direct caller fake its IP (the extra entry on the left is theirs to
-write). No single number is right for both paths.
+When the web host forwards a request to another host, the visitor's IP does **not** arrive in
+`X-Forwarded-For`. The API only saw the web host's outgoing IP, which changes almost every request, so
+every attempt looked like a new visitor. Tested: with `TRUST_PROXY` 2 or 3, and even with the same fake
+`X-Forwarded-For` sent 7 times, no 429. No `TRUST_PROXY` number can find an IP that isn't there.
 
-Fix: make the website the only way in. The web app's [proxy.ts](../apps/web/src/proxy.ts) adds an
-`X-Proxy-Secret` header to every `/api` request it forwards, and the API
-([middleware/proxySecret.ts](../apps/api/src/middleware/proxySecret.ts)) refuses requests without it with
-`403`, except `/live` and `/health` (platform health check and keep-awake pinger). Now every request has
-the same proxies in front, and `TRUST_PROXY` counts all of them.
+Fix: the web app reports the visitor's IP itself, and proves it is the web app.
+- The web app's [proxy.ts](../apps/web/src/proxy.ts) adds two headers to every `/api` request it
+  forwards: `X-Proxy-Secret` and `X-Client-IP` (from `x-real-ip`, which the web host's edge sets and a
+  visitor can't override).
+- The API ([middleware/proxySecret.ts](../apps/api/src/middleware/proxySecret.ts)) refuses requests without
+  the right secret with `403`, except `/live` and `/health` (platform health check and keep-awake pinger).
+- With the right secret, the rate limits count per `X-Client-IP`
+  ([rateLimit.ts](../apps/api/src/middleware/rateLimit.ts)). Without a secret configured, the header is
+  ignored, so nobody can pick their own counter.
+
+`TRUST_PROXY` stays as the direct-path value (Render: `2`); with the secret on, it only affects `req.ip`
+for `/live` and `/health`.
 
 To rotate the secret: set a new value on both hosts, then redeploy both.
 

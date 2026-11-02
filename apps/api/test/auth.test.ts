@@ -78,6 +78,16 @@ describe('login rate limit', () => {
     expect(blocked.status).toBe(429);
     expect(blocked.body.error.code).toBe('RATE_LIMITED');
   });
+
+  it('ignores a client-sent X-Client-IP when no proxy secret is set', async () => {
+    const fresh = createApp();
+    // A new fake IP per attempt must NOT give a new counter: only our web app (with the secret) may set it.
+    for (let i = 0; i < 5; i++) {
+      await request(fresh).post('/api/v1/auth/login').set('x-client-ip', `203.0.113.${i}`).send({ ...CITIZEN, password: 'wrong' });
+    }
+    const blocked = await request(fresh).post('/api/v1/auth/login').set('x-client-ip', '203.0.113.99').send(CITIZEN);
+    expect(blocked.status).toBe(429);
+  });
 });
 
 describe('GET /auth/me and logout', () => {

@@ -65,7 +65,7 @@ Session = JWT in the `sewa_session` cookie (`HttpOnly`, `SameSite=Lax`, `Secure`
 When the API has `PROXY_SECRET` set, every route except `/live` and `/health` needs the `X-Proxy-Secret`
 header, which only the web app adds. A direct call to the API host gets `403 FORBIDDEN`. Use the API
 through the website's `/api/*` path instead (Swagger UI: `/api/docs` on the website). Why: docs/deployment.md §5.
-Locally the secret is unset and the check is off.
+The rate limits then count per `X-Client-IP`, which the web app sets. Locally the secret is unset and the check is off.
 
 ### Caching
 Reference data (`/service-types`, `/locations/*`) is sent with `Cache-Control: public, max-age=3600`.

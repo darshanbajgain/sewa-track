@@ -1,28 +1,19 @@
 'use client';
 
-import { RequireRole } from '@/components/auth/RequireRole';
 import { Card, PageTitle, QueryState } from '@/components/common';
 import { StatusBadge } from '@/components/requests/StatusBadge';
 import { useServiceTypes } from '@/hooks/useReference';
 import { useSummary } from '@/hooks/useStats';
 import { formatNumber } from '@/lib/format';
 import { pickName, useI18n } from '@/lib/i18n';
-import { PORTAL_ROLES } from '@/lib/routing';
 
 /**
  * Staff reports (PRD F7) from GET /stats/summary: palika admin → own palika (rows per ward),
  * system admin → Nepal (rows per province). Aggregates only, no personal data.
- * Ward officers can't call this endpoint (403), so the page is guarded for the two roles too.
+ * Shown only inside the palika and admin portals (their layouts guard the role; the API returns 403 to
+ * anyone else anyway).
  */
-export default function ReportsPage() {
-  return (
-    <RequireRole roles={PORTAL_ROLES.reports}>
-      <Reports />
-    </RequireRole>
-  );
-}
-
-function Reports() {
+export function ReportsView() {
   const { t, lang } = useI18n();
   const summary = useSummary();
   const services = useServiceTypes();
@@ -99,7 +90,7 @@ function Reports() {
             <h2 id="by-area" className="text-lg font-bold">
               {t(national ? 'staff.byProvince' : 'staff.byWard')}
             </h2>
-            <div className="overflow-x-auto rounded-xl border border-line">
+            <div className="relative overflow-x-auto rounded-xl border border-line">
               <table className="w-full min-w-[480px] text-left text-sm">
                 <thead className="bg-surface">
                   <tr>

@@ -1,10 +1,12 @@
 'use client';
 
+import type { Role } from '@sewa/shared';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/common';
 import { useLogout, useMe } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
+import { PORTAL_NAV_KEY, ROLE_HOME } from '@/lib/routing';
 
 /**
  * The frame around every page: demo banner → header → blue navigation → (page) → footer.
@@ -41,10 +43,8 @@ const PUBLIC_NAV = [
   { href: '/track', key: 'nav.track' },
   { href: '/stats', key: 'nav.map' },
 ] as const;
-// Extra item per role, shown only when that role is logged in (portals are protected by the API anyway).
-const CITIZEN_NAV = { href: '/citizen', key: 'nav.myRequests' } as const;
-const STAFF_NAV = { href: '/staff', key: 'nav.staff' } as const;
-const roleNav = (role?: string) => (role === 'CITIZEN' ? [CITIZEN_NAV] : role ? [STAFF_NAV] : []);
+// One extra item: the logged-in user's own portal (portals are protected by the API anyway).
+const roleNav = (role?: Role) => (role ? [{ href: ROLE_HOME[role], key: PORTAL_NAV_KEY[role] }] : []);
 
 export function SiteHeader() {
   const { t, toggle } = useI18n();

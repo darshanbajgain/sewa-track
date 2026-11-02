@@ -14,7 +14,8 @@ import { formatDate, formatNumber } from '@/lib/format';
 import { pickName, useI18n } from '@/lib/i18n';
 
 /**
- * Staff queue (PRD F6). WHICH requests appear is decided by the server from the session
+ * Request queue (PRD F6), used by the ward, palika and admin portals.
+ * `detailBase` = where a row's "Open" link goes (e.g. "/ward/requests"), so each portal keeps its own URLs. WHICH requests appear is decided by the server from the session
  * (officer → own ward, palika admin → own palika, system admin → all); the page only sends filters.
  *
  * Filters live in the URL (?status=UNDER_REVIEW&page=2), not in React state, so the back button,
@@ -26,7 +27,7 @@ function readFilters(params: URLSearchParams): QueueFilters {
   return parsed.success ? parsed.data : { page: 1 };
 }
 
-function QueuePage() {
+function Queue({ detailBase }: { detailBase: string }) {
   const { t, lang } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
@@ -89,7 +90,7 @@ function QueuePage() {
           {queue.data.items.length === 0 ? (
             <p className="rounded-xl border border-line p-6">{t('staff.empty')}</p>
           ) : (
-            <div className={`overflow-x-auto rounded-xl border border-line ${queue.isPlaceholderData ? 'opacity-60' : ''}`}>
+            <div className={`relative overflow-x-auto rounded-xl border border-line ${queue.isPlaceholderData ? 'opacity-60' : ''}`}>
               <table className="w-full min-w-[860px] text-left text-sm">
                 <caption className="sr-only">{t('staff.queueTitle')}</caption>
                 <thead className="bg-surface">
@@ -120,7 +121,7 @@ function QueuePage() {
                       <td className="p-3">{formatDate(r.submittedAt, lang)}</td>
                       <td className="p-3">{r.assignedOfficerName ?? <span className="text-muted">{t('staff.unassigned')}</span>}</td>
                       <td className="p-3">
-                        <Link href={`/staff/requests/${r.id}`} className="font-semibold text-primary">
+                        <Link href={`${detailBase}/${r.id}`} className="font-semibold text-primary">
                           {t('citizen.open')}
                           <span className="sr-only"> {r.trackingCode}</span>
                         </Link>
@@ -150,10 +151,10 @@ function QueuePage() {
 }
 
 // useSearchParams() needs a Suspense boundary (same as the login page).
-export default function StaffQueuePage() {
+export function QueueView({ detailBase }: { detailBase: string }) {
   return (
     <Suspense>
-      <QueuePage />
+      <Queue detailBase={detailBase} />
     </Suspense>
   );
 }

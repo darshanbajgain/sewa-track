@@ -13,7 +13,7 @@ import { dueDate, formatDateTime } from '@/lib/format';
 import { pickName, useI18n } from '@/lib/i18n';
 
 /**
- * Staff request detail (PRD F6). The buttons come ONLY from the server's `allowedTransitions` and
+ * Staff request detail (PRD F6), used by the ward, palika and admin portals (`backHref` = that portal's queue). The buttons come ONLY from the server's `allowedTransitions` and
  * `canMarkFeePaid` (computed by domain/transitions.ts for this user), so the page never offers a move
  * the rules don't allow. Palika and system admins get an empty list: read only.
  *
@@ -21,14 +21,14 @@ import { pickName, useI18n } from '@/lib/i18n';
  * field visit, rejecting), the dialog requires it; the API checks again and returns 400 if it's missing.
  * Every change sends the `version` we loaded; a 409 shows "someone else saved first" and we refetch.
  */
-export default function StaffRequestPage() {
+export function RequestDetailView({ backHref }: { backHref: string }) {
   const { t } = useI18n();
   const { id } = useParams<{ id: string }>();
   const detail = useRequestDetail(id);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10">
-      <Link href="/staff" className="self-start font-semibold text-primary">
+      <Link href={backHref} className="self-start font-semibold text-primary">
         ← {t('staff.backToQueue')}
       </Link>
       <QueryState isLoading={detail.isLoading} error={detail.error} onRetry={() => detail.refetch()} />

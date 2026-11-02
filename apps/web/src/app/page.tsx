@@ -83,7 +83,7 @@ export default function HomePage() {
             {t('home.mostOverdue')}
           </h2>
           {topOverdue.length > 0 && (
-            <div className="overflow-x-auto rounded-xl border border-line">
+            <div className="relative overflow-x-auto rounded-xl border border-line">
               <table className="w-full min-w-[480px] text-left text-sm">
                 <thead className="bg-surface">
                   <tr>

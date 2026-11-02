@@ -150,7 +150,7 @@ export function DelayMap({ variant = 'full' }: { variant?: 'full' | 'compact' })
                 {t(showTable ? 'map.hideTable' : 'map.showTable')}
               </Button>
               {showTable && (
-                <div className="overflow-x-auto rounded-xl border border-line">
+                <div className="relative overflow-x-auto rounded-xl border border-line">
                   <table className="w-full min-w-[480px] text-left text-sm">
                     <caption className="sr-only">{t(`map.metric.${metric}`)}</caption>
                     <thead className="bg-surface">

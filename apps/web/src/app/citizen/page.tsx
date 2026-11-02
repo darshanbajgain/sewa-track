@@ -34,7 +34,7 @@ export default function MyRequestsPage() {
       )}
 
       {requests.data && requests.data.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-line">
+        <div className="relative overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[720px] text-left text-sm">
             <caption className="sr-only">{t('citizen.myTitle')}</caption>
             <thead className="bg-surface">

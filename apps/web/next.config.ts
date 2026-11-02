@@ -28,6 +28,9 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false, // don't advertise "X-Powered-By: Next.js"
+  // Docker build only (apps/web/Dockerfile sets it): a self-contained server.js with just the files it
+  // needs, so the image doesn't carry the whole node_modules. Local `next start` stays as it is.
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },

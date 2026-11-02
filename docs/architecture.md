@@ -443,7 +443,7 @@ system would use a job queue with retries.
 ```mermaid
 flowchart LR
   dev["Developer branch"] --> pr["Pull request"]
-  pr --> ci["CI ✅<br/>install · typecheck · tests on Postgres 16 · build"]
+  pr --> ci["CI ✅<br/>install · typecheck · tests on Postgres 16 · build · Docker images"]
   ci -- "green" --> merge["Merge to main"]
   merge --> ci2["CI on main ✅"]
   ci2 -- "green" --> deploy["Deploy 🔜<br/>run migrations → start new API version"]
@@ -452,13 +452,15 @@ flowchart LR
 
 | Environment | Database | API / nid-mock | Web |
 |---|---|---|---|
-| Local ✅ | Docker Postgres 16 (`sewa_track`, `sewa_track_test`) | `tsx watch` | `next dev` 🔜 |
-| CI ✅ | Postgres 16 service container | tests in-process (Supertest) | build only 🔜 |
+| Local dev ✅ | Docker Postgres 16 (`sewa_track`, `sewa_track_test`) | `tsx watch` | `next dev` |
+| Local, all in containers ✅ | same Postgres container | `sewa-api` image | `sewa-web` image on :8080 |
+| CI ✅ | Postgres 16 service container | tests in-process (Supertest) | build + both Docker images |
 | Demo 🔜 (proposed, PRD §11) | Neon (managed Postgres) | Render | Vercel, rewriting `/api/*` to the API |
 
 Secrets (DB URL, JWT secret, deploy hooks) live in the hosting platform and GitHub Secrets,
 never in the repo. Migrations run as a release step before the new API version starts.
 `pnpm demo:reset` re-seeds the demo database on a schedule 🔜.
+How the images are built, the release step, and every setting: [deployment.md](deployment.md).
 
 ---
 

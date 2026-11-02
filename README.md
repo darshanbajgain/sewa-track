@@ -128,7 +128,7 @@ as pure functions in `domain/`. Full design: [docs/architecture.md](docs/archite
 | Database | PostgreSQL 16 with `pg` and hand-written, parameterized SQL (no ORM); plain SQL migrations |
 | Web | Next.js 16 (App Router), React 19, Tailwind CSS 4, TanStack Query 5, Leaflet (map, planned) |
 | Tests | Vitest + Supertest against a real Postgres |
-| Infra | Docker Compose (local), GitHub Actions (CI) |
+| Infra | Docker (multi-stage, non-root images), Docker Compose, GitHub Actions (CI) |
 
 ---
 
@@ -146,6 +146,10 @@ pnpm dev
 
 Then open the **web app** at <http://localhost:3000> (log in with a demo account), or the **interactive API
 docs (Swagger UI)** at <http://localhost:4000/api/docs>. Run the tests with `pnpm test`.
+
+**Or run everything in containers** (production builds, migrations run first):
+`cp .env.example .env && docker compose up --build`, then open <http://localhost:8080>.
+Details: [docs/deployment.md](docs/deployment.md).
 
 ### Demo accounts
 
@@ -213,6 +217,7 @@ docs/             requirements, architecture, database, codebase guide
 | [docs/api.md](docs/api.md) | Every endpoint: request, response, errors, curl examples (live version: `/api/docs`) |
 | [docs/performance.md](docs/performance.md) | 100k-row benchmarks: EXPLAIN ANALYZE before/after indexes, API p95, index cost |
 | [docs/frontend.md](docs/frontend.md) | Web app: folder structure, data flow, design system, components, accessibility, security, portals and routing |
+| [docs/deployment.md](docs/deployment.md) | Docker images, the migration release step, settings, real client IPs behind proxies |
 | [docs/codebase-guide.md](docs/codebase-guide.md) | How to read the code, where things are, how to add an endpoint |
 | [docs/decisions/](docs/decisions/) | Architecture decision records (ADR-001 location copies, ADR-002 optimistic locking, ADR-003 accounts) |
 | [docs/incidents/](docs/incidents/) | Blameless reviews (001: a concurrency test that passed for the wrong reason) |

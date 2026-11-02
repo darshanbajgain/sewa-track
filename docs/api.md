@@ -61,6 +61,12 @@ Every error has the same shape, and every response has an `X-Request-Id` header:
 Session = JWT in the `sewa_session` cookie (`HttpOnly`, `SameSite=Lax`, `Secure` in production,
 8 hours). Browsers send it automatically; with curl use a cookie jar (`-c` to save, `-b` to send).
 
+### Access through the website only (deployed demo)
+When the API has `PROXY_SECRET` set, every route except `/live` and `/health` needs the `X-Proxy-Secret`
+header, which only the web app adds. A direct call to the API host gets `403 FORBIDDEN`. Use the API
+through the website's `/api/*` path instead (Swagger UI: `/api/docs` on the website). Why: docs/deployment.md §5.
+Locally the secret is unset and the check is off.
+
 ### Caching
 Reference data (`/service-types`, `/locations/*`) is sent with `Cache-Control: public, max-age=3600`.
 

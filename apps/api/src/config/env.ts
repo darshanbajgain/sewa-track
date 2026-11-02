@@ -27,6 +27,9 @@ const envSchema = z.object({
   // Express then reads the real client IP from X-Forwarded-For, so rate limits count per user,
   // not per proxy. 0 = no proxy (local dev). Too HIGH a number lets clients fake their IP.
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  // Shared with the web app, which sends it on every request it forwards. When set, the API refuses
+  // requests without it, so the website is the only way in (middleware/proxySecret.ts). Unset = off.
+  PROXY_SECRET: z.string().min(32, 'PROXY_SECRET must be at least 32 characters').optional(),
   // Shown by /health so we can tell which build is running after a deploy.
   APP_VERSION: z.string().default('0.0.1'),
   GIT_COMMIT: z.string().default('local'),

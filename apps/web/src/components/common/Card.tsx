@@ -1,8 +1,8 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 
-/** White bordered box. `as` lets a card be an <article> or <section> when that's the right meaning. */
+/** White bordered box. `as` lets a card be an <article>, <section> or <aside> when that's the right meaning. */
 interface CardProps extends HTMLAttributes<HTMLElement> {
-  as?: 'div' | 'article' | 'section';
+  as?: 'div' | 'article' | 'section' | 'aside';
   children: ReactNode;
 }
 

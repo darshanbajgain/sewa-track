@@ -26,6 +26,8 @@ export const queryKeys = {
 
   tracking: (code: string) => ['tracking', code] as const,
 
+  districtShapes: ['geo', 'districts'] as const,
+
   stats: {
     all: ['stats'] as const,
     map: (params: MapStatsParams) => ['stats', 'map', params] as const,

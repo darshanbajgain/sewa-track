@@ -12,6 +12,7 @@
     "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate.cli.ts",
     "db:seed": "tsx --env-file-if-exists=../../.env src/db/seed.cli.ts",
     "import:locations": "tsx src/db/import-locations.ts",
+    "import:district-map": "tsx src/db/import-district-map.ts",
     "seed:large": "tsx --env-file-if-exists=../../.env src/db/seed-large.cli.ts",
     "db:explain": "tsx --env-file-if-exists=../../.env src/db/explain.cli.ts"
   },

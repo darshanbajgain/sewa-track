@@ -95,7 +95,7 @@ and may be outdated.
 | Accounts: citizen sign-up, email login, demo mode, system admin creates/deactivates staff accounts (deactivation is immediate) | ✅ |
 | Citizen portal: my requests, apply (cascading dropdowns, shared validation), detail with resubmit/cancel and 409 handling | ✅ |
 | Staff portal: queue (filters in the URL, paging), detail with only the allowed actions, fee paid, 409 handling, palika/national reports | ✅ |
-| National delay map | 🔜 |
+| National delay map: district choropleth (official 2020 boundaries), 4 measures, filters, side panel, legend, table view | ✅ |
 | Live demo | 🔜 |
 
 ---
@@ -234,8 +234,10 @@ service delays. Details: [PRD §2.1](docs/PRD.md#21-existing-systems-and-how-sew
   [sagautam5/local-states-nepal](https://github.com/sagautam5/local-states-nepal), MIT License,
   © 2020 Sagar Gautam. Pinned version, changes and full license notice:
   [apps/api/db/seed-data/README.md](apps/api/db/seed-data/README.md).
-- **Map boundaries:** to be added from a source that follows Nepal's official 2020 map
-  (including Lipulekh, Kalapani and Limpiyadhura), with its license credited here.
+- **District boundaries (delay map):** [Acesmndr/nepal-geojson](https://github.com/Acesmndr/nepal-geojson),
+  MIT License, © 2018 Aashish Manandhar. Follows Nepal's official 2020 map (including Lipulekh, Kalapani and
+  Limpiyadhura; checked, see [seed-data/README.md](apps/api/db/seed-data/README.md#district-boundaries)).
+  Simplified, not survey-grade. Built by `apps/api/src/db/import-district-map.ts`.
 - **All people, emails, phone numbers and IDs in the demo are fake.** IDs are prefixed `DEMO-`.
 
 ---

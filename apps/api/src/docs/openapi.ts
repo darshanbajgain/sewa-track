@@ -232,6 +232,14 @@ const components = {
 };
 
 const paths = {
+  '/api/v1/live': {
+    get: {
+      tags: ['System'],
+      summary: 'Process is running (never touches the database)',
+      description: 'For the keep-awake pinger: it keeps the API awake without waking the database. Use /health to check the database too.',
+      responses: { 200: { description: 'Running', ...json(obj({ status: str({ const: 'ok' }) })) } },
+    },
+  },
   '/api/v1/health': {
     get: {
       tags: ['System'],

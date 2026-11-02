@@ -1,7 +1,7 @@
 import request from 'supertest';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
-import { closePool } from '../src/db/pool.js';
+import { closePool, pool } from '../src/db/pool.js';
 
 // Integration test: real Express app + real Postgres (the test database), no mocks.
 const app = createApp();
@@ -24,6 +24,20 @@ describe('GET /api/v1/health', () => {
     const res = await request(app).get('/api/v1/health');
 
     expect(res.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
+describe('GET /api/v1/live', () => {
+  it('returns 200 without querying the database', async () => {
+    // The whole point of /live: the keep-awake pinger must not wake the database.
+    const query = vi.spyOn(pool, 'query');
+
+    const res = await request(app).get('/api/v1/live');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'ok' });
+    expect(query).not.toHaveBeenCalled();
+    query.mockRestore();
   });
 });
 

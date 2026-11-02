@@ -12,6 +12,7 @@ Status: ✅ available · 🔜 planned
 
 | Method | Path | Auth | Purpose | Status |
 |---|---|---|---|---|
+| GET | `/live` | — | Process is running (no database) | ✅ |
 | GET | `/health` | — | API and database status | ✅ |
 | POST | `/auth/login` | — (rate limited) | Log in, sets session cookie | ✅ |
 | POST | `/auth/register` | — (rate limited) | Citizen sign-up, sets session cookie | ✅ |
@@ -66,6 +67,12 @@ Reference data (`/service-types`, `/locations/*`) is sent with `Cache-Control: p
 ---
 
 ## Health
+
+### `GET /live`
+`200` `{ "status": "ok" }`. Never touches the database. For the keep-awake pinger: the free API host sleeps
+after 15 minutes without requests, and pinging `/health` instead would keep the database awake too
+(using up its free compute hours). **Liveness** (`/live`: is the process running?) vs **readiness**
+(`/health`: can it serve real requests?).
 
 ### `GET /health`
 `200` `{ "status": "ok", "db": "up", "version": "0.0.1", "commit": "local" }`

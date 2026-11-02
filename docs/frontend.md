@@ -33,7 +33,7 @@ accessibility, security and routing, including the plan for the citizen and staf
 | Styling | **Tailwind CSS 4** | Design tokens in CSS (`@theme`), no separate CSS files per component |
 | Server state | **TanStack Query 5** | Caching, loading/error states, de-duplication, invalidation after changes |
 | HTTP | **axios** | One instance with interceptors (errors, 401), timeout, cookies |
-| Map | **Leaflet** 🔜 | Used directly (no wrapper); boundary file must follow Nepal's official 2020 map |
+| Map | **Leaflet** ✅ | Used directly (no wrapper) in `components/map/DistrictMap.tsx`; boundaries follow Nepal's official 2020 map |
 | Fonts | Noto Sans + Noto Sans Devanagari via `next/font` | Self-hosted at build time; proper Nepali rendering |
 
 Rejected: `react-leaflet` (Hippocratic-2.1 license, not standard open source), `leaflet.heat`
@@ -59,6 +59,7 @@ apps/web/
    │  ├─ page.tsx            /          home ✅
    │  ├─ services/           /services  catalog ✅
    │  ├─ track/              /track     public tracking ✅
+   │  ├─ stats/              /stats     national delay map ✅ (public, aggregates only)
    │  ├─ login/              /login     demo accounts + phone form ✅
    │  ├─ citizen/            /citizen/* citizen portal ✅ (layout = RequireRole + portal tabs)
    │  │  ├─ page.tsx         my requests
@@ -71,7 +72,8 @@ apps/web/
    ├─ api/                   HTTP ONLY (no React)
    │  ├─ client.ts           axios instance + interceptor → ApiError; 401 hook
    │  ├─ endpoints.ts        ENDPOINTS: every API path in one place
-   │  └─ *.api.ts            auth · reference · requests · tracking · stats (one function per endpoint)
+   │  ├─ *.api.ts            auth · reference · requests · tracking · stats (one function per endpoint)
+   │  └─ geo.api.ts          district shapes: plain fetch of /geo/nepal-districts.geojson (static file)
    ├─ hooks/                 REACT + TANSTACK QUERY (pages use only these)
    │  ├─ queryKeys.ts        every cache key from one factory
    │  └─ use*.ts             useAuth · useReference · useRequests · useTracking · useStats
@@ -79,10 +81,13 @@ apps/web/
    │  ├─ common/             reusable UI: Button, ButtonLink, Card, PageTitle, Badge, Alert, Modal,
    │  │                      TextField, TextAreaField, SelectField, QueryState, Spinner (+ index.ts)
    │  ├─ auth/               SessionWatcher (401 → login), RequireRole (portal guard)
+   │  ├─ requests/           StatusBadge, RequestHistory, changeErrorText
+   │  ├─ map/                DelayMap (controls, legend, side panel, table) · DistrictMap (Leaflet only, ssr: false)
    │  └─ SiteChrome.tsx      DemoBanner, SiteHeader, SiteFooter
    └─ lib/
       ├─ i18n.tsx            useI18n(): t(key), language toggle, pickName()
-      └─ routing.ts          ROLE_HOME, PORTAL_ROLES, safeNextPath(), loginUrl()
+      ├─ routing.ts          ROLE_HOME, PORTAL_ROLES, safeNextPath(), loginUrl()
+      └─ choropleth.ts       quantile classes + colour ramp for the map (pure functions)
 ```
 
 **Where does new code go?**
@@ -220,9 +225,9 @@ One app, three portals (decided 2026-10-26):
 
 | Portal | Routes | Who |
 |---|---|---|
-| Public ✅ | `/`, `/services`, `/track`, `/login` | anyone |
+| Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login` | anyone |
 | Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
-| Staff ✅ | `/staff` (queue), `/staff/requests/[id]`, `/staff/reports` (palika/system admin), `/staff/map` 🔜 | `WARD_OFFICER`, `PALIKA_ADMIN`, `SYSTEM_ADMIN` |
+| Staff ✅ | `/staff` (queue), `/staff/requests/[id]`, `/staff/reports` (palika/system admin) | `WARD_OFFICER`, `PALIKA_ADMIN`, `SYSTEM_ADMIN` |
 
 ### Three layers of protection for a portal page
 ```
@@ -236,7 +241,7 @@ a page in the browser is never security.
 
 ### After login
 `ROLE_HOME` in `lib/routing.ts` decides where each role lands: citizen → `/citizen`; all staff roles → `/staff`
-(the system admin moves to `/staff/map` once the delay map exists).
+(the delay map is public at `/stats`: aggregates only, so admins use the same page).
 
 **After login we do a full page load** (`window.location.assign`), not `router.push`: while logged out, Next.js
 may have pre-fetched the target and cached proxy.ts's "redirect to login" answer, so a client-side push would
@@ -358,3 +363,22 @@ pre-fetches links in production (see §11).
 | Map | plain Leaflet | react-leaflet | license; one small component is enough |
 | Route protection | proxy + RequireRole + API | client-only checks | layered; the API is the real guard |
 | Portals | one app, three areas | separate staff app | shared components, one deploy, one cookie |
+
+---
+
+## Delay map (PRD F8)
+
+```
+/geo/nepal-districts.geojson (static, cached forever) ─┐
+GET /stats/map?level=district&metric=…&filters ─────────┼─► DelayMap: value per districtId → quantile class → colour
+GET /locations/districts (names) ──────────────────────┘        └─► DistrictMap (Leaflet): fill, tooltip, click → side panel
+```
+- **Leaflet only in the browser:** `next/dynamic(..., { ssr: false })`, because Leaflet uses `window`.
+  React owns the `<div>`; Leaflet owns what's inside. The map is created once; data changes only call `setStyle`.
+- **No background tiles:** tiles would draw their own border lines (maybe not the 2020 map) and send every
+  visitor to a third party. The district shapes alone are the map.
+- **Colours:** 5 quantile classes (each colour ≈ the same number of districts), one hue, darker = worse;
+  flipped for on-time rate. Grey = no data. The legend writes every range in text.
+- **Accessible alternative:** "View as table" lists every district (worst first) with the same numbers;
+  clicking a name selects it on the map. Scroll-wheel zoom is off so the page scroll isn't trapped.
+- **Not yet (PRD cut list):** palika drill-down and heatmap need palika shapes/centroids we don't have.

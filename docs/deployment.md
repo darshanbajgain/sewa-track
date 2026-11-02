@@ -67,6 +67,7 @@ API (validated at startup in [config/env.ts](../apps/api/src/config/env.ts); a b
 | `DATABASE_URL` | `postgres://…` | Secret |
 | `JWT_SECRET` | 48 random bytes | Secret. At least 32 characters |
 | `TRUST_PROXY` | `1` | Number of proxies in front of the API (see §5) |
+| `PROXY_SECRET` | 32+ random characters | Secret. Same value on the web app. Set = only the website can call the API (see §5) |
 | `PORT` | `4000` | Most hosts set it |
 | `API_DOCS_ENABLED` | `true` | Swagger UI at `/api/docs` |
 | `APP_VERSION`, `GIT_COMMIT` | `0.1.0`, `ef62e0d` | Shown by `/health`, to tell which build is live |
@@ -76,6 +77,7 @@ Web:
 | Variable | When | Notes |
 |---|---|---|
 | `API_ORIGIN` | **build time** | Where `/api/*` is forwarded. Next.js writes rewrites into the build output, so it is a Docker build argument |
+| `PROXY_SECRET` | run time | Same value as the API's. Server-only (no `NEXT_PUBLIC_`), so it never reaches the browser |
 
 ## 5. Real client IPs and the rate limits
 
@@ -96,7 +98,28 @@ left were written by the client and could be fake, so N must match the real numb
 Known limit, local only: Next.js keeps an `X-Forwarded-For` that a client sent instead of replacing it.
 With no edge proxy in front (docker compose), a client can therefore fake its IP and dodge the limits.
 On a real host the edge proxy appends the true IP last, and that last entry is the one the API reads.
-This is checked after deploy (P8 smoke test).
+
+### Web and API on two hosts: one way in (`PROXY_SECRET`)
+Found in the post-deploy test: through the website, the login limit never triggered. The two ways to reach
+the API had a **different number of proxies**:
+
+```
+direct:       client → API host's edge → API host's load balancer → API
+via website:  client → web host → API host's edge → API host's load balancer → API   (one more)
+```
+
+With `TRUST_PROXY` set for the direct path, website requests were counted under the **web host's outgoing
+IP**, which changes almost every request, so every attempt looked like a new visitor. Raising the number
+would fix the website path but let a direct caller fake its IP (the extra entry on the left is theirs to
+write). No single number is right for both paths.
+
+Fix: make the website the only way in. The web app's [proxy.ts](../apps/web/src/proxy.ts) adds an
+`X-Proxy-Secret` header to every `/api` request it forwards, and the API
+([middleware/proxySecret.ts](../apps/api/src/middleware/proxySecret.ts)) refuses requests without it with
+`403`, except `/live` and `/health` (platform health check and keep-awake pinger). Now every request has
+the same proxies in front, and `TRUST_PROXY` counts all of them.
+
+To rotate the secret: set a new value on both hosts, then redeploy both.
 
 ## 6. Free hosting: sleep and keep-awake
 

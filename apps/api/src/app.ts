@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import { env } from './config/env.js';
 import { ConsoleNotifier, type Notifier } from './integrations/notifier.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { requireProxySecret } from './middleware/proxySecret.js';
 import { requestId } from './middleware/requestId.js';
 import { adminRouter } from './routes/admin.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
@@ -40,6 +41,8 @@ export function createApp(deps: AppDeps = { notifier: new ConsoleNotifier() }): 
   app.use(helmet());
   // Give the request an id first, so everything after it (including errors) can use it.
   app.use(requestId);
+  // Before body parsing: a request from outside the website is refused without reading its body.
+  app.use(requireProxySecret(env.PROXY_SECRET));
   // Parse JSON bodies.
   // - limit: stops someone sending a huge body to exhaust memory.
   // - inflate: false: refuse compressed request bodies (gzip, deflate, Brotli). Our clients never

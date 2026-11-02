@@ -1,4 +1,25 @@
-# Local development only. Demo credentials, never used in production.
+# Local only. Demo credentials, never used in production.
+#   Dev (API and web run with pnpm dev):   docker compose up -d db
+#   Whole app in containers:               docker compose up --build   → http://localhost:8080
+#
+# The API port is NOT published: the browser reaches the API only through the web app's /api rewrite,
+# exactly like in production (same origin, so the SameSite cookie works and no CORS is needed).
+
+# Shared settings for the two services that use the API image (YAML anchors: & defines, * reuses).
+x-api: &api
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  image: sewa-api
+  environment:
+    NODE_ENV: production
+    DATABASE_URL: postgres://sewa:sewa_dev_password@db:5432/sewa_track
+    # Read from your .env (compose loads it automatically). Never hard-code a secret here.
+    JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (see .env.example)}
+    # One proxy in front: the web container's /api rewrite.
+    TRUST_PROXY: 1
+    LOG_LEVEL: info
+
 services:
   db:
     image: postgres:16-alpine
@@ -17,6 +38,34 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Release step: apply migrations and the demo seed, then exit. The API starts only if this succeeds,
+  # so a new version never runs against an old schema.
+  migrate:
+    <<: *api
+    command: ["sh", "-c", "node dist/db/migrate.cli.js && node dist/db/seed.cli.js"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *api
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_ORIGIN: http://api:4000
+    image: sewa-web
+    ports:
+      - "8080:3000"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   db_data:

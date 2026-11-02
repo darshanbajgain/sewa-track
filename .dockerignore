@@ -1,0 +1,28 @@
+# Keep the Docker build context small and free of secrets and local files.
+# The images install their own dependencies and build from source.
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/*.tsbuildinfo
+**/*.log
+.git
+.github
+.env
+.env.*
+!.env.example
+
+# Private and agent files never go into an image
+docs/private
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+AGENTS.local.md
+GEMINI.md
+.claude
+.cursor
+.codex
+.agents
+.aws
+.vscode
+.idea

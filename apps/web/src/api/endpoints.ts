@@ -3,6 +3,9 @@
  * If a URL changes on the server, it changes here only. Mirrors docs/api.md and /api/docs.
  */
 export const ENDPOINTS = {
+  system: {
+    live: '/live', // process is running; never touches the database
+  },
   auth: {
     login: '/auth/login',
     register: '/auth/register',

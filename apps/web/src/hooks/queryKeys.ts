@@ -1,5 +1,6 @@
 import type { MapStatsParams } from '@/api/stats.api';
 import type { QueueFilters } from '@/api/requests.api';
+import type { UserListParams } from '@/api/admin.api';
 
 /**
  * Every TanStack Query cache key, built in ONE place ("query key factory").
@@ -27,6 +28,11 @@ export const queryKeys = {
   tracking: (code: string) => ['tracking', code] as const,
 
   districtShapes: ['geo', 'districts'] as const,
+
+  admin: {
+    users: (query: UserListParams) => ['admin', 'users', query] as const,
+    all: ['admin'] as const,
+  },
 
   stats: {
     all: ['stats'] as const,

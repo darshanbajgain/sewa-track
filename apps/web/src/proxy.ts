@@ -19,7 +19,7 @@ export function proxy(request: NextRequest) {
   return NextResponse.redirect(login);
 }
 
-// Only the logged-in portals (built in P7.2–P7.3). Public pages never pass through here.
+// Only the logged-in portals. Public pages never pass through here.
 export const config = {
-  matcher: ['/citizen/:path*', '/staff/:path*'],
+  matcher: ['/citizen/:path*', '/ward/:path*', '/palika/:path*', '/admin/:path*'],
 };

@@ -43,7 +43,9 @@ export function Modal({ open, onClose, title, description, children, footer, clo
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!open) return;
+    // Wait until the panel is actually on the page. A modal rendered with open={true} from its very first
+    // render (e.g. `{creating && <Modal open … />}`) would otherwise run this before the portal exists.
+    if (!open || !mounted) return;
     const opener = document.activeElement as HTMLElement | null; // remember who opened us
 
     const panel = panelRef.current!;
@@ -83,7 +85,7 @@ export function Modal({ open, onClose, title, description, children, footer, clo
       document.body.style.overflow = previousOverflow;
       opener?.focus(); // give focus back to the button that opened the dialog
     };
-  }, [open]);
+  }, [open, mounted]);
 
   if (!mounted || !open) return null;
 

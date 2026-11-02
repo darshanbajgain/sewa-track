@@ -570,7 +570,7 @@ apps/web/
 │  ├─ login/page.tsx       email form + "Demo mode" panel
 │  ├─ register/page.tsx    citizen sign-up (@example.com only: never collects real emails)
 │  └─ icon.svg             our own "ST" mark
-├─ src/proxy.ts            Next 16 proxy: no session cookie on /citizen, /staff → /login
+├─ src/proxy.ts            Next 16 proxy: no session cookie on /citizen, /ward, /palika, /admin → /login
 ├─ src/components/common/  Button, ButtonLink, Card, Badge, Alert, Modal, Text/TextArea/SelectField, QueryState, Spinner
 ├─ src/components/auth/    SessionWatcher (401 → login), RequireRole (portal guard)
 ├─ src/components/         SiteChrome (banner, header, nav, footer)
@@ -582,7 +582,7 @@ apps/web/
 │  ├─ queryKeys.ts         every cache key from one factory (['requests', 'detail', id] …)
 │  └─ useAuth / useReference / useRequests / useTracking / useStats .ts
 ├─ src/lib/i18n.tsx        useI18n(): t(key), language toggle, pickName()
-└─ src/lib/routing.ts      ROLE_HOME, PORTAL_ROLES, safeNextPath() (open-redirect guard), loginUrl()
+└─ src/lib/routing.ts      ROLE_HOME (one portal per role), PORTAL_ROLES, safeNextPath() (open-redirect guard), loginUrl()
 ```
 
 **Data flow (one direction):** page → hook (`src/hooks`) → API function (`src/api/*.api.ts`) →

@@ -66,28 +66,29 @@ apps/web/
    │  │  ├─ page.tsx         my requests
    │  │  ├─ apply/page.tsx   apply (cascading dropdowns, shared Zod validation, tracking code)
    │  │  └─ requests/[id]/   detail: history, resubmit (note), cancel (confirm modal), 409 handling
-   │  └─ staff/              /staff/*   staff portal ✅ (layout = RequireRole + tabs filtered by role)
-   │     ├─ page.tsx         queue: filters + page in the URL, read with the shared Zod schema
-   │     ├─ requests/[id]/   detail: buttons from allowedTransitions, confirm modal, note/reason, fee paid, 409
-   │     └─ reports/         palika/system summary (nested RequireRole: ward officers get "no access")
+   │  ├─ ward/               /ward/*    ward officer portal ✅: queue · requests/[id] (actions)
+   │  ├─ palika/             /palika/*  palika admin portal ✅: queue · requests/[id] (read only) · reports
+   │  └─ admin/              /admin/*   system admin portal ✅: overview · users · requests · map
+   │                         (each portal page is a few lines that render a shared view from components/staff)
    ├─ api/                   HTTP ONLY (no React)
    │  ├─ client.ts           axios instance + interceptor → ApiError; 401 hook
    │  ├─ endpoints.ts        ENDPOINTS: every API path in one place
-   │  ├─ *.api.ts            auth · reference · requests · tracking · stats (one function per endpoint)
+   │  ├─ *.api.ts            auth · reference · requests · tracking · stats · admin (one function per endpoint)
    │  └─ geo.api.ts          district shapes: plain fetch of /geo/nepal-districts.geojson (static file)
    ├─ hooks/                 REACT + TANSTACK QUERY (pages use only these)
    │  ├─ queryKeys.ts        every cache key from one factory
-   │  └─ use*.ts             useAuth · useReference · useRequests · useTracking · useStats
+   │  └─ use*.ts             useAuth · useReference · useRequests · useTracking · useStats · useAdmin
    ├─ components/
    │  ├─ common/             reusable UI: Button, ButtonLink, Card, PageTitle, Badge, Alert, Modal,
    │  │                      TextField, TextAreaField, SelectField, QueryState, Spinner (+ index.ts)
-   │  ├─ auth/               SessionWatcher (401 → login), RequireRole (portal guard)
+   │  ├─ auth/               SessionWatcher (401 → login), RequireRole (role guard), PortalLayout (guard + tabs)
+   │  ├─ staff/              QueueView, RequestDetailView, ReportsView (shared by the ward/palika/admin portals)
    │  ├─ requests/           StatusBadge, RequestHistory, changeErrorText
    │  ├─ map/                DelayMap (controls, legend, side panel, table) · DistrictMap (Leaflet only, ssr: false)
    │  └─ SiteChrome.tsx      DemoBanner, SiteHeader, SiteFooter
    └─ lib/
       ├─ i18n.tsx            useI18n(): t(key), language toggle, pickName()
-      ├─ routing.ts          ROLE_HOME, PORTAL_ROLES, safeNextPath(), loginUrl()
+      ├─ routing.ts          ROLE_HOME, PORTAL_ROLES, PORTAL_NAV_KEY, safeNextPath(), loginUrl()
       └─ choropleth.ts       quantile classes + colour ramp for the map (pure functions)
 ```
 
@@ -215,20 +216,26 @@ Target: WCAG 2.1 AA basics, keyboard first.
 | Touch targets | buttons and links ≥ 44 px high |
 | Colour contrast | text tokens ≥ 4.5:1 on white; status also written in words |
 | Language | `<html lang>` follows the toggle; mixed text marked with `lang="ne"` |
-| Small screens | layouts wrap; wide tables scroll inside their own box; no page-level sideways scroll at 375 px |
+| Small screens | layouts wrap; wide tables scroll inside their own box (`relative overflow-x-auto`: `relative` keeps the `sr-only` labels inside the box, otherwise they widen the page); no page-level sideways scroll at 375 px |
 | Dialogs | §5 Modal behaviour |
 
 ---
 
 ## 7. Routing and portals
 
-One app, three portals (decided 2026-10-26):
+One app, **one portal per role** (decided 2026-11-01; ADR-003):
 
 | Portal | Routes | Who |
 |---|---|---|
-| Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login` | anyone |
+| Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login`, `/register` | anyone |
 | Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
-| Staff ✅ | `/staff` (queue), `/staff/requests/[id]`, `/staff/reports` (palika/system admin) | `WARD_OFFICER`, `PALIKA_ADMIN`, `SYSTEM_ADMIN` |
+| Ward ✅ | `/ward` (queue), `/ward/requests/[id]` (actions) | `WARD_OFFICER` |
+| Palika ✅ | `/palika` (queue), `/palika/requests/[id]` (read only), `/palika/reports` | `PALIKA_ADMIN` |
+| Admin ✅ | `/admin` (national overview), `/admin/users` (create staff, deactivate), `/admin/requests`, `/admin/map` | `SYSTEM_ADMIN` |
+
+The three staff portals share their screens (`components/staff/`): the queue, detail and report views are
+the same code; **what each role sees is decided by the API** (ward → own ward, palika → own palika,
+admin → all; only officers get action buttons).
 
 ### Three layers of protection for a portal page
 ```
@@ -241,8 +248,8 @@ Layers 1–2 are for a smooth experience; **layer 3 is the only one that protect
 a page in the browser is never security.
 
 ### After login
-`ROLE_HOME` in `lib/routing.ts` decides where each role lands: citizen → `/citizen`; all staff roles → `/staff`
-(the delay map is public at `/stats`: aggregates only, so admins use the same page).
+`ROLE_HOME` in `lib/routing.ts` decides where each role lands: citizen → `/citizen`, ward officer → `/ward`,
+palika admin → `/palika`, system admin → `/admin`. The main menu shows one link to the user's own portal.
 
 **After login we do a full page load** (`window.location.assign`), not `router.push`: while logged out, Next.js
 may have pre-fetched the target and cached proxy.ts's "redirect to login" answer, so a client-side push would
@@ -250,14 +257,21 @@ bounce back to login (found in end-to-end testing). A fresh load also resets all
 from a page, `?next=` brings them back, but only to **our own paths** (`safeNextPath`, see §8).
 
 ### Portal layout
+Every portal's `layout.tsx` is one `PortalLayout`: who may enter + which tabs.
 ```tsx
-// app/staff/layout.tsx (shortened)
-export default function StaffLayout({ children }) {
-  return <RequireRole roles={PORTAL_ROLES.staff}><StaffTabs />{children}</RequireRole>;
-}
+// app/palika/layout.tsx
+<PortalLayout title="palika.portal" roles={PORTAL_ROLES.palika} links={[
+  { href: '/palika', key: 'staff.queue', matches: (p) => p === '/palika' || under('/palika/requests')(p) },
+  { href: '/palika/reports', key: 'staff.reports', matches: under('/palika/reports') },
+]}>{children}</PortalLayout>
 ```
-Navigation per portal: citizen → My requests · Apply; staff → Queue · Reports (Reports only for
-`PORTAL_ROLES.reports` = palika and system admin, the roles allowed to call `/stats/summary`).
+A portal page is then tiny: `export default () => <QueueView detailBase="/palika/requests" />`.
+
+### Users page (`/admin/users`)
+List with role filter + search, "Add staff account" (modal: role, name, email, temporary password,
+province → district → palika → ward), deactivate/activate with a confirm modal. Validated with the shared
+`createStaffSchema` first; the API validates again. System admin rows have no deactivate button (the API
+refuses too).
 
 ### Staff pages: the rules the UI follows
 - **Which requests** the queue shows is decided by the API from the session (ward / palika / all). The page
@@ -328,8 +342,8 @@ it via `proxy.ts`); planned for the deploy phase. The API already sends a strict
 labels via `t()`, and only `components/common` building blocks. Don't link to it until it exists: Next.js
 pre-fetches links in production (see §11).
 
-**Add a portal page:** put it under `app/citizen/` or `app/staff/`; the portal layout's `RequireRole` and
-`proxy.ts` cover it automatically.
+**Add a portal page:** put it under `app/citizen/`, `app/ward/`, `app/palika/` or `app/admin/`; the portal's
+`PortalLayout` and `proxy.ts` cover it automatically.
 
 ---
 
@@ -341,7 +355,7 @@ pre-fetches links in production (see §11).
   - Modal: portal into `<body>`, `aria-modal`, focus in on open, Tab/Shift+Tab trapped, Esc closes, focus
     returns to opener, scroll lock, inside click keeps open, backdrop click closes
   - open redirect: `?next=//evil.example/steal` → lands on `/`; `?next=/services` honoured
-  - `proxy.ts`: `/citizen` and `/staff` without a session → 307 to `/login?next=…&reason=required`
+  - `proxy.ts`: `/citizen`, `/ward`, `/palika`, `/admin` without a session → 307 to `/login?next=…&reason=required`
   - security headers present on every page
 - **Lesson learned:** test the production build. Next.js pre-fetches every link in production; a link to
   a not-yet-existing page made page loads hang, which dev mode didn't show.

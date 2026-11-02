@@ -26,6 +26,10 @@ export const ENDPOINTS = {
   tracking: {
     byCode: (code: string) => `/track/${encodeURIComponent(code)}`,
   },
+  admin: {
+    users: '/admin/users', // GET = list, POST = create staff
+    user: (id: string) => `/admin/users/${id}`, // PATCH = activate / deactivate
+  },
   stats: {
     map: '/stats/map',
     summary: '/stats/summary',

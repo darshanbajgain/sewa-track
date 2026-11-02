@@ -93,6 +93,7 @@ and may be outdated.
 | Performance on 100k requests: indexes from EXPLAIN ANALYZE, measured before/after (queue 7.9 → 0.5 ms) | ✅ |
 | Web app foundation: portal layout, English/Nepali, home with live national numbers, services, public tracking, login | ✅ |
 | Accounts: citizen sign-up, email login, demo mode, system admin creates/deactivates staff accounts (deactivation is immediate) | ✅ |
+| One portal per role: `/citizen`, `/ward`, `/palika`, `/admin` (users page: add staff, deactivate) | ✅ |
 | Citizen portal: my requests, apply (cascading dropdowns, shared validation), detail with resubmit/cancel and 409 handling | ✅ |
 | Staff portal: queue (filters in the URL, paging), detail with only the allowed actions, fee paid, 409 handling, palika/national reports | ✅ |
 | National delay map: district choropleth (official 2020 boundaries), 4 measures, filters, side panel, legend, table view | ✅ |

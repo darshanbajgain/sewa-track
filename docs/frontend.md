@@ -52,7 +52,7 @@ apps/web/
 └─ src/
    ├─ proxy.ts               Next 16 "proxy" (ex-middleware): no session cookie → /login (portals only)
    ├─ app/                   ROUTES (one folder = one URL)
-   │  ├─ layout.tsx          banner → header → nav → page → footer; fonts; Providers
+   │  ├─ layout.tsx          banner → wake notice → header → nav → page → footer; fonts; Providers
    │  ├─ providers.tsx       QueryClient · LanguageProvider · SessionWatcher
    │  ├─ globals.css         design tokens (@theme), focus outline
    │  ├─ icon.svg            our own "ST" mark
@@ -378,6 +378,7 @@ pre-fetches links in production (see §11).
 | Map | plain Leaflet | react-leaflet | license; one small component is enough |
 | Route protection | proxy + RequireRole + API | client-only checks | layered; the API is the real guard |
 | Portals | one app, three areas | separate staff app | shared components, one deploy, one cookie |
+| Free host cold start | `ServerWakeNotice`: ping `/live` until it answers, show "waking up" after 3 s, then re-run failed queries | longer timeouts everywhere | one place handles it; normal requests keep their 15 s timeout. See [deployment.md §6](deployment.md#6-free-hosting-sleep-and-keep-awake) |
 
 ---
 

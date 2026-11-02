@@ -97,3 +97,29 @@ Known limit, local only: Next.js keeps an `X-Forwarded-For` that a client sent i
 With no edge proxy in front (docker compose), a client can therefore fake its IP and dodge the limits.
 On a real host the edge proxy appends the true IP last, and that last entry is the one the API reads.
 This is checked after deploy (P8 smoke test).
+
+## 6. Free hosting: sleep and keep-awake
+
+A free API host (e.g. Render's free plan) stops the API after **15 minutes without requests**, and the next
+request waits about **a minute** while it starts again. Two parts handle this:
+
+**1. Keep it awake: an outside pinger.** A free scheduled pinger (cron-job.org or UptimeRobot) calls
+`GET /api/v1/live` every 10 minutes. Any request resets the 15-minute timer.
+- `/live` **never touches the database** (a test checks this). If the pinger called `/health`, the
+  database would be woken every 10 minutes too, and could never sleep and save its free compute hours.
+  **Liveness** (`/live`: is the process running?) vs **readiness** (`/health`: can it serve real requests?).
+- One service awake all month ≈ 744 hours, inside Render's 750 free hours. Only the API is kept awake.
+- Not GitHub Actions `schedule`: its runs are often late and stop after 60 days without commits.
+
+**2. If it sleeps anyway: the web app explains and recovers** ([ServerWakeNotice.tsx](../apps/web/src/components/ServerWakeNotice.tsx)).
+On each full page load it pings `/live`:
+- answer within 3 s → nothing is shown (the normal case)
+- slower → "Waking up the demo server…" (English + Nepali) under the demo banner
+- it pings again every 2 s until the API answers (a proxy in between can cut a long request; our own
+  Next.js rewrite does at 30 s), and gives up after 2 minutes (= a real outage; pages show their own errors)
+- once the API answers after a slow start, queries that failed while it slept are fetched again, so the
+  page fills in by itself
+
+Tested with a fake sleeping API (a proxy that held every request for 40 s): the notice showed at 4 s;
+the page's own requests timed out at 32 s while the notice stayed; at 40 s the notice went away and the map
+loaded without a reload. With an awake API the notice never appeared.

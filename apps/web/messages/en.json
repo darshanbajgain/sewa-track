@@ -298,5 +298,7 @@
   "role.CITIZEN": "Citizen",
   "role.WARD_OFFICER": "Ward officer",
   "role.PALIKA_ADMIN": "Palika admin",
-  "role.SYSTEM_ADMIN": "System admin"
+  "role.SYSTEM_ADMIN": "System admin",
+  "wake.title": "Waking up the demo server…",
+  "wake.body": "The free hosting sleeps when nobody is using it. The first load can take up to a minute; this page will update by itself."
 }

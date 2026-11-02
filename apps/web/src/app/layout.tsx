@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Noto_Sans, Noto_Sans_Devanagari } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { ServerWakeNotice } from '@/components/ServerWakeNotice';
 import { DemoBanner, SiteFooter, SiteHeader } from '@/components/SiteChrome';
 import { Providers } from './providers';
 import './globals.css';
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             Skip to content
           </a>
           <DemoBanner />
+          <ServerWakeNotice />
           <SiteHeader />
           <main id="main" className="flex-1">
             {children}

@@ -28,7 +28,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <DemoNotice />
           <ServerWakeNotice />
           <SiteHeader />
-          <main id="main" className="flex-1">
+          {/* At least a screen tall: the footer starts below the fold, so it doesn't visibly jump down
+              while a page's content loads in (a "layout shift"). */}
+          <main id="main" className="min-h-screen flex-1">
             {children}
           </main>
           <SiteFooter />

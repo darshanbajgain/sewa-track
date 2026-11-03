@@ -4,7 +4,7 @@ import { ROLES, createStaffSchema, type AdminUserDto, type Role } from '@sewa/sh
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/client';
 import type { UserListParams } from '@/api/admin.api';
-import { Alert, Badge, Button, Modal, PageTitle, QueryState, SelectField, TextField } from '@/components/common';
+import { Alert, Badge, Button, Modal, PageTitle, QueryState, SelectField, SkeletonTable, STICKY_HEAD, TableCard, TextField } from '@/components/common';
 import { useCreateStaff, useSetUserActive, useUsers } from '@/hooks/useAdmin';
 import { useDistricts, useLocalLevels, useProvinces, useWards } from '@/hooks/useReference';
 import { formatDate, formatNumber } from '@/lib/format';
@@ -71,17 +71,34 @@ export default function AdminUsersPage() {
         </Button>
       </form>
 
-      <QueryState isLoading={users.isLoading} error={users.error} onRetry={() => users.refetch()} />
+      <QueryState isLoading={users.isLoading} error={users.error} onRetry={() => users.refetch()} skeleton={<SkeletonTable rows={8} cols={7} />} />
 
       {users.data && (
         <>
           <p aria-live="polite" className="text-sm text-muted">
             {formatNumber(users.data.total, lang)} {t('admin.accounts')}
           </p>
-          <div className={`relative overflow-x-auto rounded-xl border border-line ${users.isPlaceholderData ? 'opacity-60' : ''}`}>
+          <TableCard
+            label={t('admin.usersTitle')}
+            maxHeight="max-h-[36rem]"
+            dimmed={users.isPlaceholderData}
+            footer={
+              <nav aria-label={t('staff.pagination')} className="flex flex-wrap items-center justify-between gap-3">
+                <Button variant="secondary" disabled={page <= 1} onClick={() => setFilters((f) => ({ ...f, page: page - 1 }))}>
+                  ← {t('staff.prev')}
+                </Button>
+                <span className="text-sm">
+                  {t('staff.page')} {formatNumber(page, lang)} / {formatNumber(totalPages, lang)}
+                </span>
+                <Button variant="secondary" disabled={page >= totalPages} onClick={() => setFilters((f) => ({ ...f, page: page + 1 }))}>
+                  {t('staff.next')} →
+                </Button>
+              </nav>
+            }
+          >
             <table className="w-full min-w-[860px] text-left text-sm">
               <caption className="sr-only">{t('admin.usersTitle')}</caption>
-              <thead className="bg-surface">
+              <thead className={STICKY_HEAD}>
                 <tr>
                   <th scope="col" className="p-3">{t('register.name')}</th>
                   <th scope="col" className="p-3">{t('login.email')}</th>
@@ -121,18 +138,7 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-          <nav aria-label={t('staff.pagination')} className="flex flex-wrap items-center justify-between gap-3">
-            <Button variant="secondary" disabled={page <= 1} onClick={() => setFilters((f) => ({ ...f, page: page - 1 }))}>
-              ← {t('staff.prev')}
-            </Button>
-            <span className="text-sm">
-              {t('staff.page')} {formatNumber(page, lang)} / {formatNumber(totalPages, lang)}
-            </span>
-            <Button variant="secondary" disabled={page >= totalPages} onClick={() => setFilters((f) => ({ ...f, page: page + 1 }))}>
-              {t('staff.next')} →
-            </Button>
-          </nav>
+          </TableCard>
         </>
       )}
 

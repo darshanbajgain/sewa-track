@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { DocumentsCard } from '@/components/documents/DocumentsCard';
 import { changeErrorText } from '@/components/requests/changeError';
 import { Alert, Button, Card, Modal, QueryState, TextAreaField } from '@/components/common';
+import { RequestDetailSkeleton } from '@/components/requests/RequestDetailSkeleton';
 import { RequestHistory } from '@/components/requests/RequestHistory';
 import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
 import { useChangeStatus, useRequestDetail } from '@/hooks/useRequests';
@@ -34,7 +35,7 @@ export default function CitizenRequestPage() {
       <Link href="/citizen" className="self-start font-semibold text-primary">
         ← {t('detail.back')}
       </Link>
-      <QueryState isLoading={detail.isLoading} error={detail.error} onRetry={() => detail.refetch()} />
+      <QueryState isLoading={detail.isLoading} error={detail.error} onRetry={() => detail.refetch()} skeleton={<RequestDetailSkeleton />} />
       {detail.data && <RequestView request={detail.data} />}
     </div>
   );

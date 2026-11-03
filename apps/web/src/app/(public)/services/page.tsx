@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge, ButtonLink, Card, PageTitle, QueryState } from '@/components/common';
+import { Badge, ButtonLink, Card, PageTitle, QueryState, SkeletonCards } from '@/components/common';
 import { pickName, useI18n } from '@/lib/i18n';
 import { useServiceTypes } from '@/hooks/useReference';
 
@@ -17,7 +17,12 @@ export default function ServicesPage() {
       <PageTitle title={t('services.title')} intro={t('services.intro')} />
       <p className="self-start rounded-md bg-warn-soft px-3 py-2 text-sm font-medium text-warn">{t('services.demoValues')}</p>
 
-      <QueryState isLoading={services.isLoading} error={services.error} onRetry={() => services.refetch()} />
+      <QueryState
+        isLoading={services.isLoading}
+        error={services.error}
+        onRetry={() => services.refetch()}
+        skeleton={<SkeletonCards count={4} className="grid gap-4 md:grid-cols-2" cardClassName="h-72" />}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         {(services.data ?? []).map((s) => (

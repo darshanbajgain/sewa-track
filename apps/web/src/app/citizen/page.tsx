@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ButtonLink, Card, PageTitle, QueryState } from '@/components/common';
+import { ButtonLink, Card, PageTitle, QueryState, SkeletonTable, STICKY_HEAD, TableCard } from '@/components/common';
 import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
 import { useMyRequests } from '@/hooks/useRequests';
 import { useServiceTypes } from '@/hooks/useReference';
@@ -24,7 +24,7 @@ export default function MyRequestsPage() {
         </ButtonLink>
       </div>
 
-      <QueryState isLoading={requests.isLoading} error={requests.error} onRetry={() => requests.refetch()} />
+      <QueryState isLoading={requests.isLoading} error={requests.error} onRetry={() => requests.refetch()} skeleton={<SkeletonTable rows={4} cols={5} />} />
 
       {requests.data && requests.data.length === 0 && (
         <Card className="flex flex-col items-start gap-4">
@@ -34,10 +34,10 @@ export default function MyRequestsPage() {
       )}
 
       {requests.data && requests.data.length > 0 && (
-        <div className="relative overflow-x-auto rounded-xl border border-line">
+        <TableCard label={t('citizen.myTitle')}>
           <table className="w-full min-w-[720px] text-left text-sm">
             <caption className="sr-only">{t('citizen.myTitle')}</caption>
-            <thead className="bg-surface">
+            <thead className={STICKY_HEAD}>
               <tr>
                 <th scope="col" className="p-3">{t('citizen.code')}</th>
                 <th scope="col" className="p-3">{t('citizen.service')}</th>
@@ -70,7 +70,7 @@ export default function MyRequestsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableCard>
       )}
     </div>
   );

@@ -55,27 +55,28 @@ function Queue({ detailBase }: { detailBase: string }) {
       <PageTitle title={t('staff.queueTitle')} intro={t(role === 'WARD_OFFICER' ? 'staff.queueIntroWard' : role === 'PALIKA_ADMIN' ? 'staff.queueIntroPalika' : 'staff.queueIntroNational')} />
 
       <form role="search" aria-label={t('staff.filters')} className="grid gap-4 sm:grid-cols-3" onSubmit={(e) => e.preventDefault()}>
-        <SelectField label={t('citizen.status')} value={filters.status ?? ''} onChange={(e) => setParam('status', e.target.value)}>
-          <option value="">{t('staff.all')}</option>
-          {REQUEST_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {t(`status.${s}`)}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField label={t('citizen.service')} value={filters.serviceType ?? ''} onChange={(e) => setParam('serviceType', e.target.value)}>
-          <option value="">{t('staff.all')}</option>
-          {SERVICE_TYPE_CODES.map((code) => (
-            <option key={code} value={code}>
-              {serviceName.get(code) ?? code}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField label={t('staff.timing')} value={filters.overdue === undefined ? '' : String(filters.overdue)} onChange={(e) => setParam('overdue', e.target.value)}>
-          <option value="">{t('staff.all')}</option>
-          <option value="true">{t('track.overdue')}</option>
-          <option value="false">{t('track.onTime')}</option>
-        </SelectField>
+        <SelectField
+          label={t('citizen.status')}
+          value={filters.status ?? ''}
+          onChange={(v) => setParam('status', v)}
+          options={[{ value: '', label: t('staff.all') }, ...REQUEST_STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) }))]}
+        />
+        <SelectField
+          label={t('citizen.service')}
+          value={filters.serviceType ?? ''}
+          onChange={(v) => setParam('serviceType', v)}
+          options={[{ value: '', label: t('staff.all') }, ...SERVICE_TYPE_CODES.map((code) => ({ value: code, label: serviceName.get(code) ?? code }))]}
+        />
+        <SelectField
+          label={t('staff.timing')}
+          value={filters.overdue === undefined ? '' : String(filters.overdue)}
+          onChange={(v) => setParam('overdue', v)}
+          options={[
+            { value: '', label: t('staff.all') },
+            { value: 'true', label: t('track.overdue') },
+            { value: 'false', label: t('track.onTime') },
+          ]}
+        />
       </form>
 
       <QueryState isLoading={queue.isLoading} error={queue.error} onRetry={() => queue.refetch()} />

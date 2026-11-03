@@ -24,7 +24,7 @@ const VARIANT: Record<ButtonVariant, string> = {
 const SIZE: Record<ButtonSize, string> = { md: 'min-h-11 px-4 text-sm', lg: 'min-h-12 px-6 text-base' };
 
 export function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md', extra = ''): string {
-  return `inline-flex items-center justify-center gap-2 rounded-md font-semibold no-underline transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${VARIANT[variant]} ${SIZE[size]} ${extra}`;
+  return `inline-flex items-center justify-center gap-2 rounded-md font-semibold no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60 ${VARIANT[variant]} ${SIZE[size]} ${extra}`;
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

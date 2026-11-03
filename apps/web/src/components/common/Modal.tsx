@@ -57,6 +57,9 @@ export function Modal({ open, onClose, title, description, children, footer, clo
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        // Already handled: an open dropdown or date picker inside the dialog closed itself (Radix marks the
+        // event), so this Esc must not close the whole dialog too.
+        if (event.defaultPrevented) return;
         event.stopPropagation();
         close();
         return;

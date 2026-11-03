@@ -59,14 +59,12 @@ export default function AdminUsersPage() {
       {setActive.error && <Alert tone="error">{setActive.error instanceof ApiError ? setActive.error.message : t('common.error')}</Alert>}
 
       <form role="search" aria-label={t('admin.filters')} className="grid items-end gap-4 sm:grid-cols-[1fr_2fr_auto]" onSubmit={onSearch}>
-        <SelectField label={t('admin.role')} value={filters.role ?? ''} onChange={(e) => setFilters((f) => ({ ...f, role: (e.target.value || undefined) as Role | undefined, page: 1 }))}>
-          <option value="">{t('staff.all')}</option>
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {t(`role.${r}`)}
-            </option>
-          ))}
-        </SelectField>
+        <SelectField
+          label={t('admin.role')}
+          value={filters.role ?? ''}
+          onChange={(v) => setFilters((f) => ({ ...f, role: (v || undefined) as Role | undefined, page: 1 }))}
+          options={[{ value: '', label: t('staff.all') }, ...ROLES.map((r) => ({ value: r, label: t(`role.${r}`) }))]}
+        />
         <TextField label={t('admin.search')} type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('admin.searchPlaceholder')} />
         <Button type="submit" variant="secondary">
           {t('admin.searchButton')}
@@ -283,45 +281,40 @@ function CreateStaffModal({ onClose, onCreated }: { onClose: () => void; onCreat
           required
         />
         <div className="grid gap-3 sm:grid-cols-2">
-          <SelectField label={t('apply.province')} value={provinceId ?? ''} onChange={(e) => chooseProvince(e.target.value)}>
-            <option value="">{t('apply.choose')}</option>
-            {(provinces.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {pickName(p, lang)}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField label={t('apply.district')} value={districtId ?? ''} disabled={provinceId === undefined} onChange={(e) => chooseDistrict(e.target.value)}>
-            <option value="">{t('apply.choose')}</option>
-            {(districts.data ?? []).map((d) => (
-              <option key={d.id} value={d.id}>
-                {pickName(d, lang)}
-              </option>
-            ))}
-          </SelectField>
+          <SelectField
+            label={t('apply.province')}
+            value={String(provinceId ?? '')}
+            onChange={chooseProvince}
+            placeholder={t('apply.choose')}
+            options={(provinces.data ?? []).map((p) => ({ value: String(p.id), label: pickName(p, lang) }))}
+          />
+          <SelectField
+            label={t('apply.district')}
+            value={String(districtId ?? '')}
+            disabled={provinceId === undefined}
+            onChange={chooseDistrict}
+            placeholder={t('apply.choose')}
+            options={(districts.data ?? []).map((d) => ({ value: String(d.id), label: pickName(d, lang) }))}
+          />
           <SelectField
             label={t('apply.palika')}
-            value={localLevelId ?? ''}
+            value={String(localLevelId ?? '')}
             disabled={districtId === undefined}
             error={role === 'PALIKA_ADMIN' ? errors.place : undefined}
-            onChange={(e) => choosePalika(e.target.value)}
-          >
-            <option value="">{t('apply.choose')}</option>
-            {(localLevels.data ?? []).map((l) => (
-              <option key={l.id} value={l.id}>
-                {pickName(l, lang)}
-              </option>
-            ))}
-          </SelectField>
+            onChange={choosePalika}
+            placeholder={t('apply.choose')}
+            options={(localLevels.data ?? []).map((l) => ({ value: String(l.id), label: pickName(l, lang) }))}
+          />
           {role === 'WARD_OFFICER' && (
-            <SelectField label={t('apply.ward')} value={wardId ?? ''} disabled={localLevelId === undefined} error={errors.place} onChange={(e) => setWardId(toNumber(e.target.value))}>
-              <option value="">{t('apply.choose')}</option>
-              {(wards.data ?? []).map((w) => (
-                <option key={w.id} value={w.id}>
-                  {t('apply.wardN')} {formatNumber(w.number, lang)}
-                </option>
-              ))}
-            </SelectField>
+            <SelectField
+              label={t('apply.ward')}
+              value={String(wardId ?? '')}
+              disabled={localLevelId === undefined}
+              error={errors.place}
+              onChange={(v) => setWardId(toNumber(v))}
+              placeholder={t('apply.choose')}
+              options={(wards.data ?? []).map((w) => ({ value: String(w.id), label: `${t('apply.wardN')} ${formatNumber(w.number, lang)}` }))}
+            />
           )}
         </div>
       </form>

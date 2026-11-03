@@ -1,4 +1,7 @@
+'use client';
+
 import type { HTMLAttributes, ReactNode } from 'react';
+import { usePageTitle } from '@/lib/usePageTitle';
 
 /** White bordered box. `as` lets a card be an <article>, <section> or <aside> when that's the right meaning. */
 interface CardProps extends HTMLAttributes<HTMLElement> {
@@ -14,7 +17,9 @@ export function Card({ as: Tag = 'div', className = '', children, ...rest }: Car
   );
 }
 
+/** The page's <h1>; also sets the browser tab title to the same text. */
 export function PageTitle({ title, intro }: { title: string; intro?: string }) {
+  usePageTitle(title);
   return (
     <div className="flex flex-col gap-2">
       <h1 className="text-3xl font-bold text-primary">{title}</h1>

@@ -4,7 +4,7 @@ import { MAP_METRICS, REQUEST_STATUSES, SERVICE_TYPE_CODES, type MapMetric } fro
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import type { MapStatsParams } from '@/api/stats.api';
-import { Button, Card, QueryState, SelectField, Spinner, TextField } from '@/components/common';
+import { Button, Card, DateField, QueryState, SelectField, Spinner } from '@/components/common';
 import { useDistricts, useServiceTypes } from '@/hooks/useReference';
 import { useDistrictShapes, useMapStats } from '@/hooks/useStats';
 import { NO_DATA, colorFor, colorForClass, higherIsBetter, quantileBreaks } from '@/lib/choropleth';
@@ -85,24 +85,26 @@ export function DelayMap({ variant = 'full' }: { variant?: 'full' | 'compact' })
 
       {full && (
         <form aria-label={t('map.filters')} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(e) => e.preventDefault()}>
-          <SelectField label={t('citizen.service')} value={filters.serviceType ?? ''} onChange={(e) => setFilter('serviceType', e.target.value)}>
-            <option value="">{t('staff.all')}</option>
-            {SERVICE_TYPE_CODES.map((code) => (
-              <option key={code} value={code}>
-                {pickName(services.data?.find((s) => s.code === code) ?? { nameEn: code, nameNe: code }, lang)}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField label={t('citizen.status')} value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value)}>
-            <option value="">{t('staff.all')}</option>
-            {REQUEST_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`status.${s}`)}
-              </option>
-            ))}
-          </SelectField>
-          <TextField type="date" label={t('map.from')} value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value)} />
-          <TextField type="date" label={t('map.to')} value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value)} />
+          <SelectField
+            label={t('citizen.service')}
+            value={filters.serviceType ?? ''}
+            onChange={(v) => setFilter('serviceType', v)}
+            options={[
+              { value: '', label: t('staff.all') },
+              ...SERVICE_TYPE_CODES.map((code) => ({
+                value: code,
+                label: pickName(services.data?.find((s) => s.code === code) ?? { nameEn: code, nameNe: code }, lang),
+              })),
+            ]}
+          />
+          <SelectField
+            label={t('citizen.status')}
+            value={filters.status ?? ''}
+            onChange={(v) => setFilter('status', v)}
+            options={[{ value: '', label: t('staff.all') }, ...REQUEST_STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) }))]}
+          />
+          <DateField label={t('map.from')} value={filters.from ?? ''} max={filters.to} onChange={(v) => setFilter('from', v)} />
+          <DateField label={t('map.to')} value={filters.to ?? ''} min={filters.from} onChange={(v) => setFilter('to', v)} />
         </form>
       )}
 

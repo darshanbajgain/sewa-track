@@ -54,7 +54,7 @@ apps/web/
    ├─ app/                   ROUTES (one folder = one URL)
    │  ├─ layout.tsx          banner → wake notice → header → nav → page → footer; fonts; Providers
    │  ├─ providers.tsx       QueryClient · LanguageProvider · SessionWatcher
-   │  ├─ globals.css         design tokens (@theme), focus outline
+   │  ├─ globals.css         design tokens (@theme), focus ring, calendar colours
    │  ├─ icon.svg            our own "ST" mark
    │  ├─ page.tsx            /          home ✅
    │  ├─ services/           /services  catalog ✅
@@ -81,7 +81,7 @@ apps/web/
    │  └─ use*.ts             useAuth · useReference · useRequests · useTracking · useStats · useAdmin
    ├─ components/
    │  ├─ common/             reusable UI: Button, ButtonLink, Card, PageTitle, Badge, Alert, Modal,
-   │  │                      TextField, TextAreaField, SelectField, QueryState, Spinner (+ index.ts)
+   │  │                      TextField, TextAreaField, SelectField (Radix), DateField (calendar), QueryState, Spinner (+ index.ts)
    │  ├─ auth/               SessionWatcher (401 → login), RequireRole (role guard), PortalLayout (guard + tabs)
    │  ├─ staff/              QueueView, RequestDetailView, ReportsView (shared by the ward/palika/admin portals)
    │  ├─ requests/           StatusBadge, RequestHistory, changeErrorText
@@ -155,7 +155,7 @@ name → blue navigation → hero → cards → dark footer.
 |---|---|---|
 | `primary` | `#003893` Nepal blue | nav bar, primary buttons, headings, links |
 | `primary-dark` / `primary-soft` | `#002766` / `#e8eef9` | hover, footer / light backgrounds |
-| `accent` | `#dc143c` crimson | **sparingly**: top line, active-nav underline, Log in, overdue, focus outline |
+| `accent` | `#dc143c` crimson | **sparingly**: top line, active-nav underline, Log in, overdue |
 | `ink` / `muted` | `#1b1f24` / `#4b5563` | body / secondary text (both ≥ 4.5:1 on white) |
 | `line` / `surface` | `#d8dee8` / `#f4f6fa` | borders / section backgrounds |
 | `ok`, `warn` (+ `-soft`) | green / amber | on time, demo values |
@@ -177,10 +177,12 @@ class wins). Add a variant instead (that's how `accent` was added to Button).
 | `Button` | `variant`: primary · accent · secondary · danger · ghost · `size`: md (44 px) · lg (48 px) · `loading` | `type="button"` by default (never submits a form by accident); `loading` → disabled + spinner + `aria-busy` |
 | `ButtonLink` | same look | a real `<a>` (Next `Link`): announced as a link, works with middle-click |
 | `Card` | `as`: div · article · section | |
-| `PageTitle` | `title`, `intro` | the page's single `<h1>` |
+| `PageTitle` | `title`, `intro` | the page's single `<h1>`; also sets the browser tab title (`usePageTitle`: "<title> · Sewa Track (demo)") |
 | `Badge` | `tone`: info · success · warning · danger · neutral | text always states the meaning (not colour alone) |
 | `Alert` | `tone`: error · success · info · warning · `action` | error → `role="alert"`, others → `role="status"` |
-| `TextField`, `TextAreaField`, `SelectField` | `label`, `hint`, `error` + native props | visible label; `aria-describedby` (hint, error); `aria-invalid`; ids from `useId()` |
+| `TextField`, `TextAreaField` | `label`, `hint`, `error` + native props | visible label; `aria-describedby` (hint, error); `aria-invalid`; ids from `useId()` |
+| `SelectField` | `label`, `value`, `onChange(value)`, `options`, `placeholder`, `hint`, `error` | Radix Select: menu in a portal, sized to the button, flips above when there's no room (`avoidCollisions`), `z-[1100]` (above Leaflet and the Modal); keyboard + listbox roles built in. `''` = placeholder or the "All" option |
+| `DateField` | `label`, `value` (`YYYY-MM-DD`), `onChange`, `min`, `max` | Radix Popover + react-day-picker calendar, Clear / Today; replaces `<input type="date">` (looks different in every browser) |
 | `Modal` | `open`, `onClose`, `title`, `description`, `footer`, `closeLabel` | see below |
 | `QueryState` | `isLoading`, `error`, `onRetry` | spinner / retry / 403 message |
 | `Spinner` | `className` | decorative (`aria-hidden`) |
@@ -209,7 +211,7 @@ Target: WCAG 2.1 AA basics, keyboard first.
 | Rule | How |
 |---|---|
 | Everything works with the keyboard | real `<button>` / `<a>` / form controls only; no clickable `<div>` |
-| Focus is always visible | global `:focus-visible` crimson 3 px outline |
+| Focus is always visible | form controls: blue border + 4 px soft blue ring (`fieldClasses`); everything else: 2 px blue `:focus-visible` outline (in `@layer base`, so component utilities win). One look, no double line |
 | Skip the menu | "Skip to content" link → `<main id="main">` |
 | Inputs have labels | `TextField`/`SelectField` render a `<label for>`; hints and errors via `aria-describedby` |
 | Errors are announced | `Alert tone="error"` → `role="alert"`; loading → `role="status"` |

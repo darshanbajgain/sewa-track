@@ -136,90 +136,64 @@ export default function ApplyPage() {
             <SelectField
               label={t('apply.service')}
               value={service}
-              onChange={(e) => setService(e.target.value as ServiceTypeCode | '')}
+              onChange={(v) => setService(v as ServiceTypeCode | '')}
+              placeholder={t('apply.choose')}
+              options={(services.data ?? []).map((s) => ({ value: s.code, label: pickName(s, lang) }))}
               error={errors.serviceTypeCode}
               required
-            >
-              <option value="">{t('apply.choose')}</option>
-              {(services.data ?? []).map((s) => (
-                <option key={s.code} value={s.code}>
-                  {pickName(s, lang)}
-                </option>
-              ))}
-            </SelectField>
+            />
           </fieldset>
 
           <fieldset className="grid gap-3 rounded-xl border border-line p-5 sm:grid-cols-2">
             <legend className="px-1 font-bold">{t('apply.step2')}</legend>
             <SelectField
               label={t('apply.province')}
-              value={provinceId ?? ''}
-              onChange={(e) => {
-                setProvinceId(toNumber(e.target.value));
+              value={String(provinceId ?? '')}
+              onChange={(v) => {
+                setProvinceId(toNumber(v));
                 setDistrictId(undefined);
                 setLocalLevelId(undefined);
                 setWardId(undefined);
               }}
+              placeholder={t('apply.choose')}
+              options={(provinces.data ?? []).map((p) => ({ value: String(p.id), label: pickName(p, lang) }))}
               required
-            >
-              <option value="">{t('apply.choose')}</option>
-              {(provinces.data ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {pickName(p, lang)}
-                </option>
-              ))}
-            </SelectField>
+            />
             <SelectField
               label={t('apply.district')}
-              value={districtId ?? ''}
+              value={String(districtId ?? '')}
               disabled={provinceId === undefined}
-              onChange={(e) => {
-                setDistrictId(toNumber(e.target.value));
+              onChange={(v) => {
+                setDistrictId(toNumber(v));
                 setLocalLevelId(undefined);
                 setWardId(undefined);
               }}
+              placeholder={t('apply.choose')}
+              options={provinceId === undefined ? [] : (districts.data ?? []).map((d) => ({ value: String(d.id), label: pickName(d, lang) }))}
               required
-            >
-              <option value="">{t('apply.choose')}</option>
-              {provinceId !== undefined &&
-                (districts.data ?? []).map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {pickName(d, lang)}
-                  </option>
-                ))}
-            </SelectField>
+            />
             <SelectField
               label={t('apply.palika')}
-              value={localLevelId ?? ''}
+              value={String(localLevelId ?? '')}
               disabled={districtId === undefined}
-              onChange={(e) => {
-                setLocalLevelId(toNumber(e.target.value));
+              onChange={(v) => {
+                setLocalLevelId(toNumber(v));
                 setWardId(undefined);
               }}
+              placeholder={t('apply.choose')}
+              options={(localLevels.data ?? []).map((l) => ({ value: String(l.id), label: pickName(l, lang) }))}
               required
-            >
-              <option value="">{t('apply.choose')}</option>
-              {(localLevels.data ?? []).map((l) => (
-                <option key={l.id} value={l.id}>
-                  {pickName(l, lang)}
-                </option>
-              ))}
-            </SelectField>
+            />
             <SelectField
               label={t('apply.ward')}
-              value={wardId ?? ''}
+              value={String(wardId ?? '')}
               disabled={localLevelId === undefined}
-              onChange={(e) => setWardId(toNumber(e.target.value))}
+              onChange={(v) => setWardId(toNumber(v))}
+              placeholder={t('apply.choose')}
+              options={(wards.data ?? []).map((w) => ({ value: String(w.id), label: `${t('apply.wardN')} ${w.number}` }))}
               error={errors.wardId}
               required
-            >
-              <option value="">{t('apply.choose')}</option>
-              {(wards.data ?? []).map((w) => (
-                <option key={w.id} value={w.id}>
-                  {t('apply.wardN')} {w.number}
-                </option>
-              ))}
-            </SelectField>
+            />
           </fieldset>
 
           <fieldset className="flex flex-col gap-4 rounded-xl border border-line p-5">

@@ -83,13 +83,15 @@ apps/web/
    │  ├─ common/             reusable UI: Button, ButtonLink, Card, PageTitle, Badge, Alert, Modal,
    │  │                      TextField, TextAreaField, SelectField (Radix), DateField (calendar), QueryState, Spinner (+ index.ts)
    │  ├─ auth/               SessionWatcher (401 → login), RequireRole (role guard), PortalLayout (role guard)
-   │  ├─ staff/              QueueView, RequestDetailView, ReportsView (shared by the ward/palika/admin portals)
+   │  ├─ staff/              QueueView, RequestDetailView (+ RequestProgress, RequestChecklist), ReportsView
+   │  │                      (shared by the ward/palika/admin portals)
    │  ├─ requests/           StatusBadge, RequestHistory, changeErrorText
    │  ├─ map/                DelayMap (controls, legend, side panel, table) · DistrictMap (Leaflet only, ssr: false)
    │  └─ SiteChrome.tsx      DemoBanner, SiteHeader, SiteFooter
    └─ lib/
       ├─ i18n.tsx            useI18n(): t(key), language toggle, pickName()
-      ├─ routing.ts          ROLE_HOME, PORTAL_ROLES, PORTAL_NAV_KEY, safeNextPath(), loginUrl()
+      ├─ routing.ts          ROLE_HOME, PORTAL_ROLES, PORTAL_TABS, safeNextPath(), loginUrl()
+      ├─ requestFlow.ts      staff screen: progress steps, the "next step" button, queue "next step" text (pure)
       └─ choropleth.ts       quantile classes + colour ramp for the map (pure functions)
 ```
 
@@ -285,6 +287,18 @@ refuses too).
   sends only filters. Filters and page number live **in the URL**, so back, refresh and shared links keep them.
 - **Which buttons** a request shows come only from `allowedTransitions` and `canMarkFeePaid` (computed by
   `domain/transitions.ts` on the server). Palika and system admins get none → "Read only".
+- **One obvious next step** (`lib/requestFlow.ts`, added 2026-11-03 after the owner found the old row of
+  buttons confusing). The detail page shows, top to bottom:
+  1. **Progress bar**: Submitted → Under review → (Field verification, only if the service needs it) →
+     Approved → Issued. "Needs documents" shows as a pause on the review step; a rejected or cancelled
+     request shows ✕ on the step where it stopped (read from the history).
+  2. **Next step card**: one sentence saying what to do, ONE primary button, the other allowed moves
+     below it, and Reject set apart at the bottom. Under review the suggested order is fee → field visit →
+     approve; while the fee or the field visit is missing, Approve is shown **disabled with the reason**.
+     Read-only roles see who acts next instead of buttons.
+  3. **Checklist**: ID check, fee, field visit, service time (icon + words, never colour alone).
+  This file only *arranges* the moves the server allowed; it never decides what is allowed.
+- **Queue** has a "Next step" column (by status: Start review, Review and approve, Waiting for citizen, …).
 - **Every action opens a confirm modal.** Asking for documents and finishing a field visit need a note,
   rejecting needs a reason (same as the domain's NOTE/REASON conditions; the API re-checks → 400).
 - **409**: a second tab or officer that saved first → "someone else saved first", and the detail refetches.

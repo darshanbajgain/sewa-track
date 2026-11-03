@@ -12,6 +12,7 @@ import { useQueue } from '@/hooks/useRequests';
 import { useServiceTypes } from '@/hooks/useReference';
 import { formatDate, formatNumber } from '@/lib/format';
 import { pickName, useI18n } from '@/lib/i18n';
+import { queueNextKey } from '@/lib/requestFlow';
 
 /**
  * Request queue (PRD F6), used by the ward, palika and admin portals.
@@ -92,7 +93,7 @@ function Queue({ detailBase }: { detailBase: string }) {
             <p className="rounded-xl border border-line p-6">{t('staff.empty')}</p>
           ) : (
             <div className={`relative overflow-x-auto rounded-xl border border-line ${queue.isPlaceholderData ? 'opacity-60' : ''}`}>
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="w-full min-w-[980px] text-left text-sm">
                 <caption className="sr-only">{t('staff.queueTitle')}</caption>
                 <thead className="bg-surface">
                   <tr>
@@ -100,6 +101,7 @@ function Queue({ detailBase }: { detailBase: string }) {
                     <th scope="col" className="p-3">{t('citizen.service')}</th>
                     <th scope="col" className="p-3">{t('detail.ward')}</th>
                     <th scope="col" className="p-3">{t('citizen.status')}</th>
+                    <th scope="col" className="p-3">{t('staff.nextStep')}</th>
                     <th scope="col" className="p-3">{t('citizen.submitted')}</th>
                     <th scope="col" className="p-3">{t('staff.officer')}</th>
                     <th scope="col" className="p-3">
@@ -119,6 +121,7 @@ function Queue({ detailBase }: { detailBase: string }) {
                           <OverdueBadge overdue={r.overdue} />
                         </div>
                       </td>
+                      <td className="p-3">{t(queueNextKey(r.status))}</td>
                       <td className="p-3">{formatDate(r.submittedAt, lang)}</td>
                       <td className="p-3">{r.assignedOfficerName ?? <span className="text-muted">{t('staff.unassigned')}</span>}</td>
                       <td className="p-3">

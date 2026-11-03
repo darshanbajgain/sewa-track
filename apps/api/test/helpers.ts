@@ -14,7 +14,8 @@ export const DEMO = {
 
 /** Logs in through the real endpoint and returns the "sewa_session=..." cookie for later requests. */
 export async function loginAs(app: Express, email: string): Promise<string> {
-  const res = await request(app).post('/api/v1/auth/login').send({ email, password: 'demo1234' });
+  const portal = email === DEMO.citizen ? 'CITIZEN' : 'STAFF';
+  const res = await request(app).post('/api/v1/auth/login').send({ email, password: 'demo1234', portal });
   if (res.status !== 200) throw new Error(`login failed for ${email}: ${res.status}`);
   const cookie = ([] as string[]).concat(res.headers['set-cookie'] ?? []).find((c) => c.startsWith('sewa_session='));
   return cookie!.split(';')[0]!;

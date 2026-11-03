@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { roleSchema } from './enums.js';
+import { roleSchema, type Role } from './enums.js';
 
 /**
  * Accounts (PRD F3, F14). Login id = email, stored lowercase (the DB checks it).
@@ -21,10 +21,21 @@ const demoEmail = email.refine((e) => e.endsWith(`@${DEMO_EMAIL_DOMAIN}`), {
 const newPassword = z.string().min(8, 'Use at least 8 characters').max(200);
 const name = z.string().trim().min(2, 'Enter a name (2 to 100 characters)').max(100);
 
+/**
+ * Citizens and staff log in on separate pages (PRD F3): /login and /staff/login. The page says which
+ * one it is, and the API refuses an account on the wrong one, so the split isn't just visual.
+ */
+export const loginPortalSchema = z.enum(['CITIZEN', 'STAFF']);
+export type LoginPortal = z.infer<typeof loginPortalSchema>;
+
+/** The login page an account belongs to: citizens on the citizen page, every other role on the staff page. */
+export const portalForRole = (role: Role): LoginPortal => (role === 'CITIZEN' ? 'CITIZEN' : 'STAFF');
+
 /** Login body. No domain rule here: an unknown email simply gets the generic 401. */
 export const loginSchema = z.object({
   email,
   password: z.string().min(1, 'Password is required').max(200),
+  portal: loginPortalSchema,
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 

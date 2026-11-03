@@ -119,7 +119,7 @@ describe('creating staff accounts', () => {
     const { rows } = await pool.query(`SELECT a.email FROM users u JOIN users a ON a.id = u.created_by WHERE u.email = $1`, [email]);
     expect(rows[0].email).toBe(DEMO.systemAdmin);
 
-    const login = await request(app).post('/api/v1/auth/login').send({ email, password: 'long-enough-1' });
+    const login = await request(app).post('/api/v1/auth/login').send({ email, password: 'long-enough-1', portal: 'STAFF' });
     expect(login.status).toBe(200);
     const queue = await request(app).get('/api/v1/requests').set('Cookie', cookieOf(login));
     expect(queue.status).toBe(200);
@@ -197,14 +197,14 @@ describe('deactivating an account', () => {
       .set('Cookie', admin)
       .send({ role: 'WARD_OFFICER', name: 'Leaving Officer (Demo)', email, password: 'long-enough-1', wardId: ward1 });
     const id = created.body.user.id as string;
-    const session = cookieOf(await request(app).post('/api/v1/auth/login').send({ email, password: 'long-enough-1' }));
+    const session = cookieOf(await request(app).post('/api/v1/auth/login').send({ email, password: 'long-enough-1', portal: 'STAFF' }));
 
     const off = await request(app).patch(`/api/v1/admin/users/${id}`).set('Cookie', admin).send({ isActive: false });
     expect(off.status).toBe(200);
     expect(off.body.user.isActive).toBe(false);
 
     expect((await request(app).get('/api/v1/requests').set('Cookie', session)).status).toBe(401); // old token, dead account
-    const login = await request(app).post('/api/v1/auth/login').send({ email, password: 'long-enough-1' });
+    const login = await request(app).post('/api/v1/auth/login').send({ email, password: 'long-enough-1', portal: 'STAFF' });
     expect(login.status).toBe(403);
 
     await request(app).patch(`/api/v1/admin/users/${id}`).set('Cookie', admin).send({ isActive: true });

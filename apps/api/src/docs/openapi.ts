@@ -255,13 +255,13 @@ const paths = {
       tags: ['Auth'],
       summary: 'Log in (sets the session cookie)',
       description:
-        'Demo accounts (all fake), password `demo1234`: `citizen@example.com` · `officer.ward1@example.com` / `officer2.ward1@example.com` (Kathmandu ward 1) · `officer.ward2@example.com` · `palika.admin@example.com` · `system.admin@example.com`. Rate limited: 5 per minute per IP. Unknown email and wrong password give the same 401; a deactivated account gets 403.',
-      requestBody: { required: true, ...json(input(loginSchema), { email: 'officer.ward1@example.com', password: 'demo1234' }) },
+        'Demo accounts (all fake), password `demo1234`: `citizen@example.com` · `officer.ward1@example.com` / `officer2.ward1@example.com` (Kathmandu ward 1) · `officer.ward2@example.com` · `palika.admin@example.com` · `system.admin@example.com`. `portal` = the login page: `CITIZEN` for citizens, `STAFF` for every other role. Rate limited: 5 per minute per IP. Unknown email and wrong password give the same 401; a deactivated account, or the right account on the wrong portal, gets 403 (wrong portal: `details.portal` names the right one).',
+      requestBody: { required: true, ...json(input(loginSchema), { email: 'officer.ward1@example.com', password: 'demo1234', portal: 'STAFF' }) },
       responses: {
         200: { description: 'Logged in. `Set-Cookie: sewa_session=…` (httpOnly)', ...json(obj({ user: ref('AuthUser') })) },
         400: E[400],
         401: E[401],
-        403: err('Account deactivated'),
+        403: err('Account deactivated, or wrong portal for this account'),
         429: E[429],
       },
     },

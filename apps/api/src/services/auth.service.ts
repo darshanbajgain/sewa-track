@@ -1,4 +1,4 @@
-import type { AuthUser, LoginInput, RegisterInput } from '@sewa/shared';
+import { portalForRole, type AuthUser, type LoginInput, type RegisterInput } from '@sewa/shared';
 import { AppError } from '../errors.js';
 import { findUserByEmail, findUserById, insertUser, type UserRecord } from '../repositories/user.repository.js';
 import { hashPassword, verifyPassword } from '../security/password.js';
@@ -42,6 +42,17 @@ export async function login(input: LoginInput): Promise<{ user: AuthUser; token:
   // Checked AFTER the password, so this message only reaches someone who knows the password.
   if (!found.isActive) {
     throw new AppError('FORBIDDEN', 'This account has been deactivated. Contact the system admin.');
+  }
+
+  // Right account, wrong login page (PRD F3). Also after the password, so it never tells a stranger
+  // which emails belong to staff. `details.portal` lets the page link to the right one. No cookie is set.
+  const portal = portalForRole(found.role);
+  if (input.portal !== portal) {
+    throw new AppError(
+      'FORBIDDEN',
+      portal === 'STAFF' ? 'Staff accounts log in on the staff login page' : 'Citizens log in on the citizen login page',
+      { portal },
+    );
   }
 
   const user = toAuthUser(found);

@@ -1,4 +1,4 @@
-import type { Role } from '@sewa/shared';
+import type { LoginPortal, Role } from '@sewa/shared';
 
 /**
  * One portal per role (decided 2026-11-01): where each role lands after login, and who may open each portal.
@@ -36,9 +36,22 @@ export function safeNextPath(next: string | null | undefined, fallback = '/'): s
   return next;
 }
 
-/** "/login?next=…&reason=…" for the current page. */
+/** Citizens and staff log in on separate pages (PRD F3); the API also refuses an account on the wrong one. */
+export const LOGIN_PATH: Record<LoginPortal, string> = {
+  CITIZEN: '/login',
+  STAFF: '/staff/login',
+};
+
+export const isLoginPath = (path: string) => path === LOGIN_PATH.CITIZEN || path === LOGIN_PATH.STAFF;
+
+/** The staff portals send people to the staff login; everything else to the citizen login. */
+export function loginPathFor(path: string): string {
+  return /^\/(ward|palika|admin)(\/|$)/.test(path) ? LOGIN_PATH.STAFF : LOGIN_PATH.CITIZEN;
+}
+
+/** "/login?next=…&reason=…" (or /staff/login) for the current page. */
 export function loginUrl(currentPath: string, reason?: 'expired' | 'required'): string {
   const params = new URLSearchParams({ next: currentPath });
   if (reason) params.set('reason', reason);
-  return `/login?${params}`;
+  return `${loginPathFor(currentPath)}?${params}`;
 }

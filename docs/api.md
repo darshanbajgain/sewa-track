@@ -89,10 +89,10 @@ after 15 minutes without requests, and pinging `/health` instead would keep the 
 ## Auth
 
 ### `POST /auth/login`
-Body: `{ "email": "officer.ward1@example.com", "password": "demo1234" }` (email is lowercased; password 1–200 chars)
+Body: `{ "email": "officer.ward1@example.com", "password": "demo1234", "portal": "STAFF" }` (email is lowercased; password 1–200 chars; `portal` = the login page: `CITIZEN` for citizens, `STAFF` for every other role)
 
 - `200` `{ "user": { "id", "role", "name", "email", "wardId", "localLevelId" } }` + `Set-Cookie: sewa_session=…`
-- `400` invalid body · `401` unknown email **or** wrong password (same message for both) · `403` account deactivated · `429` after 5 attempts per minute per IP
+- `400` invalid body · `401` unknown email **or** wrong password (same message for both) · `403` account deactivated, **or** right account on the wrong portal (`details.portal` = the right one; checked after the password; no cookie) · `429` after 5 attempts per minute per IP
 
 ### `POST /auth/register`
 Body: `{ "name": "Sita Demo", "email": "sita@example.com", "password": "at-least-8" }`. Always creates a **CITIZEN**

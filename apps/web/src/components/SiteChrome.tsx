@@ -129,6 +129,12 @@ export function SiteFooter() {
           </p>
         </div>
         <ul className="flex flex-col gap-2 text-sm sm:items-end">
+          {/* Staff get their own login page; the header's "Log in" is the citizen one. */}
+          <li>
+            <Link className="text-white underline" href="/staff/login">
+              {t('footer.staffLogin')}
+            </Link>
+          </li>
           <li>
             <a className="text-white underline" href="/api/docs">
               {t('footer.api')}

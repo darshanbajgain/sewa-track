@@ -43,6 +43,20 @@ node dist/db/seed.cli.js       # demo reference data + demo accounts (every inse
 In docker compose this is the `migrate` service. The `api` service waits for it with
 `condition: service_completed_successfully`, so a new API never runs against an old schema.
 
+**Live demo (until this runs automatically on deploy):** run the migration by hand against the hosted
+database **before merging** a PR that adds one. New migrations only add things, so the old API keeps
+working with the new schema, while the new API needs it. Keep the hosted `DATABASE_URL` in a gitignored
+file (e.g. `.env.neon`) and run:
+
+```bash
+cd apps/api
+env -u DATABASE_URL node --no-warnings --env-file=../../.env.neon --import tsx src/db/migrate.cli.ts
+```
+
+`env -u DATABASE_URL` matters: `--env-file` never replaces a variable that is already set, and some
+editor terminals load `.env` automatically, so without it the command can silently migrate your *local*
+database instead ("already applied" is the clue).
+
 ## 3. Run everything in containers
 
 ```bash

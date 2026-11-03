@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/client';
 import { Alert, Badge, Button, Card, Modal, PageTitle, Spinner, TextField } from '@/components/common';
 import { useTracking } from '@/hooks/useTracking';
@@ -9,13 +9,23 @@ import { pickName, useI18n } from '@/lib/i18n';
 /**
  * Public tracking (PRD F5). No login. The API returns only public fields; this page simply shows them.
  * The API also cleans the code (case, spaces, O→0, I/L→1), so the input is sent as typed.
+ * A code in the link (/track?code=ST-…, e.g. from the home page box) is looked up straight away.
  */
 export default function TrackPage() {
   const { t, lang } = useI18n();
   const [input, setInput] = useState('');
   const [code, setCode] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const tracking = useTracking(code); // only fetches after the form is submitted
+  const tracking = useTracking(code); // only fetches after the form is submitted (or a code came in the link)
+
+  // Read once after the first render (window doesn't exist while the server renders the page).
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.search).get('code')?.trim();
+    if (fromLink) {
+      setInput(fromLink);
+      setCode(fromLink);
+    }
+  }, []);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();

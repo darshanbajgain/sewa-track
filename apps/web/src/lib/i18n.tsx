@@ -11,6 +11,7 @@ import ne from '../../messages/ne.json';
  */
 export type Lang = 'en' | 'ne';
 type Key = keyof typeof en;
+export type MessageKey = Key;
 
 const DICTIONARIES: Record<Lang, Record<Key, string>> = { en, ne };
 const STORAGE_KEY = 'sewa-lang';

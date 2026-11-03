@@ -6,6 +6,7 @@ import { DelayMap } from '@/components/map/DelayMap';
 import { pickName, useI18n } from '@/lib/i18n';
 import { useDistricts, useServiceTypes } from '@/hooks/useReference';
 import { useMapStats } from '@/hooks/useStats';
+import { usePageTitle } from '@/lib/usePageTitle';
 
 /**
  * Home (PRD F8): leads with the national delay picture. Numbers come live from GET /stats/map
@@ -13,6 +14,7 @@ import { useMapStats } from '@/hooks/useStats';
  */
 export default function HomePage() {
   const { t, lang } = useI18n();
+  usePageTitle(undefined); // home: just the site name
   const stats = useMapStats({ metric: 'overdue' });
   const districts = useDistricts();
   const services = useServiceTypes();

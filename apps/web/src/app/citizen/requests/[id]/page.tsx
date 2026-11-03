@@ -11,6 +11,7 @@ import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
 import { useChangeStatus, useRequestDetail } from '@/hooks/useRequests';
 import { dueDate, formatDateTime } from '@/lib/format';
 import { pickName, useI18n } from '@/lib/i18n';
+import { usePageTitle } from '@/lib/usePageTitle';
 
 /**
  * A citizen's request (PRD F4/F6). The ACTIONS shown come from `allowedTransitions`, computed on the
@@ -38,6 +39,7 @@ export default function CitizenRequestPage() {
 
 function RequestView({ request }: { request: RequestDetailDto }) {
   const { t, lang } = useI18n();
+  usePageTitle(`${request.trackingCode} · ${pickName(request.service, lang)}`);
   const change = useChangeStatus(request.id);
   const [note, setNote] = useState('');
   const [noteError, setNoteError] = useState<string>();

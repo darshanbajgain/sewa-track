@@ -11,6 +11,7 @@ import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
 import { useChangeStatus, useMarkFeePaid, useRequestDetail } from '@/hooks/useRequests';
 import { dueDate, formatDateTime } from '@/lib/format';
 import { pickName, useI18n } from '@/lib/i18n';
+import { usePageTitle } from '@/lib/usePageTitle';
 
 /**
  * Staff request detail (PRD F6), used by the ward, palika and admin portals (`backHref` = that portal's queue). The buttons come ONLY from the server's `allowedTransitions` and
@@ -69,6 +70,7 @@ type Pending = { kind: 'status'; to: RequestStatus } | { kind: 'fee' } | null;
 
 function RequestView({ request }: { request: RequestDetailDto }) {
   const { t, lang } = useI18n();
+  usePageTitle(`${request.trackingCode} · ${pickName(request.service, lang)}`);
   const change = useChangeStatus(request.id);
   const fee = useMarkFeePaid(request.id);
   const [pending, setPending] = useState<Pending>(null);

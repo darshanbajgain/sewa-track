@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 
 /**
  * Accessible form fields: every input has a visible <label>, optional hint and error text, wired with
@@ -16,7 +16,7 @@ interface FieldShellProps {
   children: ReactNode;
 }
 
-function FieldShell({ id, label, hint, error, required, children }: FieldShellProps) {
+export function FieldShell({ id, label, hint, error, required, children }: FieldShellProps) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-semibold">
@@ -43,10 +43,18 @@ function FieldShell({ id, label, hint, error, required, children }: FieldShellPr
   );
 }
 
-const fieldClasses = (error?: string) =>
-  `min-h-12 rounded-md border bg-white px-3 ${error ? 'border-accent' : 'border-muted'} disabled:bg-surface`;
+/**
+ * One look for every form control (text, textarea, select, date): a grey border that darkens on hover and
+ * turns blue with a soft blue ring on focus (red for an error). `outline-none` because the ring IS the focus
+ * indicator: before, the browser outline was drawn outside the border, so focused fields had two lines.
+ * `border-field` is darker than `border-line` so the box itself passes the 3:1 contrast rule (WCAG 1.4.11).
+ */
+export const fieldClasses = (error?: string) =>
+  `min-h-12 w-full rounded-md border bg-white px-3 text-ink outline-none transition-[border-color,box-shadow] hover:border-muted focus-visible:ring-4 disabled:cursor-not-allowed disabled:bg-surface ${
+    error ? 'border-accent focus-visible:border-accent focus-visible:ring-accent/20' : 'border-field focus-visible:border-primary focus-visible:ring-primary/20'
+  }`;
 
-function describedBy(id: string, hint?: string, error?: string) {
+export function describedBy(id: string, hint?: string, error?: string) {
   return [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
 }
 
@@ -68,18 +76,6 @@ export function TextAreaField({ label, hint, error, id: idProp, className = '', 
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={rest.required}>
       <textarea id={id} aria-invalid={error ? true : undefined} aria-describedby={describedBy(id, hint, error)} className={`${fieldClasses(error)} py-2 ${className}`} {...rest} />
-    </FieldShell>
-  );
-}
-
-export function SelectField({ label, hint, error, id: idProp, className = '', children, ...rest }: Common & SelectHTMLAttributes<HTMLSelectElement>) {
-  const generated = useId();
-  const id = idProp ?? generated;
-  return (
-    <FieldShell id={id} label={label} hint={hint} error={error} required={rest.required}>
-      <select id={id} aria-invalid={error ? true : undefined} aria-describedby={describedBy(id, hint, error)} className={`${fieldClasses(error)} ${className}`} {...rest}>
-        {children}
-      </select>
     </FieldShell>
   );
 }

@@ -228,7 +228,7 @@ If one is missing or invalid, the API **exits immediately** and prints the varia
 | `DATABASE_URL` | `postgres://sewa:…@localhost:5432/sewa_track` | Main database connection |
 | `TEST_DATABASE_URL` | `…/sewa_track_test` | Used by the test runner instead of `DATABASE_URL` |
 | `LOG_LEVEL` | `info` | pino level; tests use `silent` |
-| `APP_VERSION` | `0.0.1` | Reported by `/health` |
+| `APP_VERSION` | `0.1.0` | Reported by `/health` |
 | `GIT_COMMIT` | `local` | Reported by `/health` so you can tell which build is deployed |
 | `JWT_SECRET` | 48 random chars | Signs login tokens (≥ 32 chars; placeholder refused in production) |
 | `SESSION_HOURS` | `8` | Login lifetime |

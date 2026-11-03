@@ -85,7 +85,7 @@ after 15 minutes without requests, and pinging `/health` instead would keep the 
 (`/health`: can it serve real requests?).
 
 ### `GET /health`
-`200` `{ "status": "ok", "db": "up", "version": "0.0.1", "commit": "local" }`
+`200` `{ "status": "ok", "db": "up", "version": "0.1.0", "commit": "local" }`
 `503` `{ "status": "degraded", "db": "down", ... }` when the database is unreachable.
 
 ---

@@ -31,7 +31,7 @@ const envSchema = z.object({
   // requests without it, so the website is the only way in (middleware/proxySecret.ts). Unset = off.
   PROXY_SECRET: z.string().min(32, 'PROXY_SECRET must be at least 32 characters').optional(),
   // Shown by /health so we can tell which build is running after a deploy.
-  APP_VERSION: z.string().default('0.0.1'),
+  APP_VERSION: z.string().default('0.1.0'),
   GIT_COMMIT: z.string().default('local'),
 });
 

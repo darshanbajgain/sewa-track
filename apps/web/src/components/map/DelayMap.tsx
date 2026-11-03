@@ -4,7 +4,7 @@ import { MAP_METRICS, REQUEST_STATUSES, SERVICE_TYPE_CODES, type MapMetric } fro
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import type { MapStatsParams } from '@/api/stats.api';
-import { Button, Card, DateField, QueryState, SelectField, Spinner } from '@/components/common';
+import { Button, Card, DateField, QueryState, SelectField, Skeleton, Spinner, STICKY_HEAD, TableCard } from '@/components/common';
 import { useDistricts, useServiceTypes } from '@/hooks/useReference';
 import { useDistrictShapes, useMapStats } from '@/hooks/useStats';
 import { NO_DATA, colorFor, colorForClass, higherIsBetter, quantileBreaks } from '@/lib/choropleth';
@@ -108,7 +108,13 @@ export function DelayMap({ variant = 'full' }: { variant?: 'full' | 'compact' })
         </form>
       )}
 
-      <QueryState isLoading={shapes.isLoading || stats.isLoading} error={shapes.error ?? stats.error} onRetry={() => (shapes.error ? shapes.refetch() : stats.refetch())} />
+      <QueryState
+        isLoading={shapes.isLoading || stats.isLoading}
+        error={shapes.error ?? stats.error}
+        onRetry={() => (shapes.error ? shapes.refetch() : stats.refetch())}
+        // Same height as the map below, so nothing jumps when it appears.
+        skeleton={<Skeleton className="h-[420px] rounded-xl sm:h-[480px]" />}
+      />
 
       {shapes.data && stats.data && (
         <>
@@ -152,10 +158,10 @@ export function DelayMap({ variant = 'full' }: { variant?: 'full' | 'compact' })
                 {t(showTable ? 'map.hideTable' : 'map.showTable')}
               </Button>
               {showTable && (
-                <div className="relative overflow-x-auto rounded-xl border border-line">
+                <TableCard label={t(`map.metric.${metric}`)}>
                   <table className="w-full min-w-[480px] text-left text-sm">
                     <caption className="sr-only">{t(`map.metric.${metric}`)}</caption>
-                    <thead className="bg-surface">
+                    <thead className={STICKY_HEAD}>
                       <tr>
                         <th scope="col" className="p-3">#</th>
                         <th scope="col" className="p-3">{t('home.district')}</th>
@@ -178,7 +184,7 @@ export function DelayMap({ variant = 'full' }: { variant?: 'full' | 'compact' })
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TableCard>
               )}
             </div>
           )}

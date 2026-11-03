@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button, ButtonLink, Modal } from '@/components/common';
+import { Button, ButtonLink, Modal, Skeleton } from '@/components/common';
 import { useLogout, useMe } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
 import { PORTAL_TABS, ROLE_HOME } from '@/lib/routing';
@@ -109,7 +109,10 @@ export function SiteHeader() {
           <Button variant="ghost" onClick={toggle} lang={t('nav.language') === 'English' ? 'en' : 'ne'}>
             {t('nav.language')}
           </Button>
-          {me ? (
+          {meQuery.isPending ? (
+            // Until we know who is logged in: a placeholder about the size of the buttons, so the header doesn't jump.
+            <Skeleton className="h-11 w-44" />
+          ) : me ? (
             <>
               <span className="hidden text-sm text-muted sm:inline">
                 {t('login.loggedInAs')} <strong className="text-ink">{me.name}</strong> · {t(`role.${me.role}`)}

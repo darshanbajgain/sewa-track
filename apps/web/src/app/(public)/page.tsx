@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Badge, ButtonLink, Card, QueryState } from '@/components/common';
+import { Badge, ButtonLink, Card, QueryState, Skeleton, SkeletonCards } from '@/components/common';
 import { useServiceTypes } from '@/hooks/useReference';
 import { useMapStats } from '@/hooks/useStats';
 import { pickName, useI18n, type MessageKey } from '@/lib/i18n';
@@ -49,7 +49,18 @@ export default function HomePage() {
             <h2 id="numbers" className="text-lg font-bold">
               {t('home.numbers')}
             </h2>
-            <QueryState isLoading={stats.isLoading} error={stats.error} onRetry={() => stats.refetch()} />
+            <QueryState
+              isLoading={stats.isLoading}
+              error={stats.error}
+              onRetry={() => stats.refetch()}
+              skeleton={
+                <div className="flex flex-col gap-5 py-1">
+                  <Skeleton className="h-9" />
+                  <Skeleton className="h-9" />
+                  <Skeleton className="h-9" />
+                </div>
+              }
+            />
             {totals && (
               <dl className="flex flex-col divide-y divide-line">
                 <Stat label={t('home.overdue')} value={fmt(totals.overdue)} className="text-accent" />
@@ -73,7 +84,12 @@ export default function HomePage() {
               {t('home.allServices')} →
             </Link>
           </div>
-          <QueryState isLoading={services.isLoading} error={services.error} onRetry={() => services.refetch()} />
+          <QueryState
+            isLoading={services.isLoading}
+            error={services.error}
+            onRetry={() => services.refetch()}
+            skeleton={<SkeletonCards count={3} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" cardClassName="h-56" />}
+          />
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(services.data ?? []).map((s) => (
               <li key={s.code} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-5">

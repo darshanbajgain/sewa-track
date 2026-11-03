@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import type { QueueFilters } from '@/api/requests.api';
-import { Button, PageTitle, QueryState, SelectField } from '@/components/common';
+import { Button, PageTitle, QueryState, SelectField, SkeletonTable, STICKY_HEAD, TableCard } from '@/components/common';
 import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
 import { useMe } from '@/hooks/useAuth';
 import { useQueue } from '@/hooks/useRequests';
@@ -51,6 +51,21 @@ function Queue({ detailBase }: { detailBase: string }) {
   const page = filters.page ?? 1;
   const totalPages = queue.data ? Math.max(1, Math.ceil(queue.data.total / queue.data.pageSize)) : 1;
 
+  // Shown in the table card's footer, under the scrolling rows.
+  const pagination = (
+    <nav aria-label={t('staff.pagination')} className="flex flex-wrap items-center justify-between gap-3">
+      <Button variant="secondary" disabled={page <= 1} onClick={() => setParam('page', String(page - 1))}>
+        ← {t('staff.prev')}
+      </Button>
+      <span className="text-sm">
+        {t('staff.page')} {formatNumber(page, lang)} / {formatNumber(totalPages, lang)}
+      </span>
+      <Button variant="secondary" disabled={page >= totalPages} onClick={() => setParam('page', String(page + 1))}>
+        {t('staff.next')} →
+      </Button>
+    </nav>
+  );
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10">
       <PageTitle title={t('staff.queueTitle')} intro={t(role === 'WARD_OFFICER' ? 'staff.queueIntroWard' : role === 'PALIKA_ADMIN' ? 'staff.queueIntroPalika' : 'staff.queueIntroNational')} />
@@ -80,7 +95,7 @@ function Queue({ detailBase }: { detailBase: string }) {
         />
       </form>
 
-      <QueryState isLoading={queue.isLoading} error={queue.error} onRetry={() => queue.refetch()} />
+      <QueryState isLoading={queue.isLoading} error={queue.error} onRetry={() => queue.refetch()} skeleton={<SkeletonTable rows={8} cols={8} />} />
 
       {queue.data && (
         <>
@@ -92,10 +107,10 @@ function Queue({ detailBase }: { detailBase: string }) {
           {queue.data.items.length === 0 ? (
             <p className="rounded-xl border border-line p-6">{t('staff.empty')}</p>
           ) : (
-            <div className={`relative overflow-x-auto rounded-xl border border-line ${queue.isPlaceholderData ? 'opacity-60' : ''}`}>
+            <TableCard label={t('staff.queueTitle')} maxHeight="max-h-[36rem]" dimmed={queue.isPlaceholderData} footer={pagination}>
               <table className="w-full min-w-[980px] text-left text-sm">
                 <caption className="sr-only">{t('staff.queueTitle')}</caption>
-                <thead className="bg-surface">
+                <thead className={STICKY_HEAD}>
                   <tr>
                     <th scope="col" className="p-3">{t('citizen.code')}</th>
                     <th scope="col" className="p-3">{t('citizen.service')}</th>
@@ -134,20 +149,8 @@ function Queue({ detailBase }: { detailBase: string }) {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableCard>
           )}
-
-          <nav aria-label={t('staff.pagination')} className="flex flex-wrap items-center justify-between gap-3">
-            <Button variant="secondary" disabled={page <= 1} onClick={() => setParam('page', String(page - 1))}>
-              ← {t('staff.prev')}
-            </Button>
-            <span className="text-sm">
-              {t('staff.page')} {formatNumber(page, lang)} / {formatNumber(totalPages, lang)}
-            </span>
-            <Button variant="secondary" disabled={page >= totalPages} onClick={() => setParam('page', String(page + 1))}>
-              {t('staff.next')} →
-            </Button>
-          </nav>
         </>
       )}
     </div>

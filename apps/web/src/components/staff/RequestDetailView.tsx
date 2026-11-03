@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Alert, Button, Card, Modal, QueryState, TextAreaField, type ButtonVariant } from '@/components/common';
 import { DocumentsCard } from '@/components/documents/DocumentsCard';
 import { changeErrorText } from '@/components/requests/changeError';
+import { RequestDetailSkeleton } from '@/components/requests/RequestDetailSkeleton';
 import { RequestHistory } from '@/components/requests/RequestHistory';
 import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
 import { useChangeStatus, useMarkFeePaid, useRequestDetail } from '@/hooks/useRequests';
@@ -42,7 +43,7 @@ export function RequestDetailView({ backHref }: { backHref: string }) {
       <Link href={backHref} className="self-start font-semibold text-primary">
         ← {t('staff.backToQueue')}
       </Link>
-      <QueryState isLoading={detail.isLoading} error={detail.error} onRetry={() => detail.refetch()} />
+      <QueryState isLoading={detail.isLoading} error={detail.error} onRetry={() => detail.refetch()} skeleton={<RequestDetailSkeleton />} />
       {detail.data && <RequestView request={detail.data} />}
     </div>
   );

@@ -187,7 +187,9 @@ class wins). Add a variant instead (that's how `accent` was added to Button).
 | `SelectField` | `label`, `value`, `onChange(value)`, `options`, `placeholder`, `hint`, `error` | Radix Select: menu in a portal, sized to the button, flips above when there's no room (`avoidCollisions`), `z-[1100]` (above Leaflet and the Modal); keyboard + listbox roles built in. `''` = placeholder or the "All" option |
 | `DateField` | `label`, `value` (`YYYY-MM-DD`), `onChange`, `min`, `max` | Radix Popover + react-day-picker calendar, Clear / Today; replaces `<input type="date">` (looks different in every browser) |
 | `Modal` | `open`, `onClose`, `title`, `description`, `footer`, `closeLabel` | see below |
-| `QueryState` | `isLoading`, `error`, `onRetry` | spinner / retry / 403 message |
+| `QueryState` | `isLoading`, `error`, `onRetry`, `skeleton?` | skeleton (or spinner) / retry / 403 message; one "Loading…" status for screen readers |
+| `Skeleton`, `SkeletonTable`, `SkeletonCards` | sizes | grey pulsing blocks in the shape of the coming content (`aria-hidden`, no pulse with reduced motion) |
+| `TableCard` (+ `STICKY_HEAD`) | `label`, `title?`, `footer?`, `maxHeight?`, `dimmed?` | a table in a card that scrolls on its own (sticky header row, focusable for arrow-key scrolling); pagination goes in `footer` |
 | `Spinner` | `className` | decorative (`aria-hidden`) |
 | `CheckboxField` | `label`, `error` + native props | whole label clickable; error linked |
 | `StatusBadge`, `OverdueBadge` (`components/requests`) | `status` / `overdue` | one colour per status, label always written |
@@ -445,3 +447,10 @@ GET /locations/districts (names) ───────────────�
 - **Accessible alternative:** "View as table" lists every district (worst first) with the same numbers;
   clicking a name selects it on the map. Scroll-wheel zoom is off so the page scroll isn't trapped.
 - **Not yet (PRD cut list):** palika drill-down and heatmap need palika shapes/centroids we don't have.
+
+### Loading without jumps (added 2026-11-03)
+Pages show **skeletons** in the shape of what is coming instead of a one-line spinner, the header shows a
+placeholder until the session is known, and `<main>` is at least a screen tall so the footer starts below the
+fold. Measured with Chrome's layout-shift score (CLS) on a throttled connection: every page < 0.01 (was up
+to 0.30 on a request detail page). Long tables (map data, reports by ward/province, queue, users, my requests)
+live in a `TableCard`, so the page itself stays short.

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, PageTitle, QueryState } from '@/components/common';
+import { Card, PageTitle, QueryState, Skeleton, SkeletonCards, STICKY_HEAD, TableCard } from '@/components/common';
 import { StatusBadge } from '@/components/requests/StatusBadge';
 import { useServiceTypes } from '@/hooks/useReference';
 import { useSummary } from '@/hooks/useStats';
@@ -25,7 +25,18 @@ export function ReportsView() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10">
       <PageTitle title={t('staff.reportsTitle')} intro={t(national ? 'staff.reportsIntroNational' : 'staff.reportsIntroPalika')} />
-      <QueryState isLoading={summary.isLoading} error={summary.error} onRetry={() => summary.refetch()} />
+      <QueryState
+        isLoading={summary.isLoading}
+        error={summary.error}
+        onRetry={() => summary.refetch()}
+        skeleton={
+          <div className="flex flex-col gap-6">
+            <SkeletonCards count={4} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" cardClassName="h-24" />
+            <SkeletonCards count={2} className="grid gap-6 md:grid-cols-2" cardClassName="h-64" />
+            <Skeleton className="h-72 rounded-xl" />
+          </div>
+        }
+      />
 
       {data && (
         <>
@@ -86,34 +97,29 @@ export function ReportsView() {
             </Card>
           </div>
 
-          <section aria-labelledby="by-area" className="flex flex-col gap-3">
-            <h2 id="by-area" className="text-lg font-bold">
-              {t(national ? 'staff.byProvince' : 'staff.byWard')}
-            </h2>
-            <div className="relative overflow-x-auto rounded-xl border border-line">
-              <table className="w-full min-w-[480px] text-left text-sm">
-                <thead className="bg-surface">
-                  <tr>
-                    <th scope="col" className="p-3">{t(national ? 'staff.province' : 'detail.ward')}</th>
-                    <th scope="col" className="p-3">{t('home.open')}</th>
-                    <th scope="col" className="p-3">{t('home.overdue')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Most overdue first: that's where a supervisor should look. */}
-                  {[...data.byArea]
-                    .sort((a, b) => b.overdue - a.overdue)
-                    .map((row) => (
-                      <tr key={row.areaId} className="border-t border-line">
-                        <th scope="row" className="p-3 font-medium">{row.label}</th>
-                        <td className="p-3">{fmt(row.pending)}</td>
-                        <td className="p-3 font-semibold text-accent">{fmt(row.overdue)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <TableCard title={t(national ? 'staff.byProvince' : 'staff.byWard')} titleId="by-area" label={t(national ? 'staff.byProvince' : 'staff.byWard')}>
+            <table className="w-full min-w-[480px] text-left text-sm">
+              <thead className={STICKY_HEAD}>
+                <tr>
+                  <th scope="col" className="p-3">{t(national ? 'staff.province' : 'detail.ward')}</th>
+                  <th scope="col" className="p-3">{t('home.open')}</th>
+                  <th scope="col" className="p-3">{t('home.overdue')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Most overdue first: that's where a supervisor should look. */}
+                {[...data.byArea]
+                  .sort((a, b) => b.overdue - a.overdue)
+                  .map((row) => (
+                    <tr key={row.areaId} className="border-t border-line">
+                      <th scope="row" className="p-3 font-medium">{row.label}</th>
+                      <td className="p-3">{fmt(row.pending)}</td>
+                      <td className="p-3 font-semibold text-accent">{fmt(row.overdue)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </TableCard>
           <p className="text-sm text-muted">{t('home.demoData')}</p>
         </>
       )}

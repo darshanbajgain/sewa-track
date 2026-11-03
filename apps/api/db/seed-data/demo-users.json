@@ -1,12 +1,9 @@
 {
-  "note": "FAKE demo accounts. Emails use example.com (reserved for examples, RFC 2606); phones start with 90 (not a real Nepali mobile prefix). Not real people or officials.",
+  "note": "FAKE public demo accounts (shown on the login pages). Emails use example.com (reserved for examples, RFC 2606); phones start with 90 (not a real Nepali mobile prefix). Not real people or officials. Birtamod = local level 28 (Jhapa). The system admin is NOT here: its email and password come from env (SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD).",
   "password": "demo1234",
   "users": [
     { "role": "CITIZEN", "name": "Citizen (Demo)", "email": "citizen@example.com", "phone": "9000000001" },
-    { "role": "WARD_OFFICER", "name": "Ward Officer (Demo), Kathmandu Ward 1", "email": "officer.ward1@example.com", "phone": "9000000002", "wardLocalLevelId": 307, "wardNumber": 1 },
-    { "role": "WARD_OFFICER", "name": "Ward Officer 2 (Demo), Kathmandu Ward 1", "email": "officer2.ward1@example.com", "phone": "9000000003", "wardLocalLevelId": 307, "wardNumber": 1 },
-    { "role": "WARD_OFFICER", "name": "Ward Officer (Demo), Kathmandu Ward 2", "email": "officer.ward2@example.com", "phone": "9000000004", "wardLocalLevelId": 307, "wardNumber": 2 },
-    { "role": "PALIKA_ADMIN", "name": "Palika Admin (Demo), Kathmandu", "email": "palika.admin@example.com", "phone": "9000000005", "localLevelId": 307 },
-    { "role": "SYSTEM_ADMIN", "name": "System Admin (Demo)", "email": "system.admin@example.com", "phone": "9000000006" }
+    { "role": "WARD_OFFICER", "name": "Ward Officer (Demo), Birtamod Ward 2", "email": "officer.birtamod2@example.com", "phone": "9000000007", "wardLocalLevelId": 28, "wardNumber": 2 },
+    { "role": "PALIKA_ADMIN", "name": "Palika Admin (Demo), Birtamod", "email": "palika.birtamod@example.com", "phone": "9000000008", "localLevelId": 28 }
   ]
 }

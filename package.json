@@ -16,6 +16,7 @@
     "db:migrate": "pnpm --filter @sewa/api db:migrate",
     "db:seed": "pnpm --filter @sewa/api db:seed",
     "seed:large": "pnpm --filter @sewa/api seed:large",
+    "demo:reset": "pnpm --filter @sewa/api demo:reset",
     "db:explain": "pnpm --filter @sewa/api db:explain"
   }
 }

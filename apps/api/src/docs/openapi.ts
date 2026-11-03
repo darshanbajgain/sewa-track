@@ -280,8 +280,8 @@ const paths = {
       tags: ['Auth'],
       summary: 'Log in (sets the session cookie)',
       description:
-        'Demo accounts (all fake), password `demo1234`: `citizen@example.com` · `officer.ward1@example.com` / `officer2.ward1@example.com` (Kathmandu ward 1) · `officer.ward2@example.com` · `palika.admin@example.com` · `system.admin@example.com`. `portal` = the login page: `CITIZEN` for citizens, `STAFF` for every other role. Rate limited: 5 per minute per IP. Unknown email and wrong password give the same 401; a deactivated account, or the right account on the wrong portal, gets 403 (wrong portal: `details.portal` names the right one).',
-      requestBody: { required: true, ...json(input(loginSchema), { email: 'officer.ward1@example.com', password: 'demo1234', portal: 'STAFF' }) },
+        'Demo accounts (all fake), password `demo1234`: `citizen@example.com` · `officer.birtamod2@example.com` (Birtamod ward 2) · `palika.birtamod@example.com` (Birtamod). The system admin is private. `portal` = the login page: `CITIZEN` for citizens, `STAFF` for every other role. Rate limited: 5 per minute per IP. Unknown email and wrong password give the same 401; a deactivated account, or the right account on the wrong portal, gets 403 (wrong portal: `details.portal` names the right one).',
+      requestBody: { required: true, ...json(input(loginSchema), { email: 'officer.birtamod2@example.com', password: 'demo1234', portal: 'STAFF' }) },
       responses: {
         200: { description: 'Logged in. `Set-Cookie: sewa_session=…` (httpOnly)', ...json(obj({ user: ref('AuthUser') })) },
         400: E[400],
@@ -585,7 +585,7 @@ export function buildOpenApiDocument(version: string): Json {
         '**Demo / portfolio project. Not affiliated with any government body. All data is fake.**\n\n' +
         'Citizen-service request tracker for ward recommendation letters in Nepal. JSON only; every error has the shape ' +
         '`{ "error": { "code", "message", "details" }, "requestId" }`.\n\n' +
-        '**Try it:** run `POST /api/v1/auth/login` with a demo account (e.g. `officer.ward1@example.com`, password `demo1234`); the session cookie is then used automatically.',
+        '**Try it:** run `POST /api/v1/auth/login` with a demo account (e.g. `officer.birtamod2@example.com`, password `demo1234`); the session cookie is then used automatically.',
       license: { name: 'MIT', identifier: 'MIT' },
     },
     servers: [{ url: '/', description: 'This server' }],

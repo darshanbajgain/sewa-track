@@ -158,18 +158,18 @@ All accounts are **fake** and use the password **`demo1234`**.
 | Email | Role |
 |---|---|
 | `citizen@example.com` | Citizen (Demo) |
-| `officer.ward1@example.com` | Ward Officer (Demo), Kathmandu Ward 1 |
-| `officer2.ward1@example.com` | Ward Officer 2 (Demo), Kathmandu Ward 1 |
-| `officer.ward2@example.com` | Ward Officer (Demo), Kathmandu Ward 2 |
-| `palika.admin@example.com` | Palika Admin (Demo), Kathmandu |
-| `system.admin@example.com` | System Admin (Demo) |
+| `officer.birtamod2@example.com` | Ward Officer (Demo), Birtamod Ward 2 |
+| `palika.birtamod@example.com` | Palika Admin (Demo), Birtamod |
+
+The **system admin** is private: set `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in `.env` before
+`pnpm db:seed` to create one locally. The delay map's numbers come from sample requests (none in Birtamod).
 
 Citizens can also **sign up** at `/register`; staff accounts are created by the system admin. New accounts
 must use an `@example.com` email (a domain reserved for examples), so the demo never stores a real address.
 
 ```bash
 curl -c cookies.txt -X POST localhost:4000/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"email":"officer.ward1@example.com","password":"demo1234"}'
+  -H 'Content-Type: application/json' -d '{"email":"officer.birtamod2@example.com","password":"demo1234","portal":"STAFF"}'
 curl -b cookies.txt localhost:4000/api/v1/auth/me
 ```
 

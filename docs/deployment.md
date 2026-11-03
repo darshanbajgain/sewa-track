@@ -57,6 +57,18 @@ env -u DATABASE_URL node --no-warnings --env-file=../../.env.neon --import tsx s
 editor terminals load `.env` automatically, so without it the command can silently migrate your *local*
 database instead ("already applied" is the clue).
 
+**Resetting the live demo** (`pnpm demo:reset`, PRD F13). It deletes **every request** and the old demo
+accounts, keeps every other account, re-seeds the public demo accounts and the private system admin, and adds
+2,000 anonymous sample requests outside Birtamod. Put `SEED_ADMIN_EMAIL` (`…@example.com`) and
+`SEED_ADMIN_PASSWORD` (12+ characters) in the same private `.env.neon`, then:
+
+```bash
+cd apps/api
+env -u DATABASE_URL CONFIRM_RESET=yes node --no-warnings --env-file=../../.env.neon --import tsx src/db/demo-reset.cli.ts
+```
+
+It prints only counts (users per role, requests, requests in Birtamod = 0), never emails or passwords.
+
 ## 3. Run everything in containers
 
 ```bash
@@ -85,6 +97,7 @@ API (validated at startup in [config/env.ts](../apps/api/src/config/env.ts); a b
 | `PORT` | `4000` | Most hosts set it |
 | `API_DOCS_ENABLED` | `true` | Swagger UI at `/api/docs` |
 | `APP_VERSION`, `GIT_COMMIT` | `0.1.0`, `ef62e0d` | Shown by `/health`, to tell which build is live |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | `admin@example.com`, 12+ chars | Seed/reset only (not the API). The private system admin; never commit them |
 
 Web:
 

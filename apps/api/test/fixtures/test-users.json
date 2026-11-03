@@ -1,0 +1,10 @@
+{
+  "note": "Accounts for the TEST database only (loaded by test/globalSetup.ts, never by the normal seed). Kathmandu (local level 307): two officers in ward 1 for the concurrency tests, one in ward 2 for the scope tests. Same password as the demo set.",
+  "users": [
+    { "role": "WARD_OFFICER", "name": "Ward Officer (Demo), Kathmandu Ward 1", "email": "officer.ward1@example.com", "phone": "9000000002", "wardLocalLevelId": 307, "wardNumber": 1 },
+    { "role": "WARD_OFFICER", "name": "Ward Officer 2 (Demo), Kathmandu Ward 1", "email": "officer2.ward1@example.com", "phone": "9000000003", "wardLocalLevelId": 307, "wardNumber": 1 },
+    { "role": "WARD_OFFICER", "name": "Ward Officer (Demo), Kathmandu Ward 2", "email": "officer.ward2@example.com", "phone": "9000000004", "wardLocalLevelId": 307, "wardNumber": 2 },
+    { "role": "PALIKA_ADMIN", "name": "Palika Admin (Demo), Kathmandu", "email": "palika.admin@example.com", "phone": "9000000005", "localLevelId": 307 },
+    { "role": "SYSTEM_ADMIN", "name": "System Admin (Demo)", "email": "system.admin@example.com", "phone": "9000000006" }
+  ]
+}

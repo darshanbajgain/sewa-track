@@ -56,85 +56,112 @@ function weightedPicker(wards: WardRow[]): () => WardRow {
   };
 }
 
-export async function seedLarge(client: pg.ClientBase, count: number, now = new Date()): Promise<{ requests: number; events: number }> {
+export interface SampleOptions {
+  now?: Date;
+  excludeLocalLevelIds?: number[]; // e.g. a palika whose staff should only see real requests
+  citizen: { name: string; email: string; phone: string }; // the one no-login account that owns them
+  purpose: string;
+}
+
+/**
+ * Inserts `count` fake requests and their audit events. No transaction and no TRUNCATE here: the caller
+ * decides (seedLarge empties the tables first; demo:reset runs it inside its own transaction).
+ */
+export async function insertSampleRequests(client: pg.ClientBase, count: number, options: SampleOptions): Promise<void> {
+  const now = options.now ?? new Date();
   const { rows: wardRows } = await client.query<Omit<WardRow, 'weight'> & { districtName: string }>(
     `SELECT w.id AS "wardId", l.id AS "localLevelId", d.id AS "districtId", d.province_id AS "provinceId", d.name_en AS "districtName"
-     FROM wards w JOIN local_levels l ON l.id = w.local_level_id JOIN districts d ON d.id = l.district_id`,
+     FROM wards w JOIN local_levels l ON l.id = w.local_level_id JOIN districts d ON d.id = l.district_id
+     WHERE NOT (l.id = ANY($1::int[]))`,
+    [options.excludeLocalLevelIds ?? []],
   );
   const wards = wardRows.map((w) => ({ ...w, weight: BUSY_DISTRICTS[w.districtName] ?? 1 }));
   const randomWard = weightedPicker(wards);
 
+  // password_hash 'no-login' is not a valid hash, so nobody can log in as this account.
+  const { rows: citizen } = await client.query<{ id: string }>(
+    `INSERT INTO users (role, name, email, phone, password_hash) VALUES ('CITIZEN', $1, $2, $3, 'no-login')
+     ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email RETURNING id`,
+    [options.citizen.name, options.citizen.email, options.citizen.phone],
+  );
+  const citizenId = citizen[0]!.id;
+
+  const BATCH = 5_000;
+  for (let start = 0; start < count; start += BATCH) {
+    const batch = [];
+    for (let i = start; i < Math.min(start + BATCH, count); i++) {
+      const service = pick(SERVICES);
+      const days = SERVICE_DAYS[service]!;
+      const ward = randomWard();
+      const closed = Math.random() < 0.65;
+      // Closed requests spread over the year. Open ones are mostly recent: 70% within 1.5× the
+      // promised days (some just past due), 30% older (genuinely stuck). Otherwise nearly every open
+      // request would look overdue, which is not a realistic picture.
+      const ageDays = closed ? Math.random() * 365 : Math.random() < 0.7 ? Math.random() * days * 1.5 : Math.random() * 60;
+      const submittedAt = new Date(now.getTime() - ageDays * DAY_MS);
+
+      let status: string;
+      let closedAt: string | null = null;
+      if (closed) {
+        const r = Math.random();
+        status = r < 0.85 ? 'ISSUED' : r < 0.93 ? 'REJECTED' : 'CANCELLED';
+        const tookDays = days * (0.2 + Math.random() * 2.3);
+        const closeTime = Math.min(submittedAt.getTime() + tookDays * DAY_MS, now.getTime());
+        closedAt = new Date(closeTime).toISOString();
+      } else {
+        const openStatuses = ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_DOCUMENTS', 'APPROVED', ...(FIELD_SERVICES.has(service) ? ['FIELD_VERIFICATION'] : [])];
+        status = pick(openStatuses);
+      }
+
+      batch.push({
+        trackingCode: generateTrackingCode(),
+        service,
+        ...ward,
+        status,
+        submittedAt: submittedAt.toISOString(),
+        closedAt,
+        applicant: { name: `Demo Applicant ${i + 1}`, nid: `DEMO-${String(i % 10_000_000).padStart(7, '0')}` },
+      });
+    }
+
+    await client.query(
+      `INSERT INTO service_requests
+         (tracking_code, citizen_id, service_type_code, ward_id, local_level_id, district_id, province_id,
+          purpose, applicant, status, submitted_at, updated_at, closed_at)
+       SELECT x."trackingCode", $2, x.service, x."wardId", x."localLevelId", x."districtId", x."provinceId",
+              $3, x.applicant, x.status,
+              x."submittedAt", coalesce(x."closedAt", x."submittedAt"), x."closedAt"
+       FROM jsonb_to_recordset($1::jsonb) AS x(
+         "trackingCode" text, service text, "wardId" int, "localLevelId" int, "districtId" smallint, "provinceId" smallint,
+         status text, "submittedAt" timestamptz, "closedAt" timestamptz, applicant jsonb)`,
+      [JSON.stringify(batch), citizenId, options.purpose],
+    );
+  }
+
+  // Audit history (only this account's requests): a CREATED event for each, plus the final status for closed ones.
+  await client.query(
+    `INSERT INTO request_events (request_id, actor_id, action, to_status, created_at)
+     SELECT id, citizen_id, 'CREATED', 'SUBMITTED', submitted_at FROM service_requests WHERE citizen_id = $1`,
+    [citizenId],
+  );
+  await client.query(
+    `INSERT INTO request_events (request_id, actor_id, action, from_status, to_status, created_at)
+     SELECT id, NULL, 'STATUS_CHANGED', 'UNDER_REVIEW', status, closed_at FROM service_requests
+     WHERE citizen_id = $1 AND closed_at IS NOT NULL`,
+    [citizenId],
+  );
+}
+
+/** `pnpm seed:large`: replaces ALL requests with `count` bulk ones (performance work, PRD F11). */
+export async function seedLarge(client: pg.ClientBase, count: number, now = new Date()): Promise<{ requests: number; events: number }> {
   await client.query('BEGIN');
   try {
     await client.query('TRUNCATE request_documents, request_events, identity_checks, service_requests');
-    const { rows: citizen } = await client.query<{ id: string }>(
-      `INSERT INTO users (role, name, email, phone, password_hash) VALUES ('CITIZEN', 'Bulk Citizen (Demo)', 'bulk.citizen@example.com', '9099999999', 'no-login')
-       ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-    );
-    const citizenId = citizen[0]!.id;
-
-    const BATCH = 5_000;
-    for (let start = 0; start < count; start += BATCH) {
-      const batch = [];
-      for (let i = start; i < Math.min(start + BATCH, count); i++) {
-        const service = pick(SERVICES);
-        const days = SERVICE_DAYS[service]!;
-        const ward = randomWard();
-        const closed = Math.random() < 0.65;
-        // Closed requests spread over the year. Open ones are mostly recent: 70% within 1.5× the
-        // promised days (some just past due), 30% older (genuinely stuck). Otherwise nearly every open
-        // request would look overdue, which is not a realistic picture.
-        const ageDays = closed ? Math.random() * 365 : Math.random() < 0.7 ? Math.random() * days * 1.5 : Math.random() * 60;
-        const submittedAt = new Date(now.getTime() - ageDays * DAY_MS);
-
-        let status: string;
-        let closedAt: string | null = null;
-        if (closed) {
-          const r = Math.random();
-          status = r < 0.85 ? 'ISSUED' : r < 0.93 ? 'REJECTED' : 'CANCELLED';
-          const tookDays = days * (0.2 + Math.random() * 2.3);
-          const closeTime = Math.min(submittedAt.getTime() + tookDays * DAY_MS, now.getTime());
-          closedAt = new Date(closeTime).toISOString();
-        } else {
-          const openStatuses = ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_DOCUMENTS', 'APPROVED', ...(FIELD_SERVICES.has(service) ? ['FIELD_VERIFICATION'] : [])];
-          status = pick(openStatuses);
-        }
-
-        batch.push({
-          trackingCode: generateTrackingCode(),
-          service,
-          ...ward,
-          status,
-          submittedAt: submittedAt.toISOString(),
-          closedAt,
-          applicant: { name: `Demo Applicant ${i + 1}`, nid: `DEMO-${String(i % 10_000_000).padStart(7, '0')}` },
-        });
-      }
-
-      await client.query(
-        `INSERT INTO service_requests
-           (tracking_code, citizen_id, service_type_code, ward_id, local_level_id, district_id, province_id,
-            purpose, applicant, status, submitted_at, updated_at, closed_at)
-         SELECT x."trackingCode", $2, x.service, x."wardId", x."localLevelId", x."districtId", x."provinceId",
-                'Bulk demo request for performance testing', x.applicant, x.status,
-                x."submittedAt", coalesce(x."closedAt", x."submittedAt"), x."closedAt"
-         FROM jsonb_to_recordset($1::jsonb) AS x(
-           "trackingCode" text, service text, "wardId" int, "localLevelId" int, "districtId" smallint, "provinceId" smallint,
-           status text, "submittedAt" timestamptz, "closedAt" timestamptz, applicant jsonb)`,
-        [JSON.stringify(batch), citizenId],
-      );
-    }
-
-    // Audit history: a CREATED event for every request, plus the final status for closed ones.
-    await client.query(
-      `INSERT INTO request_events (request_id, actor_id, action, to_status, created_at)
-       SELECT id, citizen_id, 'CREATED', 'SUBMITTED', submitted_at FROM service_requests`,
-    );
-    await client.query(
-      `INSERT INTO request_events (request_id, actor_id, action, from_status, to_status, created_at)
-       SELECT id, NULL, 'STATUS_CHANGED', 'UNDER_REVIEW', status, closed_at FROM service_requests WHERE closed_at IS NOT NULL`,
-    );
-
+    await insertSampleRequests(client, count, {
+      now,
+      citizen: { name: 'Bulk Citizen (Demo)', email: 'bulk.citizen@example.com', phone: '9099999999' },
+      purpose: 'Bulk demo request for performance testing',
+    });
     const { rows } = await client.query<{ requests: number; events: number }>(
       `SELECT (SELECT count(*) FROM service_requests)::int AS requests, (SELECT count(*) FROM request_events)::int AS events`,
     );

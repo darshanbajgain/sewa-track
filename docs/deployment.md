@@ -139,6 +139,9 @@ request waits about **a minute** while it starts again. Two parts handle this:
   **Liveness** (`/live`: is the process running?) vs **readiness** (`/health`: can it serve real requests?).
 - One service awake all month ≈ 744 hours, inside Render's 750 free hours. Only the API is kept awake.
 - Not GitHub Actions `schedule`: its runs are often late and stop after 60 days without commits.
+- **Live demo:** a cron-job.org job (owner's account) calls the Render API's `/api/v1/live` every 10 minutes,
+  `GET`, alert after repeated failures. Checked 2026-11-03: every run 200 OK in about 1 s; `/live` answered in
+  0.2–0.4 s, against 22.6 s from a sleeping API before the job existed.
 
 **2. If it sleeps anyway: the web app explains and recovers** ([ServerWakeNotice.tsx](../apps/web/src/components/ServerWakeNotice.tsx)).
 On each full page load it pings `/live`:

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { loginPathFor } from '@/lib/routing';
 
 /**
  * Next.js 16 "proxy" (formerly middleware): runs on the server BEFORE a page renders or a rewrite runs.
@@ -35,7 +36,7 @@ export function proxy(request: NextRequest) {
 
   if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
 
-  const login = new URL('/login', request.url);
+  const login = new URL(loginPathFor(request.nextUrl.pathname), request.url); // staff portals → /staff/login
   login.searchParams.set('next', request.nextUrl.pathname);
   login.searchParams.set('reason', 'required');
   return NextResponse.redirect(login);

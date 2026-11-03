@@ -37,7 +37,7 @@ describe('PROXY_SECRET: the website is the only way in', () => {
   it('refuses a direct login before checking the password', async () => {
     const res = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'citizen@example.com', password: 'demo1234' });
+      .send({ email: 'citizen@example.com', password: 'demo1234', portal: 'CITIZEN' });
 
     expect(res.status).toBe(403);
     expect(res.headers['set-cookie']).toBeUndefined();
@@ -55,7 +55,7 @@ describe('PROXY_SECRET: the website is the only way in', () => {
         .post('/api/v1/auth/login')
         .set('x-proxy-secret', SECRET)
         .set('x-client-ip', ip)
-        .send({ email: 'nobody@example.com', password: 'wrong-password' });
+        .send({ email: 'nobody@example.com', password: 'wrong-password', portal: 'CITIZEN' });
 
     for (let i = 0; i < 5; i++) expect((await badLogin('203.0.113.7')).status).toBe(401);
     expect((await badLogin('203.0.113.7')).status).toBe(429);

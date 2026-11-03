@@ -8,7 +8,7 @@ import { getCurrentUser, login, register } from '../services/auth.service.js';
  * No SQL and no business rules here.
  */
 
-/** POST /api/v1/auth/login  body: { email, password } */
+/** POST /api/v1/auth/login  body: { email, password, portal: CITIZEN | STAFF } */
 export const postLogin: RequestHandler = async (req, res) => {
   // .parse throws a ZodError on bad input → the error handler turns it into 400 VALIDATION_ERROR.
   const input = loginSchema.parse(req.body);

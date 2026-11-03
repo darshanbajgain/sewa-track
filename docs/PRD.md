@@ -148,11 +148,12 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 
 ### F3. Authentication and citizen sign-up
 - **Email** + password login for every role (scrypt hash). JWT in an **httpOnly, Secure, SameSite=Lax cookie**, 8h expiry.
+- **Separate login pages** (added 2026-11-03): citizens at `/login` (with sign-up link), staff (ward officer, palika admin, system admin) at `/staff/login` (no sign-up; staff accounts are created by the system admin). The login request names its portal and the API enforces it: the right account on the wrong page → `403` with `details.portal` (checked after the password, so it doesn't reveal which emails are staff). Staff portals redirect to the staff login.
 - **Citizen sign-up** (`/register`): name, email, password (≥ 8). Logged in straight away. Role is always `CITIZEN`.
 - **Demo rule:** new accounts must use an `@example.com` email (reserved for examples, RFC 2606), so the public demo never stores a real address (§12.3).
 - **Demo mode** on the login page: a separate, collapsed panel listing one fake account per role; choosing one fills the normal form.
 - Deactivated accounts can't log in (403) and their sessions stop working immediately.
-- **AC:** wrong password or unknown email → same 401; sign-up with a taken email → 409; non-demo email → 400; protected routes without a cookie → 401; sign-up and login rate limited (5/min).
+- **AC:** wrong password or unknown email → same 401; sign-up with a taken email → 409; non-demo email → 400; protected routes without a cookie → 401; sign-up and login rate limited (5/min); staff account on the citizen login (or citizen on the staff login) → 403, no cookie.
 
 ### F4. Submit request (citizen)
 - Fields: service type, ward (via cascading selects), purpose (text, 10–500 chars), applicant details (demo: name, demo NID like `DEMO-1234567`), consent checkbox ("I understand this is a demo and I am not entering real information").

@@ -50,7 +50,7 @@ apps/web/
 │  ├─ en.json                every UI label in English
 │  └─ ne.json                every UI label in Nepali (TypeScript fails if a key is missing)
 └─ src/
-   ├─ proxy.ts               Next 16 "proxy" (ex-middleware): no session cookie → /login (portals only)
+   ├─ proxy.ts               Next 16 "proxy" (ex-middleware): no session cookie → /login (citizen portal) or /staff/login (staff portals)
    ├─ app/                   ROUTES (one folder = one URL)
    │  ├─ layout.tsx          banner → wake notice → header → nav → page → footer; fonts; Providers
    │  ├─ providers.tsx       QueryClient · LanguageProvider · SessionWatcher
@@ -60,7 +60,8 @@ apps/web/
    │  ├─ services/           /services  catalog ✅
    │  ├─ track/              /track     public tracking ✅
    │  ├─ stats/              /stats     national delay map ✅ (public, aggregates only)
-   │  ├─ login/              /login     email form + collapsed "Demo mode" panel (fills the form) ✅
+   │  ├─ login/              /login     citizen login: email form + collapsed "Demo mode" panel (fills the form) ✅
+   │  ├─ staff/login/        /staff/login  staff login, same form (components/auth/LoginForm.tsx), staff demo accounts ✅
    │  ├─ register/           /register  citizen sign-up (shared registerSchema; 409 → "email taken") ✅
    │  ├─ citizen/            /citizen/* citizen portal ✅ (layout = RequireRole + portal tabs)
    │  │  ├─ page.tsx         my requests
@@ -227,7 +228,7 @@ One app, **one portal per role** (decided 2026-11-01; ADR-003):
 
 | Portal | Routes | Who |
 |---|---|---|
-| Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login`, `/register` | anyone |
+| Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login`, `/staff/login`, `/register` | anyone |
 | Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
 | Ward ✅ | `/ward` (queue), `/ward/requests/[id]` (actions) | `WARD_OFFICER` |
 | Palika ✅ | `/palika` (queue), `/palika/requests/[id]` (read only), `/palika/reports` | `PALIKA_ADMIN` |
@@ -239,7 +240,7 @@ admin → all; only officers get action buttons).
 
 ### Three layers of protection for a portal page
 ```
- 1. proxy.ts (server, before render)   no sewa_session cookie?  → 307 /login?next=…&reason=required
+ 1. proxy.ts (server, before render)   no sewa_session cookie?  → 307 /login (or /staff/login for /ward, /palika, /admin)?next=…&reason=required
                                        (optimistic: checks the cookie EXISTS, can't verify it: no secret)
  2. RequireRole (client, portal layout) GET /auth/me → nobody: go to login · wrong role: "no access" (403 UI)
  3. The API (the real security)         every endpoint checks session, role AND scope; returns 401/403

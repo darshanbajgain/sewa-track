@@ -46,10 +46,10 @@ export function useLogout() {
  */
 export const DEMO_PASSWORD = 'demo1234';
 export const DEMO_ACCOUNTS = [
-  { email: 'citizen@example.com', labelKey: 'login.asCitizen' },
-  { email: 'officer.ward1@example.com', labelKey: 'login.asOfficer' },
-  { email: 'officer2.ward1@example.com', labelKey: 'login.asOfficer2' },
-  { email: 'officer.ward2@example.com', labelKey: 'login.asOfficerWard2' },
-  { email: 'palika.admin@example.com', labelKey: 'login.asPalika' },
-  { email: 'system.admin@example.com', labelKey: 'login.asSystem' },
+  { email: 'citizen@example.com', labelKey: 'login.asCitizen', portal: 'CITIZEN' },
+  { email: 'officer.ward1@example.com', labelKey: 'login.asOfficer', portal: 'STAFF' },
+  { email: 'officer2.ward1@example.com', labelKey: 'login.asOfficer2', portal: 'STAFF' },
+  { email: 'officer.ward2@example.com', labelKey: 'login.asOfficerWard2', portal: 'STAFF' },
+  { email: 'palika.admin@example.com', labelKey: 'login.asPalika', portal: 'STAFF' },
+  { email: 'system.admin@example.com', labelKey: 'login.asSystem', portal: 'STAFF' },
 ] as const;

@@ -15,7 +15,7 @@ import { signSessionToken } from '../src/security/token.js';
  */
 afterAll(() => closePool());
 
-const CITIZEN = { email: 'citizen@example.com', password: 'demo1234' };
+const CITIZEN = { email: 'citizen@example.com', password: 'demo1234', portal: 'CITIZEN' };
 
 /** Pulls the "sewa_session=..." part out of the Set-Cookie response header. */
 function sessionCookie(res: request.Response): string {
@@ -43,7 +43,7 @@ describe('POST /auth/login', () => {
 
   it('returns the same 401 message for a wrong password and an unknown email (no user enumeration)', async () => {
     const wrongPassword = await request(app).post('/api/v1/auth/login').send({ ...CITIZEN, password: 'nope' });
-    const unknownEmail = await request(app).post('/api/v1/auth/login').send({ email: 'nobody@example.com', password: 'nope' });
+    const unknownEmail = await request(app).post('/api/v1/auth/login').send({ email: 'nobody@example.com', password: 'nope', portal: 'CITIZEN' });
 
     expect(wrongPassword.status).toBe(401);
     expect(unknownEmail.status).toBe(401);
@@ -63,6 +63,39 @@ describe('POST /auth/login', () => {
     expect(res.body.error.details.issues.map((i: { path: string }) => i.path)).toEqual(
       expect.arrayContaining(['email', 'password']),
     );
+  });
+});
+
+describe('separate citizen and staff login (portal)', () => {
+  const app = createApp();
+  const OFFICER = { email: 'officer.ward1@example.com', password: 'demo1234' };
+
+  it('refuses a staff account on the citizen page: 403 with the right portal, and no cookie', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send({ ...OFFICER, portal: 'CITIZEN' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatchObject({ code: 'FORBIDDEN', details: { portal: 'STAFF' } });
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('refuses a citizen on the staff page', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send({ ...CITIZEN, portal: 'STAFF' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.details).toEqual({ portal: 'CITIZEN' });
+  });
+
+  it('checks the password first: a wrong password on the wrong page is the normal 401 (no hint that it is staff)', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send({ ...OFFICER, password: 'wrong', portal: 'CITIZEN' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error.details).toEqual({});
+  });
+
+  it('requires the portal field', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send(OFFICER);
+
+    expect(res.status).toBe(400);
   });
 });
 
@@ -100,7 +133,7 @@ describe('GET /auth/me and logout', () => {
   });
 
   it('returns the logged-in user with the cookie', async () => {
-    const login = await request(app).post('/api/v1/auth/login').send({ email: 'officer.ward1@example.com', password: 'demo1234' });
+    const login = await request(app).post('/api/v1/auth/login').send({ email: 'officer.ward1@example.com', password: 'demo1234', portal: 'STAFF' });
     const res = await request(app).get('/api/v1/auth/me').set('Cookie', sessionCookie(login));
 
     expect(res.status).toBe(200);

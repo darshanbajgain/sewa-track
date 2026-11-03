@@ -561,7 +561,7 @@ apps/web/
 ├─ next.config.ts          /api/* rewritten to the Express API (same origin → the login cookie works, no CORS)
 ├─ messages/en.json, ne.json   all labels (English / Nepali); TypeScript fails if a Nepali key is missing
 ├─ src/app/
-│  ├─ layout.tsx           demo banner → header → blue nav → page → footer; Noto Sans + Noto Sans Devanagari
+│  ├─ layout.tsx           demo notice (dialog) → header with DEMO pill → blue nav → page → footer; Noto Sans + Noto Sans Devanagari
 │  ├─ providers.tsx        TanStack Query client + language provider
 │  ├─ globals.css          design tokens (Nepal blue #003893, crimson #dc143c, white), focus outline
 │  ├─ page.tsx             home: live national numbers + most-overdue districts (GET /stats/map)
@@ -573,7 +573,7 @@ apps/web/
 ├─ src/proxy.ts            Next 16 proxy: no session cookie on /citizen, /ward, /palika, /admin → /login
 ├─ src/components/common/  Button, ButtonLink, Card, Badge, Alert, Modal, Text/TextArea/SelectField, QueryState, Spinner
 ├─ src/components/auth/    SessionWatcher (401 → login), RequireRole (portal guard)
-├─ src/components/         SiteChrome (banner, header, nav, footer)
+├─ src/components/         SiteChrome (demo notice, header, nav, footer)
 ├─ src/api/                talks HTTP; no React
 │  ├─ client.ts            ONE axios instance: baseURL /api/v1, cookies, 15 s timeout, interceptor → ApiError(code)
 │  ├─ endpoints.ts         every API path in one place (ENDPOINTS.requests.detail(id) …)
@@ -591,7 +591,7 @@ so every screen refetches by itself after a change; `useChangeStatus` invalidate
 409 means our copy is old. To add an endpoint: path in `endpoints.ts` → function in `*.api.ts` → hook → page.
 
 **Design rules:** a government-portal *pattern* in our own design. No emblem, flag, palika logo or
-"Government of Nepal" wording; the bilingual demo banner is always first; crimson is a sparing accent.
+"Government of Nepal" wording; the bilingual demo notice opens on load and a DEMO pill is on every page; crimson is a sparing accent.
 
 **Commands:** `pnpm --filter @sewa/web dev` (needs the API on :4000) · `pnpm --filter @sewa/web build`.
 `API_ORIGIN` (default `http://localhost:4000`) sets where `/api/*` is forwarded.

@@ -72,9 +72,9 @@ export const LOGIN_PATH: Record<LoginPortal, string> = {
 
 export const isLoginPath = (path: string) => path === LOGIN_PATH.CITIZEN || path === LOGIN_PATH.STAFF;
 
-/** The staff portals send people to the staff login; everything else to the citizen login. */
+/** The staff portals send people to the staff login; everything else to the citizen login. A query is ignored. */
 export function loginPathFor(path: string): string {
-  return /^\/(ward|palika|admin)(\/|$)/.test(path) ? LOGIN_PATH.STAFF : LOGIN_PATH.CITIZEN;
+  return /^\/(ward|palika|admin)(\/|\?|$)/.test(path) ? LOGIN_PATH.STAFF : LOGIN_PATH.CITIZEN;
 }
 
 /** "/login?next=…&reason=…" (or /staff/login) for the current page. */

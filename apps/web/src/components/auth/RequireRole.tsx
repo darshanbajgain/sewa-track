@@ -23,7 +23,8 @@ export function RequireRole({ roles, children }: { roles: readonly Role[]; child
   const pathname = usePathname();
 
   useEffect(() => {
-    if (me.isSuccess && me.data === null) router.replace(loginUrl(pathname, 'required'));
+    // With the query, so e.g. ?service=… survives logging in (same as proxy.ts).
+    if (me.isSuccess && me.data === null) router.replace(loginUrl(pathname + window.location.search, 'required'));
   }, [me.isSuccess, me.data, pathname, router]);
 
   if (me.isLoading || (me.isSuccess && me.data === null)) {

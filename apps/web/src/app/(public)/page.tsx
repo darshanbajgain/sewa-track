@@ -2,30 +2,23 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Badge, Button, ButtonLink, Card, QueryState, TextField } from '@/components/common';
-import { DelayMap } from '@/components/map/DelayMap';
-import { useDistricts, useServiceTypes } from '@/hooks/useReference';
+import { Badge, ButtonLink, Card, QueryState } from '@/components/common';
+import { useServiceTypes } from '@/hooks/useReference';
 import { useMapStats } from '@/hooks/useStats';
 import { pickName, useI18n, type MessageKey } from '@/lib/i18n';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 /**
- * Home (PRD F8). Top to bottom:
- *   1. hero: what this is, Apply, and a tracking box · beside it the national numbers (live, GET /stats/map totals)
- *   2. the headline: the district delay map, with the most-overdue districts beside it
- *   3. how it works (4 steps) · 4. the services, with fee, days and documents
- * Only existing data and components; nothing new on the server.
+ * Home (PRD F8, simplified 2026-11-03 by the owner): a short page that points to the right place.
+ *   1. hero: what this is + Apply / Track a request / Delay map · beside it the national numbers (GET /stats/map totals)
+ *   2. the services, each with "Apply for this" (→ the apply form with that service chosen) · 3. how it works
+ * The delay map and tracking have their own pages (/stats, /track), so they are not repeated here.
  */
 export default function HomePage() {
   const { t, lang } = useI18n();
   usePageTitle(undefined); // home: just the site name
   const stats = useMapStats({ metric: 'overdue' });
-  const districts = useDistricts();
   const services = useServiceTypes();
-
-  const nameOf = new Map((districts.data ?? []).map((d) => [d.id, pickName(d, lang)]));
-  const topOverdue = [...(stats.data?.areas ?? [])].sort((a, b) => (b.value ?? 0) - (a.value ?? 0)).slice(0, 6);
-  const maxOverdue = topOverdue[0]?.value ?? 0;
   const totals = stats.data?.totals;
   // 'nu-deva' = Devanagari digits (३४,७२४) in Nepali; the browser formats them, no library needed.
   const fmt = (n: number) => n.toLocaleString(lang === 'ne' ? 'ne-NP-u-nu-deva' : 'en-US');
@@ -39,29 +32,17 @@ export default function HomePage() {
             <p className="text-sm font-semibold uppercase tracking-wide text-accent">{t('home.eyebrow')}</p>
             <h1 className="text-4xl font-bold leading-tight text-primary sm:text-5xl">{t('home.title')}</h1>
             <p className="max-w-2xl text-lg">{t('home.subtitle')}</p>
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <ButtonLink href="/citizen/apply" size="lg">
                 {t('home.apply')}
               </ButtonLink>
-              <Link href="/services" className="font-semibold text-primary">
-                {t('home.browseServices')} →
-              </Link>
+              <ButtonLink href="/track" variant="secondary" size="lg">
+                {t('home.trackRequest')}
+              </ButtonLink>
+              <ButtonLink href="/stats" variant="ghost" size="lg">
+                {t('home.seeMap')} →
+              </ButtonLink>
             </div>
-
-            {/* A plain GET form: /track?code=… (the track page looks the code up). Works without JavaScript. */}
-            <form action="/track" method="get" role="search" aria-labelledby="track-box-title" className="flex max-w-xl flex-col gap-3 rounded-xl border border-line bg-white p-4">
-              <p id="track-box-title" className="font-semibold">
-                {t('home.trackTitle')}
-              </p>
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="min-w-0 flex-[1_1_220px]">
-                  <TextField label={t('home.trackLabel')} name="code" placeholder="ST-XXXXXXXXXX" autoComplete="off" spellCheck={false} required />
-                </div>
-                <Button type="submit" variant="secondary">
-                  {t('home.track')}
-                </Button>
-              </div>
-            </form>
           </div>
 
           <Card as="section" aria-labelledby="numbers" className="flex flex-col gap-4 shadow-sm">
@@ -81,51 +62,47 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-14 px-4 py-12">
-        {/* 2. The headline: where are requests late? */}
-        <section aria-labelledby="map" className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 id="map" className="text-2xl font-bold">
-              {t('map.title')}
+      <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 py-12">
+        {/* 2. Services */}
+        <section aria-labelledby="services" className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="services" className="text-2xl font-bold">
+              {t('home.servicesTitle')}
             </h2>
-            <p className="max-w-3xl text-muted">{t('home.mapIntro')}</p>
+            <Link href="/services" className="font-semibold text-primary">
+              {t('home.allServices')} →
+            </Link>
           </div>
-          <div className="flex flex-wrap gap-6">
-            <div className="min-w-0 flex-[2_1_520px]">
-              <DelayMap variant="compact" />
-            </div>
-
-            {/* Most overdue districts: the same numbers as text (also a fallback for the map). */}
-            <aside aria-labelledby="overdue" className="flex flex-[1_1_280px] flex-col gap-3">
-              <h3 id="overdue" className="text-lg font-bold">
-                {t('home.mostOverdue')}
-              </h3>
-              <ol className="flex flex-col gap-3">
-                {topOverdue.map((a, i) => (
-                  <li key={a.areaId} className="flex flex-col gap-1">
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="font-semibold">
-                        {fmt(i + 1)}. {nameOf.get(a.areaId) ?? a.areaId}
-                      </span>
-                      <span>
-                        <span className="font-bold text-accent">{fmt(a.value ?? 0)}</span>{' '}
-                        <span className="text-muted">
-                          {t('home.ofTotal')} {fmt(a.total)}
-                        </span>
-                      </span>
-                    </div>
-                    {/* Bar length = overdue compared with the worst district (decorative; the numbers are written above). */}
-                    <span aria-hidden="true" className="h-2 rounded-full bg-accent-soft">
-                      <span className="block h-2 rounded-full bg-accent" style={{ width: `${maxOverdue ? ((a.value ?? 0) / maxOverdue) * 100 : 0}%` }} />
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              <Link href="/stats" className="mt-1 self-start font-semibold text-primary">
-                {t('home.fullMap')} →
-              </Link>
-            </aside>
-          </div>
+          <QueryState isLoading={services.isLoading} error={services.error} onRetry={() => services.refetch()} />
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(services.data ?? []).map((s) => (
+              <li key={s.code} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-5">
+                <span className="text-lg font-semibold text-primary">{pickName(s, lang)}</span>
+                <span className="flex flex-wrap gap-2">
+                  <Badge>{s.feeNpr === 0 ? t('services.free') : `NPR ${fmt(s.feeNpr)}`}</Badge>
+                  <Badge>
+                    {fmt(s.serviceDays)} {s.serviceDays === 1 ? t('services.day') : t('services.days')}
+                  </Badge>
+                  {s.requiresFieldVerification && <Badge tone="info">{t('services.fieldVisit')}</Badge>}
+                </span>
+                <span className="text-sm text-muted">
+                  {fmt(s.requiredDocuments.length)} {t('home.docsNeeded')}
+                </span>
+                {/* A visitor is asked to log in first and then lands on the form with this service chosen. */}
+                <span className="mt-auto flex flex-wrap items-center gap-3 pt-1">
+                  <ButtonLink href={`/citizen/apply?service=${s.code}`}>
+                    {t('services.applyFor')}
+                    <span className="sr-only">: {pickName(s, lang)}</span>
+                  </ButtonLink>
+                  <Link href={`/services#${s.code}`} className="text-sm font-semibold text-primary">
+                    {t('home.details')}
+                    <span className="sr-only">: {pickName(s, lang)}</span>
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted">{t('services.demoValues')}</p>
         </section>
 
         {/* 3. How it works */}
@@ -151,41 +128,6 @@ export default function HomePage() {
           </ol>
         </section>
 
-        {/* 4. Services */}
-        <section aria-labelledby="services" className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="services" className="text-2xl font-bold">
-              {t('home.servicesTitle')}
-            </h2>
-            <Link href="/services" className="font-semibold text-primary">
-              {t('home.allServices')} →
-            </Link>
-          </div>
-          <QueryState isLoading={services.isLoading} error={services.error} onRetry={() => services.refetch()} />
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(services.data ?? []).map((s) => (
-              <li key={s.code}>
-                <Link
-                  href={`/services#${s.code}`}
-                  className="flex h-full flex-col gap-3 rounded-xl border border-line bg-white p-5 no-underline transition-colors hover:border-primary hover:bg-primary-soft"
-                >
-                  <span className="text-lg font-semibold text-primary">{pickName(s, lang)}</span>
-                  <span className="flex flex-wrap gap-2">
-                    <Badge>{s.feeNpr === 0 ? t('services.free') : `NPR ${fmt(s.feeNpr)}`}</Badge>
-                    <Badge>
-                      {fmt(s.serviceDays)} {s.serviceDays === 1 ? t('services.day') : t('services.days')}
-                    </Badge>
-                    {s.requiresFieldVerification && <Badge tone="info">{t('services.fieldVisit')}</Badge>}
-                  </span>
-                  <span className="text-sm text-muted">
-                    {fmt(s.requiredDocuments.length)} {t('home.docsNeeded')}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted">{t('services.demoValues')}</p>
-        </section>
       </div>
     </>
   );

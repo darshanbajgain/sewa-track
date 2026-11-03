@@ -160,7 +160,7 @@ request waits about **a minute** while it starts again. Two parts handle this:
 **2. If it sleeps anyway: the web app explains and recovers** ([ServerWakeNotice.tsx](../apps/web/src/components/ServerWakeNotice.tsx)).
 On each full page load it pings `/live`:
 - answer within 3 s → nothing is shown (the normal case)
-- slower → "Waking up the demo server…" (English + Nepali) under the demo banner
+- slower → "Waking up the demo server…" (English + Nepali) under the header
 - it pings again every 2 s until the API answers (a proxy in between can cut a long request; our own
   Next.js rewrite does at 30 s), and gives up after 2 minutes (= a real outage; pages show their own errors)
 - once the API answers after a slow start, queries that failed while it slept are fetched again, so the

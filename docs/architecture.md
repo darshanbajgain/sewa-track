@@ -421,7 +421,7 @@ system would use a job queue with retries.
 | Stack traces / SQL errors exposed | Generic 500 message | ✅ |
 | Common web attacks (clickjacking, sniffing) | `helmet` security headers | ✅ |
 | Secrets in Git | `.env` ignored; only `.env.example`; gitleaks before going public | ✅ |
-| Real personal data | Fake data only, `DEMO-` ids, consent checkbox, demo banner, periodic reset | 🔜 |
+| Real personal data | Fake data only, `DEMO-` ids, consent checkbox, demo notice + DEMO pill, periodic reset | 🔜 |
 
 ---
 

@@ -37,7 +37,8 @@ export function proxy(request: NextRequest) {
   if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
 
   const login = new URL(loginPathFor(request.nextUrl.pathname), request.url); // staff portals → /staff/login
-  login.searchParams.set('next', request.nextUrl.pathname);
+  // Keep the query too (e.g. /citizen/apply?service=LAND_BOUNDARY), so the user lands exactly where they were going.
+  login.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
   login.searchParams.set('reason', 'required');
   return NextResponse.redirect(login);
 }

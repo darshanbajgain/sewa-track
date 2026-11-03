@@ -49,5 +49,13 @@ export const LOCAL_LEVEL_TYPES = ['METRO', 'SUB_METRO', 'MUNICIPALITY', 'RURAL_M
 export type LocalLevelType = (typeof LOCAL_LEVEL_TYPES)[number];
 
 /** What an audit event records (PRD §8, request_events.action). */
-export const EVENT_ACTIONS = ['CREATED', 'STATUS_CHANGED', 'FEE_PAID', 'REASSIGNED', 'IDENTITY_CHECKED'] as const;
+export const EVENT_ACTIONS = [
+  'CREATED',
+  'STATUS_CHANGED',
+  'FEE_PAID',
+  'REASSIGNED',
+  'IDENTITY_CHECKED',
+  'DOCUMENT_UPLOADED', // PRD F15
+  'DOCUMENT_REVIEWED',
+] as const;
 export type EventAction = (typeof EVENT_ACTIONS)[number];

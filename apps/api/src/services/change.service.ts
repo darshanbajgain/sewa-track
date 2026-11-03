@@ -9,6 +9,7 @@ import { logger } from '../logger.js';
 import { findChangeFacts, markFeePaidWithVersion, updateStatusWithVersion } from '../repositories/change.repository.js';
 import { insertEvent } from '../repositories/event.repository.js';
 import type { SessionUser } from '../security/token.js';
+import { requestDocumentsInTransaction } from './document.service.js';
 
 const CONFLICT_MESSAGE = 'This request was updated by someone else. Reload to see the latest.';
 
@@ -21,6 +22,7 @@ const CONFLICT_MESSAGE = 'This request was updated by someone else. Reload to se
  *   4. domain rule: allowed move, right role, conditions? no → 422 / 403 / 400
  *   5. ONE transaction:
  *        UPDATE ... WHERE id AND version   (0 rows → someone was faster → ROLLBACK → 409)
+ *        asking for documents? → create a REQUESTED slot per named document (PRD F15)
  *        INSERT audit event STATUS_CHANGED
  *      COMMIT: both saved, or neither (AGENTS §6)
  *   6. AFTER commit: notify the citizen. A failed notification must not undo a saved change,
@@ -42,7 +44,11 @@ export async function changeStatus(
   // Fast path: the user is looking at an old copy. (Step 5 still guards the race in between.)
   if (body.version !== facts.version) throw new AppError('CONFLICT', CONFLICT_MESSAGE);
 
-  const decision = checkTransition(facts, body.toStatus, user.role, { note: body.note, reason: body.reason });
+  const decision = checkTransition(facts, body.toStatus, user.role, {
+    note: body.note,
+    reason: body.reason,
+    documents: body.documents,
+  });
   if (!decision.ok) throw new AppError(decision.code, decision.message);
 
   const result = await withTransaction(async (client) => {
@@ -56,6 +62,10 @@ export async function changeStatus(
     });
     // Throwing inside withTransaction → ROLLBACK, then the error handler sends 409.
     if (!updated) throw new AppError('CONFLICT', CONFLICT_MESSAGE);
+
+    if (decision.effects.requestDocuments) {
+      await requestDocumentsInTransaction(client, id, body.documents ?? [], user.id);
+    }
 
     await insertEvent(client, {
       requestId: id,

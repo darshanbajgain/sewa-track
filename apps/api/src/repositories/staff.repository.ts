@@ -1,6 +1,7 @@
 import type { EventAction, RequestStatus, ServiceTypeCode } from '@sewa/shared';
 import { QUEUE_PAGE_SIZE } from '@sewa/shared';
 import { pool } from '../db/pool.js';
+import { OPEN_DOCUMENTS_SQL } from './document.repository.js';
 
 /**
  * Queries for the staff queue and the request detail page.
@@ -111,6 +112,7 @@ export interface DetailRow {
   submittedAt: Date;
   updatedAt: Date;
   closedAt: Date | null;
+  openDocuments: number; // requested or "not OK" documents (PRD F15)
 }
 
 /** Everything about one request (the service decides who may see it). */
@@ -126,7 +128,8 @@ export async function findRequestDetail(id: string): Promise<DetailRow | null> {
             r.purpose, r.applicant,
             r.assigned_officer_id AS "assignedOfficerId", officer.name AS "assignedOfficerName",
             r.fee_paid_at AS "feePaidAt", r.field_verified_at AS "fieldVerifiedAt",
-            r.submitted_at AS "submittedAt", r.updated_at AS "updatedAt", r.closed_at AS "closedAt"
+            r.submitted_at AS "submittedAt", r.updated_at AS "updatedAt", r.closed_at AS "closedAt",
+            ${OPEN_DOCUMENTS_SQL} AS "openDocuments"
      FROM service_requests r
      JOIN service_types st  ON st.code = r.service_type_code
      JOIN wards w           ON w.id = r.ward_id

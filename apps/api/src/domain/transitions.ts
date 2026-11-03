@@ -17,13 +17,16 @@ type Condition =
   | 'REASON' // a non-empty reason is required (rejections)
   | 'FIELD_SERVICE' // only for service types that need a field visit
   | 'FEE_PAID' // fee paid, unless the service is free
-  | 'FIELD_VERIFIED'; // field visit done, if the service needs one
+  | 'FIELD_VERIFIED' // field visit done, if the service needs one
+  | 'DOCUMENTS_NAMED' // the officer names 1–5 documents to upload (PRD F15)
+  | 'DOCUMENTS_DONE'; // every requested document has a file and none is "not OK" (PRD F15)
 
 /** Extra changes the service must make together with the status change. */
 export interface TransitionEffects {
   assignOfficerIfEmpty: boolean; // first officer to start the review becomes the assigned officer
   setFieldVerifiedAt: boolean; // field visit finished
   setClosedAt: boolean; // reached a final status
+  requestDocuments: boolean; // create/reset a REQUESTED slot for each named document
 }
 
 interface TransitionRule {
@@ -37,8 +40,8 @@ interface TransitionRule {
 export const TRANSITIONS: readonly TransitionRule[] = [
   { from: 'SUBMITTED', to: 'UNDER_REVIEW', actor: 'WARD_OFFICER', conditions: [] },
   { from: 'SUBMITTED', to: 'CANCELLED', actor: 'CITIZEN', conditions: [] },
-  { from: 'UNDER_REVIEW', to: 'NEEDS_DOCUMENTS', actor: 'WARD_OFFICER', conditions: ['NOTE'] },
-  { from: 'NEEDS_DOCUMENTS', to: 'UNDER_REVIEW', actor: 'CITIZEN', conditions: ['NOTE'] },
+  { from: 'UNDER_REVIEW', to: 'NEEDS_DOCUMENTS', actor: 'WARD_OFFICER', conditions: ['NOTE', 'DOCUMENTS_NAMED'] },
+  { from: 'NEEDS_DOCUMENTS', to: 'UNDER_REVIEW', actor: 'CITIZEN', conditions: ['NOTE', 'DOCUMENTS_DONE'] },
   { from: 'NEEDS_DOCUMENTS', to: 'CANCELLED', actor: 'CITIZEN', conditions: [] },
   { from: 'UNDER_REVIEW', to: 'FIELD_VERIFICATION', actor: 'WARD_OFFICER', conditions: ['FIELD_SERVICE'] },
   { from: 'FIELD_VERIFICATION', to: 'UNDER_REVIEW', actor: 'WARD_OFFICER', conditions: ['NOTE'] },
@@ -55,12 +58,14 @@ export interface RequestFacts {
   feePaidAt: Date | null;
   requiresFieldVerification: boolean;
   fieldVerifiedAt: Date | null;
+  openDocuments: number; // documents still REQUESTED or REJECTED (waiting for the citizen)
 }
 
 /** What the user sent with the request to change status. */
 export interface TransitionInput {
   note?: string | undefined;
   reason?: string | undefined;
+  documents?: string[] | undefined; // names of the documents asked for
 }
 
 /**
@@ -96,6 +101,14 @@ function checkCondition(condition: Condition, request: RequestFacts, input: Tran
       return request.requiresFieldVerification && request.fieldVerifiedAt === null
         ? { ok: false, code: 'INVALID_TRANSITION', message: 'Field verification must be completed before approval' }
         : null;
+    case 'DOCUMENTS_NAMED':
+      return !input.documents || input.documents.length === 0
+        ? { ok: false, code: 'VALIDATION_ERROR', message: 'Name at least one document to upload' }
+        : null;
+    case 'DOCUMENTS_DONE':
+      return request.openDocuments > 0
+        ? { ok: false, code: 'INVALID_TRANSITION', message: 'Upload every requested document before resubmitting' }
+        : null;
   }
 }
 
@@ -129,16 +142,17 @@ export function checkTransition(
       assignOfficerIfEmpty: rule.from === 'SUBMITTED' && rule.to === 'UNDER_REVIEW',
       setFieldVerifiedAt: rule.from === 'FIELD_VERIFICATION' && rule.to === 'UNDER_REVIEW',
       setClosedAt: isTerminal(rule.to),
+      requestDocuments: rule.to === 'NEEDS_DOCUMENTS',
     },
   };
 }
 
 /**
  * The moves this user could make right now, for the UI's buttons ("show only valid actions", PRD F6).
- * A required note/reason is not checked here: the UI asks for it when the button is clicked.
+ * A required note/reason/document list is not checked here: the UI asks for it when the button is clicked.
  */
 export function allowedTransitions(request: RequestFacts, actorRole: Role): RequestStatus[] {
-  const placeholderText = { note: 'x', reason: 'x' };
+  const placeholderText = { note: 'x', reason: 'x', documents: ['x'] };
   return TRANSITIONS.filter((r) => r.from === request.status)
     .filter((r) => checkTransition(request, r.to, actorRole, placeholderText).ok)
     .map((r) => r.to);

@@ -67,7 +67,7 @@ Online sifaris **already exists** in parts of Nepal. Sewa Track does not claim t
 
 ### Non-goals (v1) — do NOT build
 - Online payment, digital signatures, issuing the final legal letter online (final letter is printed and stamped at the office).
-- File/document upload.
+- Document storage beyond the small demo limits of F15 (large files, virus scanning, object storage, e-signatures).
 - Real SMS/email sending (a stub that logs is enough).
 - Real National ID integration (a **mock** service only).
 - Mobile app.
@@ -114,8 +114,8 @@ Terminal: `ISSUED`, `REJECTED`, `CANCELLED`.
 |---|---|---|---|
 | SUBMITTED | UNDER_REVIEW | Ward officer (own ward) | Sets `assignedOfficerId` if empty |
 | SUBMITTED | CANCELLED | Citizen (owner) | — |
-| UNDER_REVIEW | NEEDS_DOCUMENTS | Ward officer | `note` required |
-| NEEDS_DOCUMENTS | UNDER_REVIEW | Citizen (owner) | `note` required (what was added) |
+| UNDER_REVIEW | NEEDS_DOCUMENTS | Ward officer | `note` required; `documents` required: 1–5 names of the documents to upload (F15) |
+| NEEDS_DOCUMENTS | UNDER_REVIEW | Citizen (owner) | `note` required (what was added); every requested document has a file and none is marked "not OK" (F15) |
 | NEEDS_DOCUMENTS | CANCELLED | Citizen (owner) | — |
 | UNDER_REVIEW | FIELD_VERIFICATION | Ward officer | Only if service type `requiresFieldVerification` |
 | FIELD_VERIFICATION | UNDER_REVIEW | Ward officer | `note` required; sets `fieldVerifiedAt` |
@@ -128,7 +128,7 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 
 ### 6.3 Rules
 - R1. The transition table lives in **one pure function** (`domain/transitions.ts`) with no DB access, fully unit-tested.
-- R2. Every status change and every "mark fee paid" writes an **audit event in the same DB transaction**. If the audit insert fails, the status change rolls back.
+- R2. Every status change, every "mark fee paid" and every document upload or review writes an **audit event in the same DB transaction**. If the audit insert fails, the status change rolls back.
 - R3. **Optimistic locking:** status changes send the current `version`. Update uses `WHERE id = $1 AND version = $2`, then increments `version`. 0 rows updated → `409 CONFLICT`. (Prevents two officers changing the same request at once.)
 - R4. **Overdue:** a request is overdue if not terminal and `now > submittedAt + serviceDays` (calendar days in v1; working days is a documented next step).
 - R5. Audit events are **append-only**. No update/delete endpoint exists.
@@ -222,6 +222,16 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 - Only `WARD_OFFICER` and `PALIKA_ADMIN` can be created; system admin accounts can't be deactivated. Accounts are never deleted (requests and audit rows point at them). `created_by` records which admin created each staff account.
 - **AC:** non-system-admin → 403; role without its scope (officer without ward) → 400; deactivated officer's existing session → 401.
 
+### F15. Supporting documents (added 2026-11-03)
+- Each request has a list of **document slots**: a name and at most one file. Slot states: `REQUESTED` (no file yet) → `UPLOADED` → `ACCEPTED` or `REJECTED` ("not OK", with a reason). A not-OK document can be uploaded again.
+- **At apply time** the citizen may (optionally) attach files for the service's required documents (F1 list). Later, while the request is open and not yet approved, they may still add one from that list.
+- **The officer asks for documents** when moving a request to `NEEDS_DOCUMENTS`: they pick names from the service's list and/or type their own (1–5). Each becomes a `REQUESTED` slot (asking again for an existing name resets that slot). The citizen sees one upload box per requested document.
+- **Resubmit** (`NEEDS_DOCUMENTS → UNDER_REVIEW`) is allowed only when no slot is `REQUESTED` or `REJECTED` → otherwise `422`.
+- **The officer reviews** each uploaded file: Accepted, or Not OK with a reason (ward officer, own ward, request still open). Palika and system admins can view files, read only.
+- **Files:** JPEG, PNG or PDF only, checked from the file's first bytes (not the name or browser type); ≤ 2 MB; ≤ 10 slots per request. Stored in Postgres (`bytea`). **Demo files only**: the upload box repeats the demo warning.
+- Downloads are sent with `Content-Disposition: inline`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: private, no-store`. Only the owner and scoped staff can download (same rule as the detail page). Public tracking never shows documents.
+- **AC:** valid file → 201; 2 MB + 1 byte, a `.exe` renamed `.png`, or an 11th slot → 400; another citizen or another ward's officer → 403; resubmit with a missing document → 422; every upload/review writes an audit event in the same transaction; tracking response has no documents.
+
 ### F13. Demo safety
 - Fixed banner on every page (both languages): **"Demo / portfolio project. Not affiliated with any government body. Do not enter real information."**
 - `pnpm demo:reset` re-seeds the database (can be run nightly by the host's cron or a scheduled GitHub Action).
@@ -251,8 +261,14 @@ service_requests(
 
 request_events(                                             -- append-only audit log
   id bigserial, request_id → service_requests, actor_id nullable → users,
-  action,  -- CREATED | STATUS_CHANGED | FEE_PAID | REASSIGNED | IDENTITY_CHECKED
+  action,  -- CREATED | STATUS_CHANGED | FEE_PAID | REASSIGNED | IDENTITY_CHECKED | DOCUMENT_UPLOADED | DOCUMENT_REVIEWED
   from_status nullable, to_status nullable, note nullable, created_at)
+
+request_documents(                                          -- F15: one row = one named document slot
+  id uuid pk, request_id → service_requests, name, status,  -- REQUESTED | UPLOADED | ACCEPTED | REJECTED
+  requested_by nullable → users, review_note nullable, reviewed_by nullable → users, reviewed_at nullable,
+  file_name nullable, content_type nullable, size_bytes nullable, data bytea nullable, uploaded_at nullable,
+  created_at)
 
 identity_checks(id, request_id → service_requests, status, attempts, response_ms nullable, created_at)
 ```
@@ -276,6 +292,10 @@ Base: `/api/v1`. JSON only. Swagger UI at `/docs` (generated from Zod schemas or
 | GET | `/requests/:id` | Owner / scoped staff | Detail + events |
 | POST | `/requests/:id/transitions` | Officer / Citizen | `{toStatus, version, note?, reason?}` |
 | POST | `/requests/:id/fee-paid` | Officer | `{version}` |
+| POST | `/requests/:id/documents` | Citizen (owner) | Add a document from the service's list (multipart: `name`, `file`) |
+| PUT | `/requests/:id/documents/:documentId/file` | Citizen (owner) | Upload into a requested / not-OK slot (multipart: `file`) |
+| GET | `/requests/:id/documents/:documentId/file` | Owner / scoped staff | Download (safe headers, F15) |
+| POST | `/requests/:id/documents/:documentId/review` | Officer | `{decision: ACCEPTED \| REJECTED, note?}` (note required for REJECTED) |
 | POST | `/requests/:id/reassign` | Palika admin | `{officerId, version}` |
 | GET | `/track/:trackingCode` | — | Public tracking (limited fields, rate limited) |
 | GET | `/stats/map` | Public (aggregate) / admin | Map data |
@@ -401,4 +421,4 @@ If time runs short, cut in this order: E2E test → palika reassign → BS dates
 
 ## 19. Future (not v1)
 
-Working-day SLA with holidays, SMS via a real gateway, document upload, Nepali digits, more service types, palika-configurable fees, offline-friendly officer UI, real pilot with a ward (legal steps in §12.10).
+Working-day SLA with holidays, SMS via a real gateway, object storage and virus scanning for documents, Nepali digits, more service types, palika-configurable fees, offline-friendly officer UI, real pilot with a ward (legal steps in §12.10).

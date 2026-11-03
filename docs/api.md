@@ -29,6 +29,10 @@ Status: ✅ available · 🔜 planned
 | GET | `/requests/:id` | owner / scoped staff | Detail + history | ✅ |
 | POST | `/requests/:id/transitions` | officer / citizen | Change status | ✅ |
 | POST | `/requests/:id/fee-paid` | officer | Mark fee paid | ✅ |
+| POST | `/requests/:id/documents` | citizen (owner) | Add a listed document with its file | ✅ |
+| PUT | `/requests/:id/documents/:documentId/file` | citizen (owner) | Upload into a requested / "not OK" document | ✅ |
+| GET | `/requests/:id/documents/:documentId/file` | owner / scoped staff | Download a document | ✅ |
+| POST | `/requests/:id/documents/:documentId/review` | officer | Accept / mark "not OK" | ✅ |
 | GET | `/track/:trackingCode` | — (rate limited) | Public tracking | ✅ |
 | GET | `/stats/map` | — (public aggregates) | Delay map data + national totals | ✅ |
 | GET | `/stats/summary` | palika / system admin | Report | ✅ |
@@ -233,10 +237,12 @@ The change and its audit row are saved in one transaction.
 
 ### `POST /requests/:id/transitions` (ward officer, own ward · citizen, own request)
 ```json
-{ "toStatus": "NEEDS_DOCUMENTS", "version": 1, "note": "Please bring the plot map" }
+{ "toStatus": "NEEDS_DOCUMENTS", "version": 1, "note": "Please upload the plot map", "documents": ["Cadastral (plot) map"] }
 ```
 `note` is required for NEEDS_DOCUMENTS, resubmitting (citizen: NEEDS_DOCUMENTS → UNDER_REVIEW) and
 returning from field verification; `reason` is required for REJECTED.
+NEEDS_DOCUMENTS also needs `documents`: 1–5 names (no repeats); each becomes a `REQUESTED` document in the
+same transaction. Resubmitting is refused (`422`) until every requested document is uploaded and none is "not OK".
 
 `200` `{ "request": { "id", "status": "NEEDS_DOCUMENTS", "version": 2 } }`; the citizen is notified (demo: log line).
 
@@ -253,6 +259,39 @@ Allowed moves: see the state machine in [architecture.md §5](./architecture.md#
 ### `POST /requests/:id/fee-paid` (ward officer, own ward)
 `{ "version": 1 }` → `200` `{ "request": { "id", "status", "version": 2 } }` · audit event `FEE_PAID`.
 `422` if the service is free, already paid, or the request is approved/closed. Same `403`/`404`/`409` rules.
+
+---
+
+## Supporting documents (PRD F15)
+
+A request has a list of named documents, each with at most one file:
+`REQUESTED` (asked for, no file) → `UPLOADED` → `ACCEPTED` or `REJECTED` ("not OK", with a reason; can be uploaded again).
+`GET /requests/:id` returns them as `documents[]` (no file bytes), plus `canUploadDocuments` / `canReviewDocuments`.
+Public tracking never shows documents.
+
+**Files:** JPEG, PNG or PDF, **≤ 2 MB**, at most **10 documents** per request. The type is decided from the
+file's first bytes (`%PDF-`, PNG signature, `FF D8 FF`), never from the name or the browser's type, and the
+stored name gets the matching extension. Uploads are `multipart/form-data` with the file in the field `file`.
+Every upload and review writes an audit event (`DOCUMENT_UPLOADED`, `DOCUMENT_REVIEWED`) in the same transaction.
+
+### `POST /requests/:id/documents` (citizen, own request)
+Fields `name` (one of the service's required documents, English or Nepali; stored in English) and `file`.
+Allowed until the request is approved. → `201` `{ "document": { "id", "name", "status": "UPLOADED", "file": {…}, … } }`.
+`400` not in the list / bad file / 11th document · `409` already on the request (use the PUT below) · `422` request approved or closed.
+
+### `PUT /requests/:id/documents/:documentId/file` (citizen, own request)
+Field `file`. Replaces any earlier file and clears the old review. `422` if the document is already accepted
+or the request is approved/closed.
+
+### `GET /requests/:id/documents/:documentId/file` (owner or scoped staff)
+The file, sent with `Content-Disposition: inline`, `X-Content-Type-Options: nosniff`,
+`Content-Security-Policy: sandbox` and `Cache-Control: private, no-store`.
+
+### `POST /requests/:id/documents/:documentId/review` (ward officer, own ward)
+```json
+{ "decision": "REJECTED", "note": "The scan is blurry" }
+```
+`note` is required for `REJECTED`. `422` if no file was uploaded yet or the request is closed.
 
 ---
 

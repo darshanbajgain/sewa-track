@@ -229,6 +229,8 @@ The classic textbook form: **bold** = primary key, *italic* = foreign key (→ t
   status, purpose, applicant, *assigned_officer_id* → users, fee_paid_at, field_verified_at,
   version, submitted_at, updated_at, closed_at)
 - request_events(**id**, *request_id* → service_requests, *actor_id* → users, action, from_status, to_status, note, created_at)
+- request_documents(**id**, *request_id* → service_requests, name, status, *requested_by* → users, review_note,
+  *reviewed_by* → users, reviewed_at, file_name, content_type, size_bytes, data, uploaded_at, created_at)
 - identity_checks(**id**, *request_id* → service_requests, status, attempts, response_ms, created_at)
 - schema_migrations(**name**, checksum, applied_at)
 
@@ -324,11 +326,29 @@ Columns marked **NN** are `NOT NULL`.
 | `id` | `bigint` | PK, identity | Fastest-growing table, so 8-byte ids |
 | `request_id` | `uuid` | NN, FK → service_requests | |
 | `actor_id` | `uuid` | FK → users, nullable | `NULL` = system action (e.g. identity check) |
-| `action` | `text` | NN, CHECK in 5 | What happened |
+| `action` | `text` | NN, CHECK in 7 | What happened (`DOCUMENT_UPLOADED`, `DOCUMENT_REVIEWED` added in 005) |
 | `from_status`, `to_status` | `text` | nullable | Filled for status changes |
 | `note` | `text` | nullable | Officer note/reason. **Staff only**; never on public tracking |
 | `created_at` | `timestamptz` | NN, default `now()` | |
 | — | trigger | `request_events_append_only` | Any `UPDATE`/`DELETE` raises an error |
+
+### 5.8b `request_documents`: supporting documents (005, PRD F15)
+One row = one named document of a request, with at most one file (stored here as `bytea`: small demo files,
+no extra storage service).
+| Column | Type | Constraints | Why |
+|---|---|---|---|
+| `id` | `uuid` | PK | Not guessable (used in download URLs) |
+| `request_id` | `uuid` | NN, FK → service_requests | |
+| `name` | `text` | NN, 2–200 chars, UNIQUE with `request_id` | "Asking again" reuses the same row |
+| `status` | `text` | NN, CHECK in 4 | `REQUESTED` → `UPLOADED` → `ACCEPTED` / `REJECTED` |
+| `requested_by` | `uuid` | FK → users, nullable | Officer who asked; `NULL` = added by the citizen |
+| `review_note`, `reviewed_by`, `reviewed_at` | `text`, `uuid`, `timestamptz` | nullable | The officer's decision |
+| `file_name`, `content_type`, `size_bytes`, `data`, `uploaded_at` | | all set or all `NULL`; type CHECK in 3; size ≤ 2 MB | The file |
+| `created_at` | `timestamptz` | NN, default `now()` | |
+| — | CHECK | `request_documents_file_matches_status` | `REQUESTED` ⇔ no file |
+
+Lists never select `data`, so a page never loads files. Uploads lock the request row (`SELECT … FOR UPDATE`)
+so "at most 10 documents" holds even for two uploads at the same moment.
 
 ### 5.9 `identity_checks`
 | Column | Type | Constraints | Why |

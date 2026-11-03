@@ -28,7 +28,7 @@ export async function loginAs(app: Express, email: string): Promise<string> {
  * because they reference each other.
  */
 export async function resetRequests(): Promise<void> {
-  await pool.query('TRUNCATE request_events, identity_checks, service_requests');
+  await pool.query('TRUNCATE request_documents, request_events, identity_checks, service_requests');
 }
 
 /** The id of ward N of Kathmandu Metropolitan City (palika 307). */

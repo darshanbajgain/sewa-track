@@ -152,6 +152,8 @@
   "action.FEE_PAID": "Fee paid",
   "action.REASSIGNED": "Officer changed",
   "action.IDENTITY_CHECKED": "ID checked",
+  "action.DOCUMENT_UPLOADED": "Document uploaded",
+  "action.DOCUMENT_REVIEWED": "Document reviewed",
   "apply.err.serviceTypeCode": "Choose a service.",
   "apply.err.wardId": "Choose your province, district, palika and ward.",
   "apply.err.purpose": "Write 10 to 500 characters.",

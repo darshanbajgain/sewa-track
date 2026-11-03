@@ -1,12 +1,15 @@
 import type { QueuePageDto, QueueQuery, RequestDetailDto } from '@sewa/shared';
 import { QUEUE_PAGE_SIZE } from '@sewa/shared';
 import { canViewRequest, queueScope } from '../domain/access.js';
+import { canReviewDocuments, canUploadDocuments } from '../domain/documents.js';
 import { checkMarkFeePaid } from '../domain/feePayment.js';
 import { isOverdue } from '../domain/overdue.js';
 import { allowedTransitions } from '../domain/transitions.js';
 import { AppError } from '../errors.js';
+import { listDocuments } from '../repositories/document.repository.js';
 import { findEvents, findLatestIdentityCheck, findRequestDetail, listQueue } from '../repositories/staff.repository.js';
 import type { SessionUser } from '../security/token.js';
+import { toDocumentDto } from './document.service.js';
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
@@ -51,7 +54,7 @@ export async function getRequestDetail(user: SessionUser, id: string, now: Date 
     throw new AppError('FORBIDDEN', 'This request is outside your ward or palika');
   }
 
-  const [events, identityCheck] = await Promise.all([findEvents(id), findLatestIdentityCheck(id)]);
+  const [events, identityCheck, documents] = await Promise.all([findEvents(id), findLatestIdentityCheck(id), listDocuments(id)]);
 
   const facts = {
     status: r.status,
@@ -59,6 +62,7 @@ export async function getRequestDetail(user: SessionUser, id: string, now: Date 
     feePaidAt: r.feePaidAt,
     requiresFieldVerification: r.requiresFieldVerification,
     fieldVerifiedAt: r.fieldVerifiedAt,
+    openDocuments: r.openDocuments,
   };
 
   return {
@@ -99,7 +103,10 @@ export async function getRequestDetail(user: SessionUser, id: string, now: Date 
       actorName: e.actorName,
       at: e.at.toISOString(),
     })),
+    documents: documents.map(toDocumentDto),
     allowedTransitions: allowedTransitions(facts, user.role),
     canMarkFeePaid: checkMarkFeePaid(facts, user.role).ok,
+    canUploadDocuments: canUploadDocuments(r.status, user.role),
+    canReviewDocuments: canReviewDocuments(r.status, user.role),
   };
 }

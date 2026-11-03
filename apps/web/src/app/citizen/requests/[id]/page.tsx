@@ -4,6 +4,7 @@ import type { RequestDetailDto } from '@sewa/shared';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
+import { DocumentsCard } from '@/components/documents/DocumentsCard';
 import { changeErrorText } from '@/components/requests/changeError';
 import { Alert, Button, Card, Modal, QueryState, TextAreaField } from '@/components/common';
 import { RequestHistory } from '@/components/requests/RequestHistory';
@@ -18,6 +19,8 @@ import { usePageTitle } from '@/lib/usePageTitle';
  * server by the domain rules for THIS user, so the page never decides by itself what's allowed
  * (and the API re-checks everything anyway).
  *   NEEDS_DOCUMENTS → "Resubmit" (note required) or "Cancel" · SUBMITTED → "Cancel"
+ * Documents (PRD F15): one upload box per document the ward asked for. "Resubmit" stays disabled until
+ * each of them has a file and none is "not OK" (the server leaves UNDER_REVIEW out of allowedTransitions).
  * Every change sends the `version` we loaded (optimistic locking); a 409 shows a clear message and the
  * hook refetches the latest version.
  */
@@ -46,7 +49,8 @@ function RequestView({ request }: { request: RequestDetailDto }) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const canResubmit = request.status === 'NEEDS_DOCUMENTS' && request.allowedTransitions.includes('UNDER_REVIEW');
+  const needsDocuments = request.status === 'NEEDS_DOCUMENTS';
+  const canResubmit = needsDocuments && request.allowedTransitions.includes('UNDER_REVIEW');
   const canCancel = request.allowedTransitions.includes('CANCELLED');
   const lastNote = [...request.events].reverse().find((e) => e.toStatus === 'NEEDS_DOCUMENTS')?.note;
 
@@ -82,20 +86,28 @@ function RequestView({ request }: { request: RequestDetailDto }) {
       {saved && <Alert tone="success">{t('detail.changed')}</Alert>}
       {changeError && <Alert tone="error">{changeError}</Alert>}
 
-      {canResubmit && (
-        <Card as="section" aria-labelledby="docs-title" className="flex flex-col gap-3 border-warn bg-warn-soft">
-          <h2 id="docs-title" className="text-lg font-bold text-warn">
+      {needsDocuments && (
+        <Card as="section" aria-labelledby="needs-docs-title" className="flex flex-col gap-3 border-warn bg-warn-soft">
+          <h2 id="needs-docs-title" className="text-lg font-bold text-warn">
             {t('detail.needsDocsTitle')}
           </h2>
           {lastNote && <p className="rounded-md bg-white p-3">“{lastNote}”</p>}
+          <p>{t('detail.needsDocsSteps')}</p>
           <TextAreaField label={t('detail.resubmitNote')} rows={2} value={note} onChange={(e) => setNote(e.target.value)} error={noteError} maxLength={1000} />
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={resubmit} loading={change.isPending}>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={resubmit} loading={change.isPending} disabled={!canResubmit} aria-describedby={canResubmit ? undefined : 'resubmit-blocked'}>
               {t('detail.resubmit')}
             </Button>
+            {!canResubmit && (
+              <span id="resubmit-blocked" className="text-sm font-semibold text-warn">
+                {t('detail.resubmitBlocked')}
+              </span>
+            )}
           </div>
         </Card>
       )}
+
+      {(request.documents.length > 0 || request.canUploadDocuments) && <DocumentsCard request={request} mode="citizen" />}
 
       {canCancel && (
         <div>

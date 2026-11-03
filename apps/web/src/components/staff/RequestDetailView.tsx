@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Alert, Button, Card, Modal, QueryState, TextAreaField, type ButtonVariant } from '@/components/common';
+import { DocumentsCard } from '@/components/documents/DocumentsCard';
 import { changeErrorText } from '@/components/requests/changeError';
 import { RequestHistory } from '@/components/requests/RequestHistory';
 import { OverdueBadge, StatusBadge } from '@/components/requests/StatusBadge';
@@ -13,12 +14,13 @@ import { formatDateTime } from '@/lib/format';
 import { pickName, useI18n } from '@/lib/i18n';
 import { nextStep, type NextStep, type StaffAction } from '@/lib/requestFlow';
 import { usePageTitle } from '@/lib/usePageTitle';
+import { AskDocumentsField } from './AskDocumentsField';
 import { RequestChecklist } from './RequestChecklist';
 import { RequestProgress } from './RequestProgress';
 
 /**
  * Staff request detail (PRD F6), used by the ward, palika and admin portals (`backHref` = that portal's queue).
- * Layout: progress bar → "Next step" card + checklist → details + history.
+ * Layout: progress bar → "Next step" card + checklist → documents → details + history.
  *
  * The buttons come ONLY from the server's `allowedTransitions` and `canMarkFeePaid` (computed by
  * domain/transitions.ts for this user), so the page never offers a move the rules don't allow.
@@ -27,6 +29,7 @@ import { RequestProgress } from './RequestProgress';
  *
  * Every action opens a confirm dialog. Where the rules need text (asking for documents, finishing a
  * field visit, rejecting), the dialog requires it; the API checks again and returns 400 if it's missing.
+ * "Ask for documents" also asks WHICH documents (AskDocumentsField): each becomes an upload box for the citizen.
  * Every change sends the `version` we loaded; a 409 shows "someone else saved first" and we refetch.
  */
 export function RequestDetailView({ backHref }: { backHref: string }) {
@@ -83,12 +86,15 @@ function RequestView({ request }: { request: RequestDetailDto }) {
   const [pending, setPending] = useState<Pending>(null);
   const [text, setText] = useState('');
   const [textError, setTextError] = useState<string>();
+  const [askDocs, setAskDocs] = useState<string[]>([]);
+  const [askDocsError, setAskDocsError] = useState<string>();
   const [saved, setSaved] = useState(false);
 
   const ui = pending?.kind === 'status' ? actionUi(request.status, pending.to) : null;
   const busy = change.isPending || fee.isPending;
   const error = changeErrorText(change.error ?? fee.error, t);
   const step = nextStep(request);
+  const askingForDocuments = pending?.kind === 'status' && pending.to === 'NEEDS_DOCUMENTS';
 
   function open(next: Pending) {
     change.reset();
@@ -96,6 +102,9 @@ function RequestView({ request }: { request: RequestDetailDto }) {
     setSaved(false);
     setText('');
     setTextError(undefined);
+    setAskDocsError(undefined);
+    // Asking again: start with the documents that were marked "not OK", the usual reason to ask.
+    setAskDocs(request.documents.filter((d) => d.status === 'REJECTED').map((d) => d.name));
     setPending(next);
   }
 
@@ -107,13 +116,15 @@ function RequestView({ request }: { request: RequestDetailDto }) {
       return;
     }
     const value = text.trim();
-    if (ui?.input && !value) {
-      setTextError(t(ui.input === 'reason' ? 'staff.reasonRequired' : 'staff.noteRequired'));
-      return;
-    }
+    const missingText = Boolean(ui?.input && !value);
+    const missingDocs = askingForDocuments && askDocs.length === 0;
+    setTextError(missingText ? t(ui?.input === 'reason' ? 'staff.reasonRequired' : 'staff.noteRequired') : undefined);
+    setAskDocsError(missingDocs ? t('ask.required') : undefined);
+    if (missingText || missingDocs) return;
     // A rejection's text goes in `reason`; for every other move it's an (optional or required) note.
     const extra = !value ? {} : ui?.input === 'reason' ? { reason: value } : { note: value };
-    change.mutate({ toStatus: pending.to, version: request.version, ...extra }, done);
+    const documents = askingForDocuments ? { documents: askDocs } : {};
+    change.mutate({ toStatus: pending.to, version: request.version, ...extra, ...documents }, done);
   }
 
   return (
@@ -138,6 +149,8 @@ function RequestView({ request }: { request: RequestDetailDto }) {
         <NextStepCard request={request} step={step} onPick={open} />
         <RequestChecklist request={request} />
       </div>
+
+      <DocumentsCard request={request} mode="staff" />
 
       <div className="flex flex-wrap gap-6">
         <Card as="section" aria-labelledby="details-title" className="flex flex-[1_1_300px] flex-col gap-2 text-sm">
@@ -186,6 +199,11 @@ function RequestView({ request }: { request: RequestDetailDto }) {
         }
       >
         <p className="font-mono text-sm">{request.trackingCode}</p>
+        {askingForDocuments && (
+          <div className="mt-3">
+            <AskDocumentsField request={request} value={askDocs} onChange={setAskDocs} error={askDocsError} />
+          </div>
+        )}
         {pending?.kind === 'status' && (
           <div className="mt-3">
             <TextAreaField

@@ -1,14 +1,17 @@
 'use client';
 
-import type { CreateRequestInput, TransitionBody } from '@sewa/shared';
+import type { CreateRequestInput, ReviewDocumentBody, TransitionBody } from '@sewa/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  addDocument,
   changeStatus,
   getMyRequests,
   getQueue,
   getRequestDetail,
   markFeePaid,
+  reviewDocument,
   submitRequest,
+  uploadDocumentFile,
   type QueueFilters,
 } from '@/api/requests.api';
 import { queryKeys } from './queryKeys';
@@ -57,4 +60,29 @@ export function useChangeStatus(id: string) {
 export function useMarkFeePaid(id: string) {
   const invalidate = useInvalidateAfterChange();
   return useMutation({ mutationFn: (version: number) => markFeePaid(id, version), onSettled: invalidate });
+}
+
+/** Documents (PRD F15). Each change refetches the request, so status, list and history stay in sync. */
+export function useAddDocument() {
+  const invalidate = useInvalidateAfterChange();
+  return useMutation({
+    mutationFn: (v: { id: string; name: string; file: File }) => addDocument(v.id, v.name, v.file),
+    onSettled: invalidate,
+  });
+}
+
+export function useUploadDocumentFile(id: string) {
+  const invalidate = useInvalidateAfterChange();
+  return useMutation({
+    mutationFn: (v: { documentId: string; file: File }) => uploadDocumentFile(id, v.documentId, v.file),
+    onSettled: invalidate,
+  });
+}
+
+export function useReviewDocument(id: string) {
+  const invalidate = useInvalidateAfterChange();
+  return useMutation({
+    mutationFn: (v: { documentId: string; body: ReviewDocumentBody }) => reviewDocument(id, v.documentId, v.body),
+    onSettled: invalidate,
+  });
 }

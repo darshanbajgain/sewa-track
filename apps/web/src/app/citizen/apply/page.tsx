@@ -5,8 +5,9 @@ import { useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/client';
 import type { CreatedRequest } from '@/api/requests.api';
 import { Alert, Badge, Button, ButtonLink, Card, CheckboxField, PageTitle, SelectField, TextAreaField, TextField } from '@/components/common';
+import { FilePicker, fileProblem, formatSize } from '@/components/documents/FilePicker';
 import { useDistricts, useLocalLevels, useProvinces, useServiceTypes, useWards } from '@/hooks/useReference';
-import { useSubmitRequest } from '@/hooks/useRequests';
+import { useAddDocument, useSubmitRequest } from '@/hooks/useRequests';
 import { pickName, useI18n } from '@/lib/i18n';
 
 /**
@@ -16,7 +17,12 @@ import { pickName, useI18n } from '@/lib/i18n';
  * Validation runs twice on purpose:
  *   1. here, with the SAME Zod schema the API uses (instant feedback, no round trip)
  *   2. on the server (the real check; the browser can always be bypassed)
+ *
+ * Documents (PRD F15) are optional here: the citizen may attach files for the service's listed
+ * documents. A file can only be stored on an existing request, so they are uploaded one by one right
+ * AFTER the request is created, and the success screen shows how each one went.
  */
+type UploadState = 'uploading' | 'done' | 'failed';
 type FieldErrors = Partial<Record<'serviceTypeCode' | 'wardId' | 'purpose' | 'name' | 'nid' | 'consent', string>>;
 
 /** Zod issue path → our field name: ["applicant", "nid"] → "nid". */
@@ -43,6 +49,10 @@ export default function ApplyPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [created, setCreated] = useState<CreatedRequest | null>(null);
   const [copied, setCopied] = useState(false);
+  const [files, setFiles] = useState<Record<string, File>>({}); // listed document name (English) → chosen file
+  const [fileError, setFileError] = useState<string>();
+  const [uploads, setUploads] = useState<Record<string, { state: UploadState; reason?: string }>>({});
+  const addDocument = useAddDocument();
 
   const services = useServiceTypes();
   const provinces = useProvinces();
@@ -52,6 +62,10 @@ export default function ApplyPage() {
   const selectedService = services.data?.find((s) => s.code === service);
 
   const toNumber = (value: string) => (value ? Number(value) : undefined);
+  const docLabel = (nameEn: string) => {
+    const d = selectedService?.requiredDocuments.find((x) => x.nameEn === nameEn);
+    return d ? pickName(d, lang) : nameEn;
+  };
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -68,7 +82,10 @@ export default function ApplyPage() {
     }
     setErrors({});
     submit.mutate(parsed.data, {
-      onSuccess: (request) => setCreated(request),
+      onSuccess: (request) => {
+        setCreated(request);
+        void uploadFiles(request.id);
+      },
       onError: (err) => {
         // Server-side validation (same rules): show it on the fields too.
         if (err instanceof ApiError && err.code === 'VALIDATION_ERROR') {
@@ -82,6 +99,27 @@ export default function ApplyPage() {
         }
       },
     });
+  }
+
+  /** One at a time, so a slow connection isn't asked to send several files at once. */
+  async function uploadFiles(requestId: string) {
+    for (const [docName, file] of Object.entries(files)) {
+      setUploads((u) => ({ ...u, [docName]: { state: 'uploading' } }));
+      try {
+        await addDocument.mutateAsync({ id: requestId, name: docName, file });
+        setUploads((u) => ({ ...u, [docName]: { state: 'done' } }));
+      } catch (err) {
+        // e.g. "Only JPEG, PNG or PDF files are accepted": the browser only sees the name, the server the bytes.
+        const reason = err instanceof ApiError ? err.message : undefined;
+        setUploads((u) => ({ ...u, [docName]: { state: 'failed', reason } }));
+      }
+    }
+  }
+
+  function attach(docName: string, file: File) {
+    const problem = fileProblem(file);
+    setFileError(problem ? t(problem) : undefined);
+    if (!problem) setFiles((f) => ({ ...f, [docName]: file }));
   }
 
   async function copyCode(code: string) {
@@ -111,6 +149,19 @@ export default function ApplyPage() {
               {t('apply.another')}
             </Button>
           </div>
+          {Object.keys(uploads).length > 0 && (
+            <div className="flex flex-col gap-2 rounded-lg border border-line p-4">
+              <p className="font-semibold">{t('docs.title')}</p>
+              <ul aria-live="polite" className="flex flex-col gap-1 text-sm">
+                {Object.entries(uploads).map(([docName, { state, reason }]) => (
+                  <li key={docName} className={state === 'failed' ? 'text-accent' : state === 'done' ? 'text-ok' : 'text-muted'}>
+                    {state === 'done' ? '✓' : state === 'failed' ? '!' : '…'} {docLabel(docName)}: {t(`apply.upload.${state}`)}
+                    {reason && ` (${reason})`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p role="status" className="sr-only">
             {copied ? t('apply.copied') : ''}
           </p>
@@ -136,7 +187,10 @@ export default function ApplyPage() {
             <SelectField
               label={t('apply.service')}
               value={service}
-              onChange={(v) => setService(v as ServiceTypeCode | '')}
+              onChange={(v) => {
+                setService(v as ServiceTypeCode | '');
+                setFiles({}); // another service has another list of documents
+              }}
               placeholder={t('apply.choose')}
               options={(services.data ?? []).map((s) => ({ value: s.code, label: pickName(s, lang) }))}
               error={errors.serviceTypeCode}
@@ -223,6 +277,49 @@ export default function ApplyPage() {
             </div>
             <CheckboxField label={t('apply.consent')} checked={consent} onChange={(e) => setConsent(e.target.checked)} error={errors.consent} />
           </fieldset>
+
+          {selectedService && (
+            <fieldset className="flex flex-col gap-3 rounded-xl border border-line p-5">
+              <legend className="px-1 font-bold">{t('apply.step4')}</legend>
+              <p className="text-sm text-muted">{t('apply.docsIntro')}</p>
+              {fileError && <Alert tone="error">{fileError}</Alert>}
+              <ul className="flex flex-col divide-y divide-line">
+                {selectedService.requiredDocuments.map((d) => {
+                  const file = files[d.nameEn];
+                  return (
+                    <li key={d.nameEn} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                      <span className="flex min-w-0 flex-[1_1_220px] flex-col">
+                        <span className="font-medium">{pickName(d, lang)}</span>
+                        {file && (
+                          <span className="text-sm text-muted">
+                            {file.name} · {formatSize(file.size)}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex gap-2">
+                        <FilePicker label={file ? t('docs.replace') : t('apply.attach')} onPick={(f) => attach(d.nameEn, f)} />
+                        {file && (
+                          <Button
+                            variant="ghost"
+                            onClick={() =>
+                              setFiles((all) => {
+                                const next = { ...all };
+                                delete next[d.nameEn];
+                                return next;
+                              })
+                            }
+                          >
+                            {t('apply.remove')}
+                          </Button>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-xs text-muted">{t('docs.rules')}</p>
+            </fieldset>
+          )}
 
           <Button type="submit" size="lg" loading={submit.isPending} className="self-start">
             {t('apply.submit')}

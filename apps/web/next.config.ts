@@ -24,6 +24,10 @@ if (process.env.VERCEL && !process.env.API_ORIGIN) {
  *  - Referrer-Policy: don't leak full URLs (they can contain ids) to other sites
  *  - Permissions-Policy: this site never needs camera, microphone or location
  * A full Content-Security-Policy for Next.js needs per-request nonces; documented in docs/frontend.md §8.
+ *
+ * Pages only, NOT /api/*: the API sets its own security headers (helmet), and some responses need a
+ * stricter one. A document download sends "Content-Security-Policy: sandbox" (PRD F15); on Vercel our
+ * page header used to REPLACE it on the forwarded response.
  */
 const SECURITY_HEADERS = [
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -40,7 +44,7 @@ const nextConfig: NextConfig = {
   // needs, so the image doesn't carry the whole node_modules. Local `next start` stays as it is.
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
   async headers() {
-    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+    return [{ source: '/((?!api/).*)', headers: SECURITY_HEADERS }]; // every path except /api/…
   },
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${API_ORIGIN}/api/:path*` }];

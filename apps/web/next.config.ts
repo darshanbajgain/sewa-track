@@ -8,6 +8,14 @@ import type { NextConfig } from 'next';
  */
 const API_ORIGIN = process.env.API_ORIGIN ?? 'http://localhost:4000';
 
+// Vercel sets VERCEL=1 during its builds. Without API_ORIGIN there, the build used to succeed with the
+// localhost fallback baked in, and every /api call on the live site failed with 502. Fail the build instead.
+if (process.env.VERCEL && !process.env.API_ORIGIN) {
+  throw new Error(
+    'API_ORIGIN is not set. Add it in Vercel (Settings → Environment Variables), e.g. https://your-api.example.com, then redeploy.',
+  );
+}
+
 /**
  * Security headers on every page:
  *  - X-Frame-Options DENY + frame-ancestors 'none': nobody can embed our pages in an <iframe>

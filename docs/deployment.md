@@ -76,7 +76,7 @@ Web:
 
 | Variable | When | Notes |
 |---|---|---|
-| `API_ORIGIN` | **build time** | Where `/api/*` is forwarded. Next.js writes rewrites into the build output, so it is a Docker build argument |
+| `API_ORIGIN` | **build time** | Where `/api/*` is forwarded. Next.js writes rewrites into the build output, so it is a Docker build argument. Missing on Vercel = the build fails (locally it falls back to `http://localhost:4000`) |
 | `PROXY_SECRET` | run time | Same value as the API's. Server-only (no `NEXT_PUBLIC_`), so it never reaches the browser |
 
 ## 5. Real client IPs and the rate limits

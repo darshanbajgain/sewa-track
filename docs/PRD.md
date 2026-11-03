@@ -85,7 +85,7 @@ Online sifaris **already exists** in parts of Nepal. Sewa Track does not claim t
 
 Rule: **authorization is checked on the server for every request** (never trust the UI). Officers acting outside their ward get `403 FORBIDDEN`.
 
-**Accounts (changed 2026-11-01, ADR-003):** citizens **sign up themselves** (always as `CITIZEN`). Staff accounts are **created only by the system admin**; nobody can self-register as staff. Each role has its own portal: citizen `/citizen`, ward officer `/ward`, palika admin `/palika`, system admin `/admin`.
+**Accounts (changed 2026-11-01, ADR-003):** citizens **sign up themselves** (always as `CITIZEN`). Staff accounts are **created only by the system admin**; nobody can self-register as staff. Each role has its own portal: citizen `/citizen`, ward officer `/ward`, palika admin `/palika`, system admin `/admin`. Once logged in, the menu shows only that portal's pages; public pages (home, services, track, map, login) send a logged-in user to their portal (added 2026-11-03). Palika and system admins have the delay map as a portal tab.
 
 ## 5. Service types (v1: exactly 5)
 

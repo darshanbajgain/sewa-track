@@ -1,12 +1,11 @@
 'use client';
 
-import type { Role } from '@sewa/shared';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/common';
 import { useLogout, useMe } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
-import { PORTAL_NAV_KEY, ROLE_HOME } from '@/lib/routing';
+import { PORTAL_TABS, ROLE_HOME } from '@/lib/routing';
 
 /**
  * The frame around every page: demo banner → header → blue navigation → (page) → footer.
@@ -43,22 +42,28 @@ const PUBLIC_NAV = [
   { href: '/track', key: 'nav.track' },
   { href: '/stats', key: 'nav.map' },
 ] as const;
-// One extra item: the logged-in user's own portal (portals are protected by the API anyway).
-const roleNav = (role?: Role) => (role ? [{ href: ROLE_HOME[role], key: PORTAL_NAV_KEY[role] }] : []);
 
 export function SiteHeader() {
   const { t, toggle } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
-  const me = useMe().data;
+  const meQuery = useMe();
+  const me = meQuery.data;
   const logout = useLogout();
+  // Visitors get the public menu; a logged-in user gets only their portal's tabs (PORTAL_TABS).
+  // While we don't know yet (first load), show no items rather than the wrong menu for a moment.
+  const items = meQuery.isPending
+    ? []
+    : me
+      ? PORTAL_TABS[me.role].map((tab) => ({ href: tab.href, key: tab.key, active: tab.matches(pathname) }))
+      : PUBLIC_NAV.map((item) => ({ ...item, active: item.href === '/' ? pathname === '/' : pathname.startsWith(item.href) }));
 
   return (
     <header>
       {/* Thin crimson accent line, a nod to the national colours without using any official symbol. */}
       <div className="h-1 bg-accent" aria-hidden="true" />
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-        <Link href="/" className="flex items-center gap-3 text-ink no-underline">
+        <Link href={me ? ROLE_HOME[me.role] : '/'} className="flex items-center gap-3 text-ink no-underline">
           <LogoMark />
           <span className="flex flex-col leading-tight">
             <span className="text-xl font-bold text-primary">
@@ -74,7 +79,7 @@ export function SiteHeader() {
           {me ? (
             <>
               <span className="hidden text-sm text-muted sm:inline">
-                {t('login.loggedInAs')} <strong className="text-ink">{me.name}</strong>
+                {t('login.loggedInAs')} <strong className="text-ink">{me.name}</strong> · {t(`role.${me.role}`)}
               </span>
               <Button variant="danger" loading={logout.isPending} onClick={() => logout.mutate(undefined, { onSuccess: () => router.push('/') })}>
                 {t('login.logout')}
@@ -93,9 +98,9 @@ export function SiteHeader() {
         </div>
       </div>
       <nav aria-label={t('nav.menu')} className="bg-primary">
-        <ul className="mx-auto flex max-w-6xl flex-wrap px-2">
-          {[...PUBLIC_NAV, ...roleNav(me?.role)].map((item) => {
-            const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+        <ul className="mx-auto flex min-h-12 max-w-6xl flex-wrap px-2">
+          {items.map((item) => {
+            const { active } = item;
             return (
               <li key={item.href}>
                 <Link
@@ -118,6 +123,7 @@ export function SiteHeader() {
 
 export function SiteFooter() {
   const { t } = useI18n();
+  const me = useMe().data;
   return (
     <footer className="mt-16 bg-primary-dark text-white">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-2">
@@ -129,12 +135,14 @@ export function SiteFooter() {
           </p>
         </div>
         <ul className="flex flex-col gap-2 text-sm sm:items-end">
-          {/* Staff get their own login page; the header's "Log in" is the citizen one. */}
-          <li>
-            <Link className="text-white underline" href="/staff/login">
-              {t('footer.staffLogin')}
-            </Link>
-          </li>
+          {/* Staff get their own login page; the header's "Log in" is the citizen one. Visitors only. */}
+          {!me && (
+            <li>
+              <Link className="text-white underline" href="/staff/login">
+                {t('footer.staffLogin')}
+              </Link>
+            </li>
+          )}
           <li>
             <a className="text-white underline" href="/api/docs">
               {t('footer.api')}

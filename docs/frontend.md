@@ -63,7 +63,7 @@ apps/web/
    │  ├─ login/              /login     citizen login: email form + collapsed "Demo mode" panel (fills the form) ✅
    │  ├─ staff/login/        /staff/login  staff login, same form (components/auth/LoginForm.tsx), staff demo accounts ✅
    │  ├─ register/           /register  citizen sign-up (shared registerSchema; 409 → "email taken") ✅
-   │  ├─ citizen/            /citizen/* citizen portal ✅ (layout = RequireRole + portal tabs)
+   │  ├─ citizen/            /citizen/* citizen portal ✅ (layout = RequireRole)
    │  │  ├─ page.tsx         my requests
    │  │  ├─ apply/page.tsx   apply (cascading dropdowns, shared Zod validation, tracking code)
    │  │  └─ requests/[id]/   detail: history, resubmit (note), cancel (confirm modal), 409 handling
@@ -82,7 +82,7 @@ apps/web/
    ├─ components/
    │  ├─ common/             reusable UI: Button, ButtonLink, Card, PageTitle, Badge, Alert, Modal,
    │  │                      TextField, TextAreaField, SelectField (Radix), DateField (calendar), QueryState, Spinner (+ index.ts)
-   │  ├─ auth/               SessionWatcher (401 → login), RequireRole (role guard), PortalLayout (guard + tabs)
+   │  ├─ auth/               SessionWatcher (401 → login), RequireRole (role guard), PortalLayout (role guard)
    │  ├─ staff/              QueueView, RequestDetailView, ReportsView (shared by the ward/palika/admin portals)
    │  ├─ requests/           StatusBadge, RequestHistory, changeErrorText
    │  ├─ map/                DelayMap (controls, legend, side panel, table) · DistrictMap (Leaflet only, ssr: false)
@@ -230,10 +230,10 @@ One app, **one portal per role** (decided 2026-11-01; ADR-003):
 
 | Portal | Routes | Who |
 |---|---|---|
-| Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login`, `/staff/login`, `/register` | anyone |
+| Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login`, `/staff/login`, `/register` (route group `app/(public)/`) | visitors only: a logged-in user is sent to their portal |
 | Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
 | Ward ✅ | `/ward` (queue), `/ward/requests/[id]` (actions) | `WARD_OFFICER` |
-| Palika ✅ | `/palika` (queue), `/palika/requests/[id]` (read only), `/palika/reports` | `PALIKA_ADMIN` |
+| Palika ✅ | `/palika` (queue), `/palika/requests/[id]` (read only), `/palika/reports`, `/palika/map` | `PALIKA_ADMIN` |
 | Admin ✅ | `/admin` (national overview), `/admin/users` (create staff, deactivate), `/admin/requests`, `/admin/map` | `SYSTEM_ADMIN` |
 
 The three staff portals share their screens (`components/staff/`): the queue, detail and report views are
@@ -252,7 +252,14 @@ a page in the browser is never security.
 
 ### After login
 `ROLE_HOME` in `lib/routing.ts` decides where each role lands: citizen → `/citizen`, ward officer → `/ward`,
-palika admin → `/palika`, system admin → `/admin`. The main menu shows one link to the user's own portal.
+palika admin → `/palika`, system admin → `/admin`.
+
+**Menus (decided 2026-11-03):** visitors see the public menu (Home, Services, Track request, Delay map).
+Once logged in, the blue menu shows **only that role's tabs** (`PORTAL_TABS` in `lib/routing.ts`): citizen
+My requests · Apply; ward officer Queue; palika admin Queue · Reports · Delay map; system admin Overview ·
+Users · Queue · Delay map. The header shows name · role, and the logo links to the portal home.
+`app/(public)/layout.tsx` sends a logged-in user who opens a public page (or `/login`) to their portal; it
+renders the page while `/auth/me` is still loading, so visitors never wait for the check.
 
 **After login we do a full page load** (`window.location.assign`), not `router.push`: while logged out, Next.js
 may have pre-fetched the target and cached proxy.ts's "redirect to login" answer, so a client-side push would
@@ -260,13 +267,10 @@ bounce back to login (found in end-to-end testing). A fresh load also resets all
 from a page, `?next=` brings them back, but only to **our own paths** (`safeNextPath`, see §8).
 
 ### Portal layout
-Every portal's `layout.tsx` is one `PortalLayout`: who may enter + which tabs.
+Every portal's `layout.tsx` is one `PortalLayout`: who may enter. The tabs live in `PORTAL_TABS`.
 ```tsx
 // app/palika/layout.tsx
-<PortalLayout title="palika.portal" roles={PORTAL_ROLES.palika} links={[
-  { href: '/palika', key: 'staff.queue', matches: (p) => p === '/palika' || under('/palika/requests')(p) },
-  { href: '/palika/reports', key: 'staff.reports', matches: under('/palika/reports') },
-]}>{children}</PortalLayout>
+<PortalLayout roles={PORTAL_ROLES.palika}>{children}</PortalLayout>
 ```
 A portal page is then tiny: `export default () => <QueueView detailBase="/palika/requests" />`.
 

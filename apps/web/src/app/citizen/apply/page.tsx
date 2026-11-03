@@ -1,7 +1,7 @@
 'use client';
 
-import { createRequestSchema, type ServiceTypeCode } from '@sewa/shared';
-import { useState, type FormEvent } from 'react';
+import { createRequestSchema, SERVICE_TYPE_CODES, type ServiceTypeCode } from '@sewa/shared';
+import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/client';
 import type { CreatedRequest } from '@/api/requests.api';
 import { Alert, Badge, Button, ButtonLink, Card, CheckboxField, PageTitle, SelectField, TextAreaField, TextField } from '@/components/common';
@@ -21,6 +21,8 @@ import { pickName, useI18n } from '@/lib/i18n';
  * Documents (PRD F15) are optional here: the citizen may attach files for the service's listed
  * documents. A file can only be stored on an existing request, so they are uploaded one by one right
  * AFTER the request is created, and the success screen shows how each one went.
+ *
+ * "Apply for this" on a service links here with ?service=CODE, which preselects that service.
  */
 type UploadState = 'uploading' | 'done' | 'failed';
 type FieldErrors = Partial<Record<'serviceTypeCode' | 'wardId' | 'purpose' | 'name' | 'nid' | 'consent', string>>;
@@ -53,6 +55,13 @@ export default function ApplyPage() {
   const [fileError, setFileError] = useState<string>();
   const [uploads, setUploads] = useState<Record<string, { state: UploadState; reason?: string }>>({});
   const addDocument = useAddDocument();
+
+  // ?service=LAND_BOUNDARY from an "Apply for this" link. Read once after the first render (the server
+  // has no window); anything that isn't one of our service codes is ignored.
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.search).get('service');
+    if ((SERVICE_TYPE_CODES as readonly string[]).includes(fromLink ?? '')) setService(fromLink as ServiceTypeCode);
+  }, []);
 
   const services = useServiceTypes();
   const provinces = useProvinces();

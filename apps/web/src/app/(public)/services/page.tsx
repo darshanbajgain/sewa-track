@@ -1,10 +1,13 @@
 'use client';
 
-import { Badge, Card, PageTitle, QueryState } from '@/components/common';
+import { Badge, ButtonLink, Card, PageTitle, QueryState } from '@/components/common';
 import { pickName, useI18n } from '@/lib/i18n';
 import { useServiceTypes } from '@/hooks/useReference';
 
-/** Service catalog (PRD F1): documents, demo fee and promised days for each service. */
+/**
+ * Service catalog (PRD F1): documents, demo fee and promised days for each service.
+ * "Apply for this" goes to the apply form with the service chosen (a visitor logs in first and comes back).
+ */
 export default function ServicesPage() {
   const { t, lang } = useI18n();
   const services = useServiceTypes();
@@ -39,6 +42,9 @@ export default function ServicesPage() {
                 ))}
               </ul>
             </div>
+            <ButtonLink href={`/citizen/apply?service=${s.code}`} className="mt-auto self-start">
+              {t('services.applyFor')}
+            </ButtonLink>
           </Card>
         ))}
       </div>

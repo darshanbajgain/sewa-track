@@ -2,25 +2,55 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Button, ButtonLink } from '@/components/common';
+import { useState } from 'react';
+import { Button, ButtonLink, Modal } from '@/components/common';
 import { useLogout, useMe } from '@/hooks/useAuth';
 import { useI18n } from '@/lib/i18n';
 import { PORTAL_TABS, ROLE_HOME } from '@/lib/routing';
 
 /**
- * The frame around every page: demo banner → header → blue navigation → (page) → footer.
- * A familiar government-portal LAYOUT in our own design. Deliberately NO emblem, flag, palika logo,
- * or "Government of Nepal" wording (AGENTS hard rules #1, #8), and the demo banner always comes first.
+ * The frame around every page: demo notice (dialog on load) → header with the DEMO pill → blue navigation
+ * → (page) → footer with the demo line. A familiar government-portal LAYOUT in our own design.
+ * Deliberately NO emblem, flag, palika logo, or "Government of Nepal" wording (AGENTS hard rules #1, #8).
  */
 
-/** Hard rule #2: on every page, in English and Nepali. Never translated away or hidden. */
-export function DemoBanner() {
+/**
+ * Hard rule #2 (AGENTS §3.2, PRD F13; changed 2026-11-03 by the owner): the full demo disclaimer, in
+ * English and Nepali, opens as a dialog when the site loads. Its open/closed state is plain React state in
+ * the root layout, which stays mounted while the user moves between pages, so closing it lasts until the
+ * next full page load (a reload shows it again). No storage on purpose.
+ * Every page also keeps a permanent marker: the DEMO pill by the logo and the footer line.
+ */
+export function DemoNotice() {
+  const [open, setOpen] = useState(true);
   return (
-    <div role="note" className="bg-demo px-4 py-2 text-center text-sm text-demo-ink">
-      <strong>Demo / portfolio project.</strong> Not affiliated with any government body. Do not enter real information.
-      <span className="mx-2" aria-hidden="true">·</span>
-      <span lang="ne">डेमो / पोर्टफोलियो परियोजना। कुनै पनि सरकारी निकायसँग सम्बन्धित छैन। वास्तविक जानकारी नराख्नुहोस्।</span>
-    </div>
+    <Modal
+      open={open}
+      onClose={() => setOpen(false)}
+      title="Demo / portfolio project · डेमो / पोर्टफोलियो परियोजना"
+      closeLabel="Close"
+      footer={<Button onClick={() => setOpen(false)}>I understand · बुझेँ</Button>}
+    >
+      <div className="flex flex-col gap-3">
+        <p>
+          <strong>Sewa Track is a demo / portfolio project.</strong> It is not affiliated with any government body. All data is
+          fake. Do not enter real information.
+        </p>
+        <p lang="ne">
+          <strong>सेवा ट्र्याक डेमो / पोर्टफोलियो परियोजना हो।</strong> कुनै पनि सरकारी निकायसँग सम्बन्धित छैन। सबै डेटा नक्कली हो।
+          वास्तविक जानकारी नराख्नुहोस्।
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
+/** The permanent marker on every page, next to the logo. */
+function DemoPill() {
+  return (
+    <span className="rounded-full border border-demo-ink/30 bg-demo px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-demo-ink">
+      Demo · <span lang="ne">डेमो</span>
+    </span>
   );
 }
 
@@ -66,8 +96,11 @@ export function SiteHeader() {
         <Link href={me ? ROLE_HOME[me.role] : '/'} className="flex items-center gap-3 text-ink no-underline">
           <LogoMark />
           <span className="flex flex-col leading-tight">
-            <span className="text-xl font-bold text-primary">
-              Sewa Track <span className="font-semibold text-muted">· सेवा ट्र्याक</span>
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-xl font-bold text-primary">
+                Sewa Track <span className="font-semibold text-muted">· सेवा ट्र्याक</span>
+              </span>
+              <DemoPill />
             </span>
             <span className="text-sm text-muted">{t('site.tagline')}</span>
           </span>

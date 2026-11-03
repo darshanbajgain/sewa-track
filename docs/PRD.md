@@ -190,7 +190,7 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
   - Side panel on click: counts by type and status for that area.
   - Legend, loading state, empty state.
 - **Public stats map** (`/stats`): same choropleth, **aggregates only**, no drill-down to individual requests.
-- **Home page** (`/`) leads with the public delay map and 3 national numbers (open requests, overdue, on-time rate), then links to "Apply" and "Track".
+- **Home page** (`/`) (simplified 2026-11-03, owner): short and pointing to the right place. Hero with "Apply", "Track a request" and "See the delay map"; the 3 national numbers (overdue, open requests, on-time rate); the services, each with **"Apply for this"** (a visitor logs in first, then lands on the apply form with that service chosen: `/citizen/apply?service=CODE`); how it works. The map itself lives on `/stats` (and leads the README), not repeated on home.
 - Backend: `GET /api/v1/stats/map?level=district|local_level&metric=overdue|onTimeRate|pending|avgDaysToClose...&serviceType=&status=&from=&to=&parentId=` returns `[{areaId, value}]`, computed with **one SQL GROUP BY** (raw SQL, parameterized).
 - **Boundaries must match Nepal's official 2020 map, including Lipulekh, Kalapani and Limpiyadhura.** Verify the GeoJSON before use. Simplify with `mapshaper` and store under `apps/web/public/geo/`. Credit source and license in the README.
 - **AC:** map loads district view < 2 s on a normal connection; toggling metric updates colors; p95 of the stats endpoint < 200 ms locally on 100k rows (with index, see F11).
@@ -233,7 +233,9 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 - **AC:** valid file → 201; 2 MB + 1 byte, a `.exe` renamed `.png`, or an 11th slot → 400; another citizen or another ward's officer → 403; resubmit with a missing document → 422; every upload/review writes an audit event in the same transaction; tracking response has no documents.
 
 ### F13. Demo safety
-- Fixed banner on every page (both languages): **"Demo / portfolio project. Not affiliated with any government body. Do not enter real information."**
+- **Demo notice** (changed 2026-11-03, owner), in both languages: **"Demo / portfolio project. Not affiliated with any government body. Do not enter real information."**
+  - shown as a **dialog when the site loads**; closing it lasts until the next full page load (a reload shows it again);
+  - plus a permanent marker on **every page**: a "DEMO · डेमो" pill next to the logo and the demo line in the footer.
 - `pnpm demo:reset` re-seeds the database (can be run nightly by the host's cron or a scheduled GitHub Action).
 
 ## 8. Data model
@@ -349,7 +351,7 @@ docs/         PRD, architecture, performance, ADRs, incidents
 Not legal advice; these are the project's safety rules.
 
 1. **No government branding.** No national emblem (coat of arms), no national flag, no palika logos, no "नेपाल सरकार / Government of Nepal" header, no `.gov.np`-like domain. Nepal's National Penal Code s.151 restricts improper use of the anthem, flag and coat of arms.
-2. **Demo banner** on every page (F13). README starts with a disclaimer.
+2. **Demo notice** on load plus a DEMO marker on every page (F13). README starts with a disclaimer.
 3. **Fake data only.** Faker-generated names; IDs prefixed `DEMO-`. Never real citizenship numbers, never real names, never scraped personal data. (Nepal's Individual Privacy Act 2075 requires consent and authorization to collect personal information.)
 4. **No real officials.** Seeded staff are "Ward Officer (Demo)" etc.
 5. **Live demo does not collect real data:** consent checkbox, demo logins, periodic reset.
@@ -400,11 +402,11 @@ Target: domain folder ≥ 90% line coverage. Tests must run with one command: `p
 | **M2 Frontend + ship** | Web pages (home delay map, catalog, apply, track, login, officer queue/detail, admin map), F11 seed + performance doc, F13, Docker, deploy, README, short demo video → **tag v0.1.0** |
 | **M3 Polish** | F9 NID mock + contract test, Swagger, ADRs, incident doc, full Nepali UI, palika drill-down → **tag v0.2.0** |
 
-If time runs short, cut in this order: E2E test → palika reassign → BS dates → heatmap layer (keep choropleth) → drill-down to palika (keep district map) → Nepali translations beyond core labels. **Never cut:** the district delay map with the overdue metric, transition rules, audit-in-transaction, ward scoping, tests, demo banner, README.
+If time runs short, cut in this order: E2E test → palika reassign → BS dates → heatmap layer (keep choropleth) → drill-down to palika (keep district map) → Nepali translations beyond core labels. **Never cut:** the district delay map with the overdue metric, transition rules, audit-in-transaction, ward scoping, tests, demo notice + DEMO marker, README.
 
 ## 17. Definition of done (whole project)
 
-- [ ] Deployed demo link works; demo logins work; banner visible.
+- [ ] Deployed demo link works; demo logins work; demo notice and DEMO marker visible.
 - [ ] `pnpm test` green locally and in CI.
 - [ ] README explains purpose, disclaimer, architecture, setup in < 5 commands, and links docs.
 - [ ] `docs/performance.md` has real before/after numbers.

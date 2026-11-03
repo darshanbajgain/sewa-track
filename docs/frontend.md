@@ -52,7 +52,7 @@ apps/web/
 └─ src/
    ├─ proxy.ts               Next 16 "proxy" (ex-middleware): no session cookie → /login (citizen portal) or /staff/login (staff portals)
    ├─ app/                   ROUTES (one folder = one URL)
-   │  ├─ layout.tsx          banner → wake notice → header → nav → page → footer; fonts; Providers
+   │  ├─ layout.tsx          demo notice (dialog) → wake notice → header (DEMO pill) → nav → page → footer; fonts; Providers
    │  ├─ providers.tsx       QueryClient · LanguageProvider · SessionWatcher
    │  ├─ globals.css         design tokens (@theme), focus ring, calendar colours
    │  ├─ icon.svg            our own "ST" mark
@@ -88,7 +88,7 @@ apps/web/
    │  ├─ requests/           StatusBadge, RequestHistory, changeErrorText
    │  ├─ documents/          DocumentsCard (citizen + staff modes), FilePicker (PRD F15)
    │  ├─ map/                DelayMap (controls, legend, side panel, table) · DistrictMap (Leaflet only, ssr: false)
-   │  └─ SiteChrome.tsx      DemoBanner, SiteHeader, SiteFooter
+   │  └─ SiteChrome.tsx      DemoNotice (dialog on load), SiteHeader (with the DEMO pill), SiteFooter
    └─ lib/
       ├─ i18n.tsx            useI18n(): t(key), language toggle, pickName()
       ├─ routing.ts          ROLE_HOME, PORTAL_ROLES, PORTAL_TABS, safeNextPath(), loginUrl()
@@ -162,11 +162,11 @@ name → blue navigation → hero → cards → dark footer.
 | `ink` / `muted` | `#1b1f24` / `#4b5563` | body / secondary text (both ≥ 4.5:1 on white) |
 | `line` / `surface` | `#d8dee8` / `#f4f6fa` | borders / section backgrounds |
 | `ok`, `warn` (+ `-soft`) | green / amber | on time, demo values |
-| `demo` / `demo-ink` | amber | the demo banner (deliberately not blue or crimson) |
+| `demo` / `demo-ink` | amber | the DEMO pill (deliberately not blue or crimson) |
 
 **Hard rules (AGENTS §3):** no national emblem, flag shape, palika logo or "Government of Nepal /
-नेपाल सरकार" wording; nothing copied from any real government site; the bilingual demo banner is the first
-thing on every page; fees and days are labelled as demo values; `robots: noindex`.
+नेपाल सरकार" wording; nothing copied from any real government site; the bilingual demo notice opens on every
+full page load, and every page shows a DEMO pill by the logo and the demo line in the footer (PRD F13); fees and days are labelled as demo values; `robots: noindex`.
 
 **Variant rule:** never override a component's colours with `className` (Tailwind can't guarantee which
 class wins). Add a variant instead (that's how `accent` was added to Button).
@@ -235,10 +235,13 @@ One app, **one portal per role** (decided 2026-11-01; ADR-003):
 |---|---|---|
 | Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login`, `/staff/login`, `/register` (route group `app/(public)/`) | visitors only: a logged-in user is sent to their portal |
 
-**Home (`/`):** hero with Apply and a tracking box (a plain `<form action="/track" method="get">`, so it works
-without JavaScript) beside the national numbers; then the delay map with the six most-overdue districts
-beside it (numbers written out, bars decorative); then how it works (4 steps) and the service cards (fee, days,
-field visit, number of documents).
+**Home (`/`):** short (PRD F8): hero with Apply / Track a request / See the delay map beside the national
+numbers; the service cards (fee, days, field visit, number of documents) each with **"Apply for this"**
+→ `/citizen/apply?service=CODE`; how it works (4 steps). The map and tracking have their own pages.
+
+**"Apply for this":** a visitor is sent to the login (`proxy.ts` keeps the query in `next`, so
+`?service=` survives), then lands on the apply form, which reads `?service=` once and preselects it
+(anything that isn't a service code is ignored). `/track?code=` works the same way.
 | Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
 | Ward ✅ | `/ward` (queue), `/ward/requests/[id]` (actions) | `WARD_OFFICER` |
 | Palika ✅ | `/palika` (queue), `/palika/requests/[id]` (read only), `/palika/reports`, `/palika/map` | `PALIKA_ADMIN` |

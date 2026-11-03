@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Noto_Sans, Noto_Sans_Devanagari } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { ServerWakeNotice } from '@/components/ServerWakeNotice';
-import { DemoBanner, SiteFooter, SiteHeader } from '@/components/SiteChrome';
+import { DemoNotice, SiteFooter, SiteHeader } from '@/components/SiteChrome';
 import { Providers } from './providers';
 import './globals.css';
 
@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:bg-white focus:p-2">
             Skip to content
           </a>
-          <DemoBanner />
+          <DemoNotice />
           <ServerWakeNotice />
           <SiteHeader />
           <main id="main" className="flex-1">

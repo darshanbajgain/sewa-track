@@ -58,7 +58,7 @@ apps/web/
    │  ├─ icon.svg            our own "ST" mark
    │  ├─ page.tsx            /          home ✅
    │  ├─ services/           /services  catalog ✅
-   │  ├─ track/              /track     public tracking ✅
+   │  ├─ track/              /track     public tracking ✅ (/track?code=ST-… looks the code up at once)
    │  ├─ stats/              /stats     national delay map ✅ (public, aggregates only)
    │  ├─ login/              /login     citizen login: email form + collapsed "Demo mode" panel (fills the form) ✅
    │  ├─ staff/login/        /staff/login  staff login, same form (components/auth/LoginForm.tsx), staff demo accounts ✅
@@ -234,6 +234,11 @@ One app, **one portal per role** (decided 2026-11-01; ADR-003):
 | Portal | Routes | Who |
 |---|---|---|
 | Public ✅ | `/`, `/services`, `/track`, `/stats` (delay map), `/login`, `/staff/login`, `/register` (route group `app/(public)/`) | visitors only: a logged-in user is sent to their portal |
+
+**Home (`/`):** hero with Apply and a tracking box (a plain `<form action="/track" method="get">`, so it works
+without JavaScript) beside the national numbers; then the delay map with the six most-overdue districts
+beside it (numbers written out, bars decorative); then how it works (4 steps) and the service cards (fee, days,
+field visit, number of documents).
 | Citizen ✅ | `/citizen` (my requests), `/citizen/apply`, `/citizen/requests/[id]` | `CITIZEN` |
 | Ward ✅ | `/ward` (queue), `/ward/requests/[id]` (actions) | `WARD_OFFICER` |
 | Palika ✅ | `/palika` (queue), `/palika/requests/[id]` (read only), `/palika/reports`, `/palika/map` | `PALIKA_ADMIN` |

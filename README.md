@@ -16,8 +16,15 @@ data isn't connected. Sewa Track explores an open, national version: **one data 
 local levels**, **delay tracking against charter times on a national map**, and clean integration with
 existing services, built with tests, an audit log and documentation.
 
-> 🚧 **Work in progress.** The backend foundation is built (see [Status](#status)). Live demo and
-> screenshots will be added with the web app.
+**Live demo: <https://sewa-track.vercel.app>** · API docs: <https://sewa-track.vercel.app/api/docs>
+(free hosting: the first request after a quiet spell can take ~30 s while the server wakes up).
+Try it with the [demo accounts](#demo-accounts) or sign up as a citizen.
+
+| Home | National service-delay map |
+|---|---|
+| ![Home page: apply, track, national numbers and services](docs/images/home.png) | ![District map of Nepal coloured by overdue requests](docs/images/delay-map.png) |
+| **Ward officer: one clear next step** | **Citizen: upload what the ward asked for** |
+| ![Staff request screen with progress bar, next step, checklist and documents](docs/images/staff-request.png) | ![Citizen request page asking for two documents](docs/images/citizen-documents.png) |
 
 ---
 
@@ -41,8 +48,8 @@ existing services, built with tests, an audit log and documentation.
 
 | Who | Can |
 |---|---|
-| **Citizen** | See required documents and fees before visiting, submit a request, track it with a code (no login), resubmit when documents are requested |
-| **Ward officer** | Work through the ward's queue and move requests through a strict, audited workflow |
+| **Citizen** | See required documents and fees, apply online and attach documents (JPEG/PNG/PDF), track with a code (no login), upload what the ward asks for and resubmit |
+| **Ward officer** | Work through the ward's queue; each request shows a progress bar, **one clear next step**, a checklist, and the documents to accept or mark "not OK"; every move follows a strict, audited workflow |
 | **Palika admin** | See all wards of the palika, reassign officers, view reports |
 | **System admin / public** | See the **national service-delay map**: overdue requests and on-time rate by district and palika |
 
@@ -97,7 +104,10 @@ and may be outdated.
 | Citizen portal: my requests, apply (cascading dropdowns, shared validation), detail with resubmit/cancel and 409 handling | ✅ |
 | Staff portal: queue (filters in the URL, paging), detail with only the allowed actions, fee paid, 409 handling, palika/national reports | ✅ |
 | National delay map: district choropleth (official 2020 boundaries), 4 measures, filters, side panel, legend, table view | ✅ |
-| Live demo | 🔜 |
+| Supporting documents: officer names what's needed, citizen uploads, officer accepts / "not OK"; type checked from the file's bytes | ✅ |
+| Staff request screen: progress bar, one next step, checklist; separate citizen and staff login pages; role-only menus | ✅ |
+| UI polish: accessible dropdowns and date picker, skeleton loading (no layout jumps), scrolling table cards | ✅ |
+| Live demo ([sewa-track.vercel.app](https://sewa-track.vercel.app)): web on Vercel, API on Render, Postgres on Neon; demo data reset with `pnpm demo:reset` | ✅ |
 
 ---
 
@@ -203,6 +213,10 @@ docs/             requirements, architecture, database, codebase guide
 - **Own migration runner:** one transaction per file, checksum check, advisory lock (same model as Flyway).
 - **Security basics from day one:** input validation, generic error responses, log redaction, request
   size limit, compressed request bodies refused, dependency audit in CI, patched Node.js required.
+- **File uploads treated as hostile:** the type is decided from the file's first bytes (a renamed `.exe` is
+  refused), 2 MB limit while streaming, cleaned file names, and downloads sent with `nosniff`, `CSP: sandbox`
+  and `no-store`; every upload and review is audited in the same transaction.
+- **Measured UI stability:** skeleton placeholders keep Chrome's layout-shift score under 0.01 on every page.
 - **Tests against a real database**, not mocks; each test runs in a rolled-back transaction.
 
 ---

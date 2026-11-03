@@ -26,7 +26,14 @@ if (!Number.isInteger(sampleCount) || sampleCount < 0 || sampleCount > 20_000) {
 }
 
 console.log(`Resetting: all requests deleted, ${OLD_DEMO_EMAILS.length} old demo accounts removed, ${sampleCount} sample requests added (none in Birtamod).`);
-const client = new pg.Client({ connectionString: env.DATABASE_URL });
+// Fail loudly instead of waiting forever if the network to a hosted database drops (seen with Neon over
+// IPv6): give up connecting after 20 s and any single query after 2 min. The transaction then rolls back.
+const client = new pg.Client({
+  connectionString: env.DATABASE_URL,
+  connectionTimeoutMillis: 20_000,
+  query_timeout: 120_000,
+  keepAlive: true,
+});
 await client.connect();
 try {
   const summary = await demoReset(client, { admin, sampleCount });

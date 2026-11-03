@@ -64,8 +64,13 @@ accounts, keeps every other account, re-seeds the public demo accounts and the p
 
 ```bash
 cd apps/api
-env -u DATABASE_URL CONFIRM_RESET=yes node --no-warnings --env-file=../../.env.neon --import tsx src/db/demo-reset.cli.ts
+env -u DATABASE_URL CONFIRM_RESET=yes NODE_OPTIONS=--dns-result-order=ipv4first \
+  node --no-warnings --env-file=../../.env.neon --import tsx src/db/demo-reset.cli.ts
 ```
+
+`--dns-result-order=ipv4first`: from some networks the IPv6 route to Neon silently stalls; IPv4 is reliable.
+The command also gives up after 20 s connecting / 2 min per query, so a stall shows an error instead of
+hanging (the transaction rolls back, nothing half-done).
 
 It prints only counts (users per role, requests, requests in Birtamod = 0), never emails or passwords.
 

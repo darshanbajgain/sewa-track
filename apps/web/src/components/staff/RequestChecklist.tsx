@@ -14,12 +14,23 @@ const MARK: Record<ItemState, { icon: string; className: string }> = {
 };
 
 /**
- * The checks an officer looks at before approving: ID, fee, field visit, promised time.
+ * The checks an officer looks at before approving: ID, fee, field visit, documents, promised time.
  * Read only: the same for every role. Each line has an icon AND words, so it doesn't rely on colour.
  */
 export function RequestChecklist({ request }: { request: RequestDetailDto }) {
   const { t, lang } = useI18n();
   const id = request.identityCheck?.status;
+  const docs = request.documents;
+  const accepted = docs.filter((d) => d.status === 'ACCEPTED').length;
+  const toReview = docs.filter((d) => d.status === 'UPLOADED').length;
+  const waiting = docs.length - accepted - toReview; // requested or "not OK": the citizen's turn
+  const docsValue = [
+    docs.length === 0 ? t('staff.check.docsNone') : `${accepted}/${docs.length} ${t('staff.check.docsAccepted')}`,
+    toReview > 0 ? `${toReview} ${t('staff.check.docsToReview')}` : null,
+    waiting > 0 ? `${waiting} ${t('staff.check.docsWaiting')}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const due = formatDate(dueDate(request.submittedAt, request.service.serviceDays), lang);
 
   const items: { label: MessageKey; state: ItemState; value: string }[] = [
@@ -44,6 +55,11 @@ export function RequestChecklist({ request }: { request: RequestDetailDto }) {
         : request.fieldVerifiedAt
           ? `${t('staff.check.done')} · ${formatDate(request.fieldVerifiedAt, lang)}`
           : t('staff.notYet'),
+    },
+    {
+      label: 'docs.title',
+      state: docs.length === 0 ? 'na' : accepted === docs.length ? 'ok' : 'todo',
+      value: docsValue,
     },
     {
       label: 'staff.check.time',

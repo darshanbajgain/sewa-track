@@ -25,6 +25,9 @@ export const ENDPOINTS = {
     detail: (id: string) => `/requests/${id}`,
     transitions: (id: string) => `/requests/${id}/transitions`,
     feePaid: (id: string) => `/requests/${id}/fee-paid`,
+    documents: (id: string) => `/requests/${id}/documents`, // POST = add a listed document (citizen)
+    documentFile: (id: string, documentId: string) => `/requests/${id}/documents/${documentId}/file`, // PUT = upload, GET = view
+    documentReview: (id: string, documentId: string) => `/requests/${id}/documents/${documentId}/review`,
   },
   tracking: {
     byCode: (code: string) => `/track/${encodeURIComponent(code)}`,

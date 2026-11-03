@@ -86,6 +86,7 @@ apps/web/
    │  ├─ staff/              QueueView, RequestDetailView (+ RequestProgress, RequestChecklist), ReportsView
    │  │                      (shared by the ward/palika/admin portals)
    │  ├─ requests/           StatusBadge, RequestHistory, changeErrorText
+   │  ├─ documents/          DocumentsCard (citizen + staff modes), FilePicker (PRD F15)
    │  ├─ map/                DelayMap (controls, legend, side panel, table) · DistrictMap (Leaflet only, ssr: false)
    │  └─ SiteChrome.tsx      DemoBanner, SiteHeader, SiteFooter
    └─ lib/
@@ -299,6 +300,23 @@ refuses too).
   3. **Checklist**: ID check, fee, field visit, service time (icon + words, never colour alone).
   This file only *arranges* the moves the server allowed; it never decides what is allowed.
 - **Queue** has a "Next step" column (by status: Start review, Review and approve, Waiting for citizen, …).
+
+### Supporting documents (PRD F15)
+- **`DocumentsCard`** (`components/documents`) is on both detail pages. Citizen mode: one row per document
+  with "Upload file" / "Replace file" (primary while requested or "not OK"), plus "Add another document"
+  from the service's list. Staff mode: "View file" (opens in a new tab), and for the ward officer
+  **Accept** / **Not OK** (a dialog asks for the reason the citizen will see). What is allowed comes from
+  `canUploadDocuments` / `canReviewDocuments` on the detail response.
+- **Ask for documents** (staff dialog, `AskDocumentsField`): tick names from the service's list and/or type
+  your own; 1–5. Documents marked "not OK" are ticked already.
+- **Citizen, needs documents:** the yellow box always shows in that status; **Resubmit stays disabled** with
+  "Upload every requested document first" until the server allows it.
+- **Apply:** optional step 4 "Attach documents". Files are uploaded one by one *after* the request is created
+  (a file needs a request to belong to); the success screen lists each result, with the server's reason if
+  one was refused.
+- **Files:** `FilePicker` is a normal button that clicks a hidden `<input type="file">`. The browser checks the
+  type and size first (`fileProblem`) for a quick answer; the API decides from the file's bytes. Uploads
+  use `FormData` with a 60 s timeout.
 - **Every action opens a confirm modal.** Asking for documents and finishing a field visit need a note,
   rejecting needs a reason (same as the domain's NOTE/REASON conditions; the API re-checks → 400).
 - **409**: a second tab or officer that saved first → "someone else saved first", and the detail refetches.

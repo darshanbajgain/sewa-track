@@ -1,6 +1,8 @@
 import {
   createRequestSchema,
   createStaffSchema,
+  DOCUMENT_CONTENT_TYPES,
+  DOCUMENT_STATUSES,
   districtsQuerySchema,
   ERROR_CODES,
   EVENT_ACTIONS,
@@ -12,6 +14,7 @@ import {
   MAP_METRICS,
   mapQuerySchema,
   queueQuerySchema,
+  reviewDocumentBodySchema,
   registerSchema,
   REQUEST_STATUSES,
   ROLES,
@@ -64,6 +67,16 @@ const obj = (properties: Record<string, Json>, required = Object.keys(properties
 const json = (schema: Json, example?: unknown) => ({ content: { 'application/json': { schema, ...(example ? { example } : {}) } } });
 
 const idParam = { name: 'id', in: 'path', required: true, schema: str({ format: 'uuid' }), description: 'Request id (uuid)' };
+const documentIdParam = { name: 'documentId', in: 'path', required: true, schema: str({ format: 'uuid' }), description: 'Document id (uuid)' };
+/** multipart/form-data body with one file (PRD F15: JPEG/PNG/PDF, ≤ 2 MB, type checked from the bytes). */
+const fileUpload = (extra: Record<string, Json> = {}) => ({
+  required: true,
+  content: {
+    'multipart/form-data': {
+      schema: obj({ ...extra, file: str({ format: 'binary', description: 'JPEG, PNG or PDF, at most 2 MB' }) }),
+    },
+  },
+});
 
 /** Standard error responses (PRD §9). Every error has the same JSON shape. */
 const err = (description: string) => ({ description, ...json(ref('Error')) });
@@ -203,8 +216,20 @@ const components = {
           at: dateTime,
         }),
       ),
+      documents: arr(ref('Document')),
       allowedTransitions: { ...arr(ref('Status')), description: 'Moves the CURRENT user may make now (drives the UI buttons)' },
       canMarkFeePaid: bool,
+      canUploadDocuments: bool,
+      canReviewDocuments: bool,
+    }),
+    Document: obj({
+      id: str({ format: 'uuid' }),
+      name: str(),
+      status: str({ enum: [...DOCUMENT_STATUSES] }),
+      requestedByOfficer: bool,
+      file: nullable(obj({ name: str(), contentType: str({ enum: [...DOCUMENT_CONTENT_TYPES] }), sizeBytes: int(), uploadedAt: dateTime })),
+      reviewNote: nullable(str()),
+      reviewedAt: nullable(dateTime),
     }),
     ChangeResult: obj({ id: str({ format: 'uuid' }), status: ref('Status'), version: int() }),
     Totals: obj({
@@ -387,7 +412,7 @@ const paths = {
       tags: ['Staff', 'Requests'],
       summary: 'Change the status (ward officer: own ward · citizen: own request)',
       description:
-        'Optimistic locking: send the `version` you loaded. The update and its audit row are one transaction. `note` is required for NEEDS_DOCUMENTS, resubmitting and returning from field verification; `reason` for REJECTED. Palika and system admins are read-only (403).',
+        'Optimistic locking: send the `version` you loaded. The update and its audit row are one transaction. `note` is required for NEEDS_DOCUMENTS (plus `documents`: 1–5 names to upload), resubmitting (only once every requested document is uploaded and none is \"not OK\") and returning from field verification; `reason` for REJECTED. Palika and system admins are read-only (403).',
       security: cookieAuth,
       parameters: [idParam],
       requestBody: { required: true, ...json(input(transitionBodySchema), { toStatus: 'UNDER_REVIEW', version: 0 }) },
@@ -417,6 +442,75 @@ const paths = {
         404: E[404],
         409: E[409],
         422: err('Free service, already paid, or the request is approved/closed'),
+      },
+    },
+  },
+  '/api/v1/requests/{id}/documents': {
+    post: {
+      tags: ['Requests'],
+      summary: "Add a document from the service's list, with its file (citizen, own request)",
+      description: '`name` must be one of the service\'s required documents (English or Nepali). Allowed until the request is approved. At most 10 documents per request.',
+      security: cookieAuth,
+      parameters: [idParam],
+      requestBody: fileUpload({ name: str({ example: 'Birth registration certificate' }) }),
+      responses: {
+        201: { description: 'Added (DOCUMENT_UPLOADED audit event)', ...json(obj({ document: ref('Document') })) },
+        400: err('Not in the list, not JPEG/PNG/PDF, over 2 MB, or over 10 documents'),
+        401: E[401],
+        403: E[403],
+        404: E[404],
+        409: err('This document is already on the request (upload into it instead)'),
+        422: E[422],
+      },
+    },
+  },
+  '/api/v1/requests/{id}/documents/{documentId}/file': {
+    put: {
+      tags: ['Requests'],
+      summary: 'Upload a file into a requested or "not OK" document (citizen, own request)',
+      security: cookieAuth,
+      parameters: [idParam, documentIdParam],
+      requestBody: fileUpload(),
+      responses: {
+        200: { description: 'Uploaded; any earlier review is cleared', ...json(obj({ document: ref('Document') })) },
+        400: E[400],
+        401: E[401],
+        403: E[403],
+        404: E[404],
+        409: E[409],
+        422: err('Already accepted, or the request is approved/closed'),
+      },
+    },
+    get: {
+      tags: ['Requests', 'Staff'],
+      summary: 'Download the file (owner or scoped staff)',
+      description: 'Sent with `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox`, `Cache-Control: private, no-store`.',
+      security: cookieAuth,
+      parameters: [idParam, documentIdParam],
+      responses: {
+        200: { description: 'The file', content: Object.fromEntries(DOCUMENT_CONTENT_TYPES.map((t) => [t, { schema: str({ format: 'binary' }) }])) },
+        400: E[400],
+        401: E[401],
+        403: E[403],
+        404: E[404],
+      },
+    },
+  },
+  '/api/v1/requests/{id}/documents/{documentId}/review': {
+    post: {
+      tags: ['Staff'],
+      summary: 'Accept a document, or mark it "not OK" with a reason (ward officer, own ward)',
+      security: cookieAuth,
+      parameters: [idParam, documentIdParam],
+      requestBody: { required: true, ...json(input(reviewDocumentBodySchema), { decision: 'REJECTED', note: 'The scan is blurry' }) },
+      responses: {
+        200: { description: 'Reviewed (DOCUMENT_REVIEWED audit event)', ...json(obj({ document: ref('Document') })) },
+        400: E[400],
+        401: E[401],
+        403: E[403],
+        404: E[404],
+        409: E[409],
+        422: err('No file yet, or the request is closed'),
       },
     },
   },

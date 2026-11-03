@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { requestedDocumentsSchema, type DocumentDto } from './documents.js';
 import type { EventAction, RequestStatus, ServiceTypeCode } from './enums.js';
 import { requestStatusSchema, serviceTypeCodeSchema } from './enums.js';
 
@@ -109,9 +110,12 @@ export interface RequestDetailDto {
   overdue: boolean;
   identityCheck: { status: 'PENDING' | 'MATCH' | 'NO_MATCH' | 'FAILED'; attempts: number } | null;
   events: { action: EventAction; fromStatus: RequestStatus | null; toStatus: RequestStatus | null; note: string | null; actorName: string | null; at: string }[];
+  documents: DocumentDto[]; // PRD F15
   /** What the CURRENT user may do now: drives which buttons the UI shows. */
   allowedTransitions: RequestStatus[];
   canMarkFeePaid: boolean;
+  canUploadDocuments: boolean; // owner, while the request is open and not yet approved
+  canReviewDocuments: boolean; // ward officer of this ward, while the request is open
 }
 
 /** POST /requests/:id/transitions: change the status (PRD §6, F6). */
@@ -120,6 +124,7 @@ export const transitionBodySchema = z.object({
   version: z.number().int().min(0), // the version the user saw; a newer one in the DB → 409
   note: z.string().trim().max(1000).optional(),
   reason: z.string().trim().max(1000).optional(),
+  documents: requestedDocumentsSchema.optional(), // required when asking for documents (PRD F15)
 });
 export type TransitionBody = z.infer<typeof transitionBodySchema>;
 

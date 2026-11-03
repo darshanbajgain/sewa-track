@@ -17,11 +17,12 @@ function readyRequest(status: RequestStatus, overrides: Partial<RequestFacts> = 
     feePaidAt: PAID,
     requiresFieldVerification: true,
     fieldVerifiedAt: PAID,
+    openDocuments: 0,
     ...overrides,
   };
 }
 
-const WITH_TEXT = { note: 'Please bring the land certificate', reason: 'Documents do not match' };
+const WITH_TEXT = { note: 'Please bring the land certificate', reason: 'Documents do not match', documents: ['Land certificate'] };
 
 describe('allowed transitions (PRD §6.2)', () => {
   it('has exactly the 11 moves from the PRD', () => {
@@ -83,6 +84,26 @@ describe('conditions', () => {
     });
   });
 
+  it('requires at least one document name to ask for documents (PRD F15)', () => {
+    const req = readyRequest('UNDER_REVIEW');
+    for (const documents of [undefined, []]) {
+      expect(checkTransition(req, 'NEEDS_DOCUMENTS', 'WARD_OFFICER', { note: 'Please upload', documents })).toMatchObject({
+        code: 'VALIDATION_ERROR',
+        message: 'Name at least one document to upload',
+      });
+    }
+  });
+
+  it('blocks resubmitting while a requested document is missing or "not OK" (PRD F15)', () => {
+    const waiting = readyRequest('NEEDS_DOCUMENTS', { openDocuments: 1 });
+    expect(checkTransition(waiting, 'UNDER_REVIEW', 'CITIZEN', WITH_TEXT)).toMatchObject({
+      code: 'INVALID_TRANSITION',
+      message: 'Upload every requested document before resubmitting',
+    });
+    // Cancelling is still possible, and the resubmit button is hidden.
+    expect(allowedTransitions(waiting, 'CITIZEN')).toEqual(['CANCELLED']);
+  });
+
   it('requires a note when the citizen resubmits documents', () => {
     expect(checkTransition(readyRequest('NEEDS_DOCUMENTS'), 'UNDER_REVIEW', 'CITIZEN', {})).toMatchObject({
       code: 'VALIDATION_ERROR',
@@ -138,7 +159,16 @@ describe('effects', () => {
     const result = checkTransition(readyRequest('SUBMITTED'), 'UNDER_REVIEW', 'WARD_OFFICER');
     expect(result).toEqual({
       ok: true,
-      effects: { assignOfficerIfEmpty: true, setFieldVerifiedAt: false, setClosedAt: false },
+      effects: { assignOfficerIfEmpty: true, setFieldVerifiedAt: false, setClosedAt: false, requestDocuments: false },
+    });
+  });
+
+  it('creates the requested documents only when asking for documents', () => {
+    expect(checkTransition(readyRequest('UNDER_REVIEW'), 'NEEDS_DOCUMENTS', 'WARD_OFFICER', WITH_TEXT)).toMatchObject({
+      effects: { requestDocuments: true },
+    });
+    expect(checkTransition(readyRequest('UNDER_REVIEW'), 'APPROVED', 'WARD_OFFICER')).toMatchObject({
+      effects: { requestDocuments: false },
     });
   });
 

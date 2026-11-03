@@ -152,6 +152,8 @@
   "action.FEE_PAID": "शुल्क तिरियो",
   "action.REASSIGNED": "अधिकृत परिवर्तन",
   "action.IDENTITY_CHECKED": "परिचय जाँच",
+  "action.DOCUMENT_UPLOADED": "कागजात अपलोड गरियो",
+  "action.DOCUMENT_REVIEWED": "कागजात जाँच गरियो",
   "apply.err.serviceTypeCode": "सेवा छान्नुहोस्।",
   "apply.err.wardId": "प्रदेश, जिल्ला, पालिका र वडा छान्नुहोस्।",
   "apply.err.purpose": "१० देखि ५०० अक्षर लेख्नुहोस्।",

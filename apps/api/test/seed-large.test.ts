@@ -14,7 +14,7 @@ beforeAll(async () => {
   result = await seedLarge(client, 2_000);
 });
 afterAll(async () => {
-  await client.query('TRUNCATE request_events, identity_checks, service_requests'); // leave a clean DB
+  await client.query('TRUNCATE request_documents, request_events, identity_checks, service_requests'); // leave a clean DB
   await client.end();
 });
 

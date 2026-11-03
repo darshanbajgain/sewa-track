@@ -109,11 +109,21 @@ describe('citizen moves', () => {
   it('resubmits after documents were requested, with a note, then can be cancelled', async () => {
     const id = await newRequest('RESIDENCE');
     await move('officerWard1', id, { toStatus: 'UNDER_REVIEW', version: 0 });
-    await move('officerWard1', id, { toStatus: 'NEEDS_DOCUMENTS', version: 1, note: 'Bring the rental agreement' });
+    await move('officerWard1', id, { toStatus: 'NEEDS_DOCUMENTS', version: 1, note: 'Upload the rental agreement', documents: ['Rental agreement'] });
 
-    const resubmit = await move('citizen', id, { toStatus: 'UNDER_REVIEW', version: 2, note: 'Brought it today' });
+    // The requested document is still missing → resubmit refused (PRD F15).
+    expect((await move('citizen', id, { toStatus: 'UNDER_REVIEW', version: 2, note: 'Added it' })).status).toBe(422);
+
+    const { rows } = await pool.query(`SELECT id FROM request_documents WHERE request_id = $1`, [id]);
+    const upload = await request(app)
+      .put(`/api/v1/requests/${id}/documents/${rows[0].id}/file`)
+      .set('Cookie', as.citizen!)
+      .attach('file', Buffer.from('%PDF-1.4 demo'), 'rental.pdf');
+    expect(upload.status).toBe(200);
+
+    const resubmit = await move('citizen', id, { toStatus: 'UNDER_REVIEW', version: 2, note: 'Added it' });
     expect(resubmit.status).toBe(200);
-    expect((await events(id)).at(-1)).toMatchObject({ from_status: 'NEEDS_DOCUMENTS', to_status: 'UNDER_REVIEW', note: 'Brought it today' });
+    expect((await events(id)).at(-1)).toMatchObject({ from_status: 'NEEDS_DOCUMENTS', to_status: 'UNDER_REVIEW', note: 'Added it' });
 
     const other = await newRequest('RESIDENCE');
     const cancel = await move('citizen', other, { toStatus: 'CANCELLED', version: 0 });
@@ -204,7 +214,7 @@ describe('concurrency: two officers act at the same instant (ADR-002)', () => {
       // Both loaded version 1 and click at the same moment: one rejects, one asks for documents.
       const [a, b] = await Promise.all([
         move('officerWard1', id, { toStatus: 'REJECTED', version: 1, reason: 'Documents do not match' }),
-        move('officer2Ward1', id, { toStatus: 'NEEDS_DOCUMENTS', version: 1, note: 'Bring the plot map' }),
+        move('officer2Ward1', id, { toStatus: 'NEEDS_DOCUMENTS', version: 1, note: 'Upload the plot map', documents: ['Plot map'] }),
       ]);
 
       expect([a.status, b.status].sort()).toEqual([200, 409]);

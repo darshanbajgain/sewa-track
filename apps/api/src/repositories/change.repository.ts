@@ -1,6 +1,7 @@
 import type { RequestStatus } from '@sewa/shared';
 import { pool } from '../db/pool.js';
 import type { DbClient } from '../db/transaction.js';
+import { OPEN_DOCUMENTS_SQL } from './document.repository.js';
 
 /** Everything the rules need to decide about a change, in one read. */
 export interface ChangeFacts {
@@ -15,6 +16,7 @@ export interface ChangeFacts {
   feePaidAt: Date | null;
   requiresFieldVerification: boolean;
   fieldVerifiedAt: Date | null;
+  openDocuments: number; // requested or "not OK" documents (PRD F15)
 }
 
 export async function findChangeFacts(id: string): Promise<ChangeFacts | null> {
@@ -23,7 +25,8 @@ export async function findChangeFacts(id: string): Promise<ChangeFacts | null> {
             r.citizen_id AS "citizenId", r.ward_id AS "wardId", r.local_level_id AS "localLevelId",
             st.fee_npr AS "feeNpr", r.fee_paid_at AS "feePaidAt",
             st.requires_field_verification AS "requiresFieldVerification",
-            r.field_verified_at AS "fieldVerifiedAt"
+            r.field_verified_at AS "fieldVerifiedAt",
+            ${OPEN_DOCUMENTS_SQL} AS "openDocuments"
      FROM service_requests r
      JOIN service_types st ON st.code = r.service_type_code
      WHERE r.id = $1`,

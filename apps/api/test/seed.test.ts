@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { runSeed } from '../src/db/seed.js';
+import { adminFromEnv, runSeed } from '../src/db/seed.js';
 
 /**
  * The global setup already seeded the test DB. These tests check the result against
@@ -66,10 +66,11 @@ describe('reference seed', () => {
   });
 
   it('creates fake demo accounts only: "(Demo)" names, 90-prefixed phones, hashed passwords', async () => {
+    // 3 public demo accounts (demo-users.json) + 5 test-only ones (test/fixtures/test-users.json).
     const { rows } = await client.query<{ name: string; phone: string; password_hash: string }>(
       `SELECT name, phone, password_hash FROM users WHERE phone LIKE '900000000_'`,
     );
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(8);
     for (const u of rows) {
       expect(u.name).toContain('(Demo)');
       expect(u.phone).toMatch(/^90\d{8}$/);
@@ -77,7 +78,31 @@ describe('reference seed', () => {
     }
   });
 
-  it('puts both demo ward officers in Kathmandu Ward 1 (needed for the "two officers" demo)', async () => {
+  it('puts the public demo officer and palika admin in Birtamod (ward 2)', async () => {
+    const { rows } = await client.query(
+      `SELECT u.email, l.name_en AS palika, w.number AS ward
+       FROM users u
+       LEFT JOIN wards w ON w.id = u.ward_id
+       JOIN local_levels l ON l.id = coalesce(w.local_level_id, u.local_level_id)
+       WHERE u.email IN ('officer.birtamod2@example.com', 'palika.birtamod@example.com') ORDER BY u.email`,
+    );
+    expect(rows).toEqual([
+      { email: 'officer.birtamod2@example.com', palika: 'Birtamod', ward: 2 },
+      { email: 'palika.birtamod@example.com', palika: 'Birtamod', ward: null },
+    ]);
+  });
+
+  it('has no system admin in the public demo file: it comes only from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD', async () => {
+    expect(adminFromEnv({})).toBeUndefined();
+    expect(() => adminFromEnv({ SEED_ADMIN_EMAIL: 'root@gmail.com', SEED_ADMIN_PASSWORD: 'a-long-password' })).toThrow(/example\.com/);
+    expect(() => adminFromEnv({ SEED_ADMIN_EMAIL: 'root@example.com', SEED_ADMIN_PASSWORD: 'short' })).toThrow(/12 characters/);
+    expect(adminFromEnv({ SEED_ADMIN_EMAIL: ' Root@Example.com ', SEED_ADMIN_PASSWORD: 'a-long-password' })).toEqual({
+      email: 'root@example.com',
+      password: 'a-long-password',
+    });
+  });
+
+  it('puts both test ward officers in Kathmandu Ward 1 (needed for the "two officers" tests)', async () => {
     const { rows } = await client.query(
       `SELECT u.phone, l.name_en AS palika, w.number AS ward
        FROM users u JOIN wards w ON w.id = u.ward_id JOIN local_levels l ON l.id = w.local_level_id

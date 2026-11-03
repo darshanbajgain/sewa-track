@@ -93,7 +93,7 @@ after 15 minutes without requests, and pinging `/health` instead would keep the 
 ## Auth
 
 ### `POST /auth/login`
-Body: `{ "email": "officer.ward1@example.com", "password": "demo1234", "portal": "STAFF" }` (email is lowercased; password 1–200 chars; `portal` = the login page: `CITIZEN` for citizens, `STAFF` for every other role)
+Body: `{ "email": "officer.birtamod2@example.com", "password": "demo1234", "portal": "STAFF" }` (email is lowercased; password 1–200 chars; `portal` = the login page: `CITIZEN` for citizens, `STAFF` for every other role)
 
 - `200` `{ "user": { "id", "role", "name", "email", "wardId", "localLevelId" } }` + `Set-Cookie: sewa_session=…`
 - `400` invalid body · `401` unknown email **or** wrong password (same message for both) · `403` account deactivated, **or** right account on the wrong portal (`details.portal` = the right one; checked after the password; no cookie) · `429` after 5 attempts per minute per IP
@@ -112,7 +112,7 @@ Body: `{ "name": "Sita Demo", "email": "sita@example.com", "password": "at-least
 
 ```bash
 curl -c cookies.txt -X POST localhost:4000/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"email":"officer.ward1@example.com","password":"demo1234"}'
+  -H 'Content-Type: application/json' -d '{"email":"officer.birtamod2@example.com","password":"demo1234","portal":"STAFF"}'
 curl -b cookies.txt localhost:4000/api/v1/auth/me
 ```
 

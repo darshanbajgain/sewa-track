@@ -46,10 +46,8 @@ export function useLogout() {
  */
 export const DEMO_PASSWORD = 'demo1234';
 export const DEMO_ACCOUNTS = [
+  // The public demo set (apps/api/db/seed-data/demo-users.json). No system admin here: that account is private.
   { email: 'citizen@example.com', labelKey: 'login.asCitizen', portal: 'CITIZEN' },
-  { email: 'officer.ward1@example.com', labelKey: 'login.asOfficer', portal: 'STAFF' },
-  { email: 'officer2.ward1@example.com', labelKey: 'login.asOfficer2', portal: 'STAFF' },
-  { email: 'officer.ward2@example.com', labelKey: 'login.asOfficerWard2', portal: 'STAFF' },
-  { email: 'palika.admin@example.com', labelKey: 'login.asPalika', portal: 'STAFF' },
-  { email: 'system.admin@example.com', labelKey: 'login.asSystem', portal: 'STAFF' },
+  { email: 'officer.birtamod2@example.com', labelKey: 'login.asOfficer', portal: 'STAFF' },
+  { email: 'palika.birtamod@example.com', labelKey: 'login.asPalika', portal: 'STAFF' },
 ] as const;

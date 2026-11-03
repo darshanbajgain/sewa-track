@@ -1,11 +1,13 @@
+import { readFile } from 'node:fs/promises';
 import pg from 'pg';
 import { runMigrations } from '../src/db/migrate.js';
-import { runSeed } from '../src/db/seed.js';
+import { runSeed, type SeedUser } from '../src/db/seed.js';
 
 /**
  * Runs ONCE before all test files:
  *   1. brings the test database schema up to date (migrations),
- *   2. loads reference data (locations, service catalog), which many tests need.
+ *   2. loads reference data (locations, service catalog) and the accounts the tests use: the public demo
+ *      set plus test-only accounts (fixtures/test-users.json: Kathmandu officers, palika admin, system admin).
  * Both steps are idempotent, so running tests again and again is safe.
  */
 export default async function setup(): Promise<void> {
@@ -17,7 +19,8 @@ export default async function setup(): Promise<void> {
   const client = new pg.Client({ connectionString: url });
   await client.connect();
   try {
-    await runSeed(client);
+    const fixtures = JSON.parse(await readFile(new URL('./fixtures/test-users.json', import.meta.url), 'utf8')) as { users: SeedUser[] };
+    await runSeed(client, { extraUsers: fixtures.users });
   } finally {
     await client.end();
   }

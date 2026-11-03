@@ -1,11 +1,17 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { DEMO_EMAIL_DOMAIN } from '@sewa/shared';
 import type pg from 'pg';
+import { z } from 'zod';
 import { hashPassword } from '../security/password.js';
 
 /**
- * Seeds REFERENCE data (location hierarchy, service catalog) and the fake DEMO accounts.
- * (Demo requests are added in a later phase, together with the code that uses them.)
+ * Seeds REFERENCE data (location hierarchy, service catalog), the public DEMO accounts
+ * (db/seed-data/demo-users.json) and, if given, the private SYSTEM ADMIN.
+ *
+ * The system admin is not in the repo (decided 2026-11-03): its email and password come from env
+ * (SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, see adminFromEnv). Without them no admin is created.
+ * Tests pass their own extra accounts (`extraUsers`, test/fixtures/test-users.json).
  *
  * Properties:
  *   - Idempotent: running it twice gives the same result ("upsert": insert, or update if the row exists).
@@ -29,6 +35,40 @@ async function readSeedFile(name: string): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(SEED_DIR + name, 'utf8')) as Record<string, unknown>;
 }
 
+/** One account as written in demo-users.json (a ward officer names its palika + ward number). */
+export interface SeedUser {
+  role: string;
+  name: string;
+  email: string;
+  phone?: string;
+  wardLocalLevelId?: number;
+  wardNumber?: number;
+  localLevelId?: number;
+}
+
+/** The private system admin. Same demo email rule as every account; a longer password than users need. */
+export const seedAdminSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email())
+    .refine((e) => e.endsWith(`@${DEMO_EMAIL_DOMAIN}`), `SEED_ADMIN_EMAIL must end in @${DEMO_EMAIL_DOMAIN} (demo rule)`),
+  password: z.string().min(12, 'SEED_ADMIN_PASSWORD must be at least 12 characters').max(200),
+});
+export type SeedAdmin = z.infer<typeof seedAdminSchema>;
+
+/** The admin from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD, or undefined if neither is set (throws if invalid). */
+export function adminFromEnv(env: NodeJS.ProcessEnv = process.env): SeedAdmin | undefined {
+  if (!env.SEED_ADMIN_EMAIL && !env.SEED_ADMIN_PASSWORD) return undefined;
+  return seedAdminSchema.parse({ email: env.SEED_ADMIN_EMAIL, password: env.SEED_ADMIN_PASSWORD });
+}
+
+export interface SeedOptions {
+  extraUsers?: SeedUser[]; // more accounts with the demo password (tests only)
+  admin?: SeedAdmin; // the private system admin
+}
+
 /**
  * How the bulk inserts work (Postgres `jsonb_to_recordset`):
  *   We send the whole array as ONE JSON parameter ($1). `jsonb_to_recordset` turns it into rows,
@@ -39,19 +79,22 @@ async function readSeedFile(name: string): Promise<Record<string, unknown>> {
  *   if a row with that id already exists, update it with the new values (EXCLUDED = the row we
  *   tried to insert). That's what makes the seed safe to run again.
  */
-export async function runSeed(client: pg.ClientBase): Promise<SeedSummary> {
+export async function runSeed(client: pg.ClientBase, options: SeedOptions = {}): Promise<SeedSummary> {
   const locations = await readSeedFile('locations.json');
   const catalog = await readSeedFile('service-types.json');
   const demo = await readSeedFile('demo-users.json');
 
   // Hash the demo password once per user (each gets its own random salt). Done BEFORE the
   // transaction starts, so slow hashing doesn't keep the transaction open.
+  const allUsers = [...(demo.users as SeedUser[]), ...(options.extraUsers ?? [])];
   const demoUsers = await Promise.all(
-    (demo.users as Record<string, unknown>[]).map(async (u) => ({
+    allUsers.map(async (u) => ({
       ...u,
       passwordHash: await hashPassword(demo.password as string),
     })),
   );
+
+  const adminHash = options.admin ? await hashPassword(options.admin.password) : null;
 
   await client.query('BEGIN');
   try {
@@ -125,6 +168,17 @@ export async function runSeed(client: pg.ClientBase): Promise<SeedSummary> {
              ward_id = EXCLUDED.ward_id, local_level_id = EXCLUDED.local_level_id`,
       [JSON.stringify(demoUsers)],
     );
+
+    // The private system admin, matched by email. Its password is (re)set on every run, so changing
+    // SEED_ADMIN_PASSWORD and seeding again rotates it.
+    if (adminHash && options.admin) {
+      await client.query(
+        `INSERT INTO users (role, name, email, password_hash) VALUES ('SYSTEM_ADMIN', 'System Admin', $1, $2)
+         ON CONFLICT (email) DO UPDATE
+           SET role = 'SYSTEM_ADMIN', password_hash = EXCLUDED.password_hash, is_active = true, ward_id = NULL, local_level_id = NULL`,
+        [options.admin.email, adminHash],
+      );
+    }
 
     // Count everything in one query (each sub-SELECT is a scalar subquery).
     const { rows } = await client.query<{ [K in keyof SeedSummary]: number }>(

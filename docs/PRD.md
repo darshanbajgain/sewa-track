@@ -151,7 +151,7 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 - **Separate login pages** (added 2026-11-03): citizens at `/login` (with sign-up link), staff (ward officer, palika admin, system admin) at `/staff/login` (no sign-up; staff accounts are created by the system admin). The login request names its portal and the API enforces it: the right account on the wrong page → `403` with `details.portal` (checked after the password, so it doesn't reveal which emails are staff). Staff portals redirect to the staff login.
 - **Citizen sign-up** (`/register`): name, email, password (≥ 8). Logged in straight away. Role is always `CITIZEN`.
 - **Demo rule:** new accounts must use an `@example.com` email (reserved for examples, RFC 2606), so the public demo never stores a real address (§12.3).
-- **Demo mode** on the login page: a separate, collapsed panel listing one fake account per role; choosing one fills the normal form.
+- **Demo mode** on the login page: a separate, collapsed panel listing the public fake accounts (2026-11-03: a citizen, the Birtamod ward 2 officer and the Birtamod palika admin; password `demo1234`); choosing one fills the normal form. The **system admin is private**: created by the seed from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (env only, never in the repo).
 - Deactivated accounts can't log in (403) and their sessions stop working immediately.
 - **AC:** wrong password or unknown email → same 401; sign-up with a taken email → 409; non-demo email → 400; protected routes without a cookie → 401; sign-up and login rate limited (5/min); staff account on the citizen login (or citizen on the staff login) → 403, no cookie.
 
@@ -236,7 +236,7 @@ Also: `REJECTED` and `CANCELLED` set `closedAt`.
 - **Demo notice** (changed 2026-11-03, owner), in both languages: **"Demo / portfolio project. Not affiliated with any government body. Do not enter real information."**
   - shown as a **dialog when the site loads**; closing it lasts until the next full page load (a reload shows it again);
   - plus a permanent marker on **every page**: a "DEMO · डेमो" pill next to the logo and the demo line in the footer.
-- `pnpm demo:reset` re-seeds the database (can be run nightly by the host's cron or a scheduled GitHub Action).
+- `pnpm demo:reset` (needs `CONFIRM_RESET=yes` and the admin env vars) puts the demo back in a clean state: re-seeds, deletes **all requests** and the old demo accounts (accounts not on that list are kept), then adds ~2,000 anonymous **sample** requests across Nepal, **none in Birtamod**, so the delay map isn't empty while Birtamod staff see only real requests.
 
 ## 8. Data model
 

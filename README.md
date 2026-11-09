@@ -191,7 +191,7 @@ curl -b cookies.txt localhost:4000/api/v1/auth/me
 apps/
   api/            Express REST API (src/, SQL migrations, seed data, tests)
   web/            Next.js frontend (public pages, login, citizen and staff portals)
-  nid-mock/       mock "existing ID service" (planned)
+  nid-mock/       mock "existing ID service": slow, sometimes down, on purpose (PRD F9)
 packages/
   shared/         enums, Zod schemas and types used by api and web
 docs/             requirements, architecture, database, codebase guide

@@ -6,4 +6,5 @@ export * from './requests.js';
 export * from './stats.js';
 export * from './enums.js';
 export * from './errors.js';
+export * from './nid.js';
 export * from './trackingCode.js';

@@ -1,6 +1,7 @@
 import express, { type Express } from 'express';
 import helmet from 'helmet';
 import { env } from './config/env.js';
+import { HttpNidClient, type NidClient } from './integrations/nidClient.js';
 import { ConsoleNotifier, type Notifier } from './integrations/notifier.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { requireProxySecret } from './middleware/proxySecret.js';
@@ -27,12 +28,14 @@ import { createTrackingRouter } from './routes/tracking.routes.js';
  */
 export interface AppDeps {
   notifier: Notifier;
+  nidClient: NidClient | null; // null = no identity checks (NID_BASE_URL not set)
 }
 
-export function createApp(deps: AppDeps = { notifier: new ConsoleNotifier() }): Express {
+export function createApp(deps: Partial<AppDeps> = {}): Express {
   const app = express();
-  // app.locals is Express' place for app-wide values; controllers read the notifier from here.
-  app.locals.notifier = deps.notifier;
+  // app.locals is Express' place for app-wide values; controllers read the outside services from here.
+  app.locals.notifier = deps.notifier ?? new ConsoleNotifier();
+  app.locals.nidClient = deps.nidClient !== undefined ? deps.nidClient : env.NID_BASE_URL ? new HttpNidClient(env.NID_BASE_URL) : null;
   // Behind proxies, req.ip would be the proxy's address for everyone (one shared rate-limit counter).
   // Trusting exactly N hops makes req.ip the real client. See TRUST_PROXY in config/env.ts.
   app.set('trust proxy', env.TRUST_PROXY);

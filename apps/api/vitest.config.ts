@@ -5,6 +5,8 @@ import { defineConfig } from 'vitest/config';
 // In CI there is no .env file; the variables are set by the workflow instead.
 const rootEnv = new URL('../../.env', import.meta.url);
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
+// Tests never call a real ID service: each test that needs one passes a fake (createApp({ nidClient })).
+delete process.env.NID_BASE_URL;
 
 // Tests always use the separate test database, never the dev one.
 process.env.TEST_DATABASE_URL ??= 'postgres://sewa:sewa_dev_password@localhost:5432/sewa_track_test';

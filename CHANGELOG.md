@@ -5,6 +5,13 @@ versions follow [Semantic Versioning](https://semver.org/). Numbers in brackets 
 
 > Demo / portfolio project. Not affiliated with any government body.
 
+## [Unreleased]
+
+### Added
+- Mock National ID service (`apps/nid-mock`) and an API client with a 2 s timeout and 2 retries (200 ms, 400 ms), with a shared contract tested on both sides (#41).
+- Each new request's applicant is checked with that service after the citizen gets their reply; the result (`MATCH`, `NO_MATCH` or `FAILED`) and an `IDENTITY_CHECKED` history event are stored together. Off unless `NID_BASE_URL` is set.
+- Docker image and a `nid-mock` service in docker compose; CI builds the image.
+
 ## [0.1.0] — 2026-11-04
 
 First public release. Live demo: <https://sewa-track.vercel.app>.

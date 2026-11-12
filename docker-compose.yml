@@ -19,6 +19,8 @@ x-api: &api
     # One proxy in front: the web container's /api rewrite.
     TRUST_PROXY: 1
     LOG_LEVEL: info
+    # The mock National ID service below (PRD F9), reached by its service name.
+    NID_BASE_URL: http://nid-mock:4100
 
 services:
   db:
@@ -53,6 +55,15 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      nid-mock:
+        condition: service_healthy
+
+  # Pretend "existing government ID service": slow and sometimes down on purpose (PRD F9). Not published.
+  nid-mock:
+    build:
+      context: .
+      dockerfile: apps/nid-mock/Dockerfile
+    image: sewa-nid-mock
 
   web:
     build:

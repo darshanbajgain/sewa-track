@@ -79,3 +79,5 @@ jobs:
         run: docker build -f apps/api/Dockerfile -t sewa-api .
       - name: Build web image
         run: docker build -f apps/web/Dockerfile --build-arg API_ORIGIN=http://api:4000 -t sewa-web .
+      - name: Build mock ID service image
+        run: docker build -f apps/nid-mock/Dockerfile -t sewa-nid-mock .

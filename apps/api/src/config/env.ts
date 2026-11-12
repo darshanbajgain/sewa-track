@@ -30,6 +30,9 @@ const envSchema = z.object({
   // Shared with the web app, which sends it on every request it forwards. When set, the API refuses
   // requests without it, so the website is the only way in (middleware/proxySecret.ts). Unset = off.
   PROXY_SECRET: z.string().min(32, 'PROXY_SECRET must be at least 32 characters').optional(),
+  // Base URL of the National ID service (PRD F9; in this demo apps/nid-mock, e.g. http://localhost:4100).
+  // Unset = no identity check is made, and new requests keep "ID check pending".
+  NID_BASE_URL: z.url().optional(),
   // Shown by /health so we can tell which build is running after a deploy.
   APP_VERSION: z.string().default('0.1.0'),
   GIT_COMMIT: z.string().default('local'),

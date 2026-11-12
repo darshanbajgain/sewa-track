@@ -85,7 +85,7 @@ flowchart LR
   end
 
   db[("PostgreSQL 16 ✅")]
-  nid["apps/nid-mock · Express 🔜"]
+  nid["apps/nid-mock · Express"]
   shared["packages/shared ✅<br/>enums · Zod schemas · types"]
 
   browser -- "HTTPS (one origin)" --> pages
@@ -102,7 +102,7 @@ flowchart LR
 | `apps/web` ✅ | Next.js 16 App Router, Tailwind 4, TanStack Query 5, Leaflet (planned map) | UI in Nepali/English; calls the API; never talks to the DB | 3000 |
 | `apps/api` ✅ | Express 5, TypeScript, Zod, `pg`, pino | All business rules, auth, validation, SQL | 4000 |
 | PostgreSQL ✅ | Postgres 16 | Source of truth; enforces constraints | 5432 |
-| `apps/nid-mock` 🔜 | Express | Simulates a slow, sometimes failing external ID service | 5000 |
+| `apps/nid-mock` | Express | Simulates a slow, sometimes failing external ID service | 4100 |
 | `packages/shared` ✅ | TypeScript + Zod | One definition of statuses, codes, schemas, error shape | — |
 
 **Why the web app proxies `/api/*` to the API (same origin):** the login cookie is
@@ -129,7 +129,7 @@ flowchart TB
   controllers --> services["services/ — use cases, own transactions 🔜"]
   services --> domain["domain/ — pure rules: transitions, overdue, trackingCode ✅"]
   services --> repos["repositories/ — hand-written SQL ✅"]
-  services --> integrations["integrations/ — nidClient, notifier 🔜"]
+  services --> integrations["integrations/ — nidClient, notifier"]
   repos --> pg[("PostgreSQL")]
   integrations --> nid["nid-mock"]
 
@@ -378,15 +378,24 @@ so detecting them at write time (and asking to reload) is cheaper and simpler.
 
 ## 9. Integration with the ID service
 
-The mock (`apps/nid-mock`) 🔜 behaves like a real external service: random latency 100–1500 ms
-and about 10% `503` errors.
+The mock (`apps/nid-mock`) behaves like a real external service: random latency 100–1500 ms and
+about 10% `503` errors. A demo ID ending in `0` never matches, so the "did not match" path can be shown.
+
+Flow: the citizen submits → the API saves the request with a `PENDING` check and **replies at once** →
+then, in the background, [identity.service.ts](../apps/api/src/services/identity.service.ts) asks the
+service through [nidClient.ts](../apps/api/src/integrations/nidClient.ts) and stores `MATCH`, `NO_MATCH` or
+`FAILED` with the number of attempts, plus an `IDENTITY_CHECKED` audit event (actor: the system), in one
+transaction. Officers see it in the request's checklist; public tracking never shows it.
 
 | Rule | Value | Why |
 |---|---|---|
 | Timeout per call | 2 s | Never let a slow service hold our request |
 | Retries | 2, with backoff 200 ms → 400 ms | Ride out short failures without hammering the service |
+| Not retried | a 4xx or a reply in the wrong shape | Asking again would get the same answer |
+| Worst case | 2 + 0.2 + 2 + 0.4 + 2 = 6.6 s | Why the check runs after the reply, not while the citizen waits |
 | On final failure | `identity_checks.status = FAILED` | Officer sees it; the citizen's submission still succeeded |
-| Contract test | client's request/response shape vs the mock | A change in the mock's API breaks the build, not production |
+| Contract test | one Zod contract in `packages/shared/src/nid.ts`; the mock and the client are each tested against it | A change on one side alone breaks the build, not production |
+| Switch | `NID_BASE_URL` (unset = no check, stays `PENDING`) | Runs with or without the service |
 
 **Trade-off:** the check runs in the background inside the API process after the response. If
 the process restarts mid-check, the row stays `PENDING`. That's acceptable for a demo; a production

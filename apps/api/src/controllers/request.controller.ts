@@ -6,8 +6,10 @@ import {
   transitionBodySchema,
 } from '@sewa/shared';
 import type { RequestHandler } from 'express';
+import type { NidClient } from '../integrations/nidClient.js';
 import type { Notifier } from '../integrations/notifier.js';
 import { changeStatus, markFeePaid } from '../services/change.service.js';
+import { runIdentityCheck } from '../services/identity.service.js';
 import { listMyRequests, submitRequest } from '../services/request.service.js';
 import { getQueue, getRequestDetail } from '../services/staff.service.js';
 
@@ -17,6 +19,11 @@ export const postRequest: RequestHandler = async (req, res) => {
   const created = await submitRequest(req.user!, input);
   // 201 Created = a new resource was made. The citizen needs the tracking code to follow it.
   res.status(201).json({ request: created });
+
+  // Then, without making the citizen wait (it can take seconds), check the ID with the National ID
+  // service. `void`: we deliberately don't await it; runIdentityCheck never throws (PRD F9).
+  const nid = req.app.locals.nidClient as NidClient | null;
+  if (nid) void runIdentityCheck(nid, created.id, input.applicant);
 };
 
 /** GET /api/v1/requests/mine (citizen): own requests only. */

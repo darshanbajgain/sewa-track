@@ -356,7 +356,7 @@ so "at most 10 documents" holds even for two uploads at the same moment.
 | `id` | `bigint` | PK, identity | |
 | `request_id` | `uuid` | NN, FK → service_requests | |
 | `status` | `text` | NN, CHECK in 4 | `FAILED` = service unreachable after retries |
-| `attempts` | `smallint` | NN, default 0, CHECK ≥ 0 | 1 call + up to 2 retries |
+| `attempts` | `smallint` | NN, default 0, CHECK ≥ 0 | 1 call + up to 2 retries; written once with the result (`UPDATE … WHERE status = 'PENDING'`) |
 | `response_ms` | `integer` | CHECK ≥ 0, nullable | Latency, for monitoring the integration |
 | `created_at` | `timestamptz` | NN, default `now()` | |
 

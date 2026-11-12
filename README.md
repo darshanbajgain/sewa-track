@@ -107,6 +107,7 @@ and may be outdated.
 | Supporting documents: officer names what's needed, citizen uploads, officer accepts / "not OK"; type checked from the file's bytes | ✅ |
 | Staff request screen: progress bar, one next step, checklist; separate citizen and staff login pages; role-only menus | ✅ |
 | UI polish: accessible dropdowns and date picker, skeleton loading (no layout jumps), scrolling table cards | ✅ |
+| Integration with a mock National ID service: 2 s timeout, 2 retries with backoff, contract test, check runs after the reply (PRD F9) | ✅ (live: off until hosted) |
 | Live demo ([sewa-track.vercel.app](https://sewa-track.vercel.app)): web on Vercel, API on Render, Postgres on Neon; demo data reset with `pnpm demo:reset` | ✅ |
 
 ---

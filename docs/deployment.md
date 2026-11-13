@@ -103,6 +103,7 @@ API (validated at startup in [config/env.ts](../apps/api/src/config/env.ts); a b
 | `API_DOCS_ENABLED` | `true` | Swagger UI at `/api/docs` |
 | `APP_VERSION`, `GIT_COMMIT` | `0.1.0`, `ef62e0d` | Shown by `/health`, to tell which build is live |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | `admin@example.com`, 12+ chars | Seed/reset only (not the API). The private system admin; never commit them |
+| `NID_BASE_URL` | `https://…` / `http://nid-mock:4100` | The mock National ID service (PRD F9). Unset = no ID checks; new requests keep "ID check pending" |
 
 Web:
 
@@ -158,6 +159,18 @@ Fix: the web app reports the visitor's IP itself, and proves it is the web app.
 for `/live` and `/health`.
 
 To rotate the secret: set a new value on both hosts, then redeploy both.
+
+## 5b. The mock National ID service (PRD F9)
+
+A third, tiny app (`apps/nid-mock`, image built by [its Dockerfile](../apps/nid-mock/Dockerfile)). In docker
+compose it runs as `nid-mock` and the API reaches it at `http://nid-mock:4100`; its port is not published.
+It needs no settings and no secrets (it holds no data). The API uses it only when `NID_BASE_URL` is set.
+
+**Live demo: where to host it.** The free API host allows about 750 instance hours a month, and the API alone,
+kept awake by the pinger (§6), uses about 744. A second always-on service there doesn't fit: the mock would
+sleep, and the first check after a quiet spell would wait for it to start (about a minute) and end as `FAILED`
+after the client's 6.6 s limit. So host it where it doesn't sleep (for example as a serverless function), or
+accept `FAILED` after idle periods. Until `NID_BASE_URL` is set on the API, nothing changes on the live site.
 
 ## 6. Free hosting: sleep and keep-awake
 

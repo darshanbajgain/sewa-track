@@ -171,6 +171,10 @@ Fees and days are **demo values**.
 - `purpose` 10–500 chars · `applicant.nid` must be `DEMO-` + 7 digits (demo data only) · `consent` must be `true`
 - In **one transaction**: the request (location ids copied from the ward), a `CREATED` audit event,
   and a `PENDING` identity check. If any step fails, nothing is saved.
+- **After** replying, the API checks the applicant with the National ID service (PRD F9) in the background:
+  the check becomes `MATCH`, `NO_MATCH` or `FAILED` (service down after 3 attempts), with an `IDENTITY_CHECKED`
+  history event. Shown as `identityCheck` on `GET /requests/:id`; never on public tracking.
+  Off when `NID_BASE_URL` is not set (the check stays `PENDING`).
 - `201` `{ "request": { "id", "trackingCode": "ST-7K3QX9M2PD", "status": "SUBMITTED", "submittedAt" } }`
 - `400` invalid body (field details) · `401` not logged in · `403` not a citizen · `404` unknown ward
 

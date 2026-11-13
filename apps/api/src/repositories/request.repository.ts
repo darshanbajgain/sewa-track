@@ -68,6 +68,25 @@ export async function insertPendingIdentityCheck(client: DbClient, requestId: st
   await client.query(`INSERT INTO identity_checks (request_id, status) VALUES ($1, 'PENDING')`, [requestId]);
 }
 
+export interface IdentityCheckResult {
+  status: 'MATCH' | 'NO_MATCH' | 'FAILED';
+  attempts: number;
+  responseMs: number | null; // null when no attempt answered
+}
+
+/**
+ * Stores the outcome. `status = 'PENDING'` in the WHERE: a check is completed once; a second outcome
+ * for the same request (e.g. a duplicate run) changes nothing. Returns false if nothing was pending.
+ */
+export async function completeIdentityCheck(client: DbClient, requestId: string, result: IdentityCheckResult): Promise<boolean> {
+  const { rowCount } = await client.query(
+    `UPDATE identity_checks SET status = $2, attempts = $3, response_ms = $4
+     WHERE request_id = $1 AND status = 'PENDING'`,
+    [requestId, result.status, result.attempts, result.responseMs],
+  );
+  return rowCount === 1;
+}
+
 export interface MyRequestRow {
   id: string;
   trackingCode: string;

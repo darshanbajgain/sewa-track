@@ -71,7 +71,7 @@ sewa-track/
 │  │  ├─ tsconfig.json          ✅ extends the root TypeScript config
 │  │  └─ vitest.config.ts       ✅ test runner config (points tests at the test DB)
 │  ├─ web/                      ✅ Next.js frontend (see §18)
-│  └─ nid-mock/                 🔜 tiny mock "existing government ID service"
+│  └─ nid-mock/                 tiny mock "existing government ID service" (PRD F9)
 ├─ packages/
 │  └─ shared/                   ✅ enums, Zod schemas, error types used by both api and web
 ├─ .github/workflows/ci.yml     ✅ CI: type-check → test (real Postgres) → build
@@ -162,7 +162,7 @@ Saving a file reloads the API in about a second.
 
 ```
 Docker:  [ db ]
-Laptop:  api (tsx watch)   web (next dev, later)   nid-mock (later)
+Laptop:  api (tsx watch)   web (next dev)   nid-mock (tsx watch, :4100)
 ```
 
 **Mode B, whole system in Docker (planned for the deploy phase):** each app gets its own image
@@ -170,7 +170,7 @@ and Compose runs all of them on one private network.
 
 ```
 web :3000 ──▶ api :4000 ──▶ db :5432
-                  └──────▶ nid-mock :5000
+                  └──────▶ nid-mock :4100
 ```
 
 ### `docker-compose.yml`, line by line
@@ -381,7 +381,7 @@ The `requestId` lets you find the exact log lines for a failed request.
 | Schema | Vitest + `pg` | The database itself rejects bad data | `apps/api/test/schema.test.ts` |
 | Unit | Vitest | Pure rules (transitions, overdue, tracking code, fee payment) | `src/domain/*.test.ts` |
 | Integration | Vitest + Supertest + real Postgres | Endpoints work end to end with SQL | `apps/api/test/*.test.ts` |
-| Contract | Vitest | NID client still matches the mock's API | 🔜 |
+| Contract | Vitest | NID client and mock both match the shared contract (`packages/shared/src/nid.ts`) | `apps/nid-mock/src/app.test.ts`, `apps/api/src/integrations/nidClient.test.ts` |
 
 Integration tests do **not** mock the database: mocks can hide real SQL bugs.
 They use the separate `sewa_track_test` database, so they can never damage development data.
@@ -410,7 +410,7 @@ Current tests (`test/health.test.ts`): health returns 200 with DB up; every resp
 | P6 | Stats endpoints + 100k seed, indexes (migration 003), `docs/performance.md` with measured before/after | ✅ |
 | P7 | Web: foundation ✅ · citizen portal ✅ · staff portal ✅ · district delay map ✅ (palika drill-down: M3) | ✅ |
 | P8 | Large seed + performance doc, Dockerfiles, deploy, README | 🔜 |
-| P9 | NID mock + contract test, Swagger, ADRs, full Nepali UI | 🔜 |
+| P9 | NID mock + client (timeout, retries) + contract test ✅, Swagger ✅, ADRs ✅, full Nepali UI ✅ | ✅ |
 
 ---
 
